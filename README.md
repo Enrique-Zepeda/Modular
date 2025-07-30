@@ -1,69 +1,113 @@
-# React + TypeScript + Vite
+# 🏋️‍♂️ Modular Gym App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Una aplicación web modular de gimnasio construida con tecnologías modernas como React, TypeScript, Tailwind CSS, Supabase, Redux Toolkit, entre otras. Este proyecto fue creado para facilitar el seguimiento y planificación de rutinas de entrenamiento.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 Tecnologías usadas
 
-## Expanding the ESLint configuration
+- **React 19**
+- **TypeScript**
+- **Vite**
+- **Tailwind CSS 4**
+- **Redux Toolkit + RTK Query**
+- **Supabase (auth + DB)**
+- **React Hook Form + Zod**
+- **SweetAlert2 / React Hot Toast**
+- **Heroicons + Lucide Icons**
+- **Framer Motion**
+- **pnpm**
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+---
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## ⚙️ Requisitos previos
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+Antes de comenzar, asegúrate de tener lo siguiente instalado en tu sistema:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 1. Node.js (npm incluido)
+
+> Descárgalo desde [https://nodejs.org/](https://nodejs.org/) (elige la versión LTS).
+
+Si ya tienes Node.js instalado, puedes pasar directamente al paso 2 para instalar `pnpm`.
+
+Si estás usando un manejador de versiones como `nvm`, asegúrate de tener una versión de Node activa y configurada en tu entorno.
+
+Para verificar que Node.js y npm están instalados correctamente:
+
+```bash
+node -v
+npm -v
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+---
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 2. pnpm
+
+Este proyecto utiliza [pnpm](https://pnpm.io/) como gestor de paquetes por su rapidez y eficiencia.
+
+#### Para instalar pnpm globalmente:
+
+```bash
+npm install -g pnpm
 ```
+
+Verifica la instalación:
+
+```bash
+pnpm -v
+```
+
+---
+
+## 📦 Instalación del proyecto
+
+Una vez que tengas `pnpm` instalado, clona el repositorio y sigue estos pasos:
+
+```bash
+# Clona este repositorio
+git clone https://github.com/Enrique-Zepeda/Modular.git
+
+# Entra a la carpeta del proyecto
+cd Modular
+
+# Instala las dependencias
+pnpm install
+```
+
+---
+
+## 🛠️ Scripts disponibles
+
+Dentro del proyecto puedes ejecutar:
+
+### `pnpm dev`
+
+Inicia el servidor de desarrollo en [http://localhost:5173](http://localhost:5173).
+
+### `pnpm build`
+
+Compila la aplicación para producción en la carpeta `dist`.
+
+### `pnpm preview`
+
+Sirve la build para previsualizarla localmente.
+
+### `pnpm lint`
+
+Ejecuta ESLint para verificar el código.
+
+---
+
+## 🔐 Variables de entorno
+
+Crea un archivo `.env` en la raíz del proyecto con tus claves de Supabase:
+
+```env
+VITE_SUPABASE_URL=https://xyzcompany.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key
+```
+
+> ⚠️ El archivo `.env` ya está en el `.gitignore` y **no se subirá al repositorio**.
+
+---
