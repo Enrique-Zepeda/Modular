@@ -2,6 +2,8 @@
 
 Una aplicación web modular de gimnasio construida con tecnologías modernas como React, TypeScript, Tailwind CSS, Supabase, Redux Toolkit, entre otras. Este proyecto fue creado para facilitar el seguimiento y planificación de rutinas de entrenamiento.
 
+👉 Consulta la [Guía de Estructura del Proyecto](./Estructura-Proyecto.md) para entender cómo está organizada la arquitectura por features.
+
 ---
 
 ## 🚀 Tecnologías usadas
