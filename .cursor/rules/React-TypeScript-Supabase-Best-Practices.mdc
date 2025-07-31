@@ -1,0 +1,400 @@
+# 🚀 Reglas y Mejores Prácticas - React + TypeScript + Supabase
+
+## 📁 Estructura y Organización
+
+### Estructura de Carpetas
+- Mantén la estructura actual: `src/features/`, `src/components/`, `src/pages/`, `src/hooks/`, `src/store/`, `src/supabase/`
+- Usa `features/` para lógica de negocio específica (auth, ejercicios, etc.)
+- Mantén `components/` para componentes reutilizables
+- Usa `pages/` para componentes de página completos
+
+### Nomenclatura
+- **Archivos**: PascalCase para componentes (`AuthProvider.tsx`)
+- **Carpetas**: camelCase para features (`auth/`, `ejercicios/`)
+- **Variables y funciones**: camelCase
+- **Constantes**: UPPER_SNAKE_CASE
+- **Interfaces/Types**: PascalCase con prefijo `I` para interfaces (`IUser`)
+
+## ⚛️ React y TypeScript
+
+### Componentes
+```typescript
+// ✅ Correcto
+interface IComponentProps {
+  title: string;
+  onAction?: () => void;
+}
+
+const Component: React.FC<IComponentProps> = ({ title, onAction }) => {
+  return <div>{title}</div>;
+};
+```
+
+### Hooks Personalizados
+- Nombra con prefijo `use` (`useAuth`, `useSupabase`)
+- Retorna objetos tipados
+- Maneja estados de loading y error
+
+### TypeScript
+- Define interfaces para todas las entidades de Supabase
+- Usa `Partial<T>` para props opcionales
+- Evita `any`, usa `unknown` si es necesario
+- Define tipos para respuestas de API
+
+## 🔄 Redux Toolkit
+
+### Slices
+```typescript
+// ✅ Estructura recomendada
+interface IAuthState {
+  user: IUser | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+const initialState: IAuthState = {
+  user: null,
+  isLoading: false,
+  error: null,
+};
+```
+
+### Async Thunks
+- Usa `createAsyncThunk` para operaciones asíncronas
+- Maneja estados pending, fulfilled, rejected
+- Usa `extraReducers` para casos específicos
+
+## 🗄️ Supabase
+
+### Cliente Supabase
+- Mantén una instancia única en `src/supabase/client.ts`
+- Usa variables de entorno para URLs y keys
+- Implementa manejo de errores consistente
+
+### Operaciones de Base de Datos
+```typescript
+// ✅ Patrón recomendado
+export const fetchUser = async (userId: string): Promise<IUser> => {
+  const { data, error } = await supabase
+    .from('Usuarios')
+    .select('*')
+    .eq('id_usuario', userId)
+    .single();
+  
+  if (error) throw new Error(error.message);
+  return data;
+};
+```
+
+### RLS (Row Level Security)
+- Habilita RLS en todas las tablas sensibles
+- Define políticas específicas por usuario
+- Usa `auth.uid()` para filtros de usuario
+
+## 🎨 UI/UX con shadcn/ui
+
+### Componentes UI
+- Usa componentes de shadcn/ui como base
+- Extiende con `class-variance-authority` para variantes
+- Mantén consistencia en spacing y colors
+
+### Styling
+```typescript
+// ✅ Usando CVA
+const buttonVariants = cva(
+  "inline-flex items-center justify-center rounded-md text-sm font-medium",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+      },
+      size: {
+        default: "h-10 px-4 py-2",
+        sm: "h-9 rounded-md px-3",
+        lg: "h-11 rounded-md px-8",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+);
+```
+
+## 🛣️ Routing
+
+### React Router
+- Usa rutas protegidas para páginas privadas
+- Implementa lazy loading para optimización
+- Maneja rutas 404 apropiadamente
+
+### Protección de Rutas
+```typescript
+// ✅ Patrón para rutas protegidas
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isLoading } = useAuth();
+  
+  if (isLoading) return <LoadingSpinner />;
+  if (!user) return <Navigate to="/login" />;
+  
+  return <>{children}</>;
+};
+```
+
+## 📝 Formularios
+
+### React Hook Form + Zod
+```typescript
+// ✅ Validación con Zod
+const loginSchema = z.object({
+  email: z.string().email('Email inválido'),
+  password: z.string().min(6, 'Mínimo 6 caracteres'),
+});
+
+type LoginForm = z.infer<typeof loginSchema>;
+```
+
+### Manejo de Estados
+- Usa `useState` para estado local simple
+- Usa `useReducer` para estado complejo
+- Usa Redux para estado global compartido
+
+## 🔒 Seguridad
+
+### Autenticación
+- Implementa refresh tokens
+- Maneja logout en múltiples pestañas
+- Valida tokens en cada request
+
+### Validación
+- Valida datos en frontend y backend
+- Sanitiza inputs de usuario
+- Usa CSRF tokens cuando sea necesario
+
+## ⚡ Performance
+
+### Optimización
+- Usa `React.memo()` para componentes costosos
+- Implementa lazy loading para rutas
+- Optimiza imágenes y assets
+- Usa `useMemo` y `useCallback` apropiadamente
+
+### Code Splitting
+```typescript
+// ✅ Lazy loading
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Login = lazy(() => import('./pages/Login'));
+```
+
+## 🧪 Testing y Calidad
+
+### ESLint
+- Mantén reglas estrictas de TypeScript
+- Usa `eslint-plugin-react-hooks`
+- Configura reglas específicas para tu proyecto
+
+### Manejo de Errores
+```typescript
+// ✅ Error Boundary
+class ErrorBoundary extends Component {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Error:', error, errorInfo);
+    // Enviar a servicio de monitoreo
+  }
+}
+```
+
+## 📱 Responsive y Accesibilidad
+
+### Mobile First
+- Diseña para mobile primero
+- Usa breakpoints de Tailwind consistentemente
+- Prueba en diferentes dispositivos
+
+### Accesibilidad
+- Usa `aria-*` attributes apropiadamente
+- Implementa navegación por teclado
+- Mantén contraste de colores adecuado
+
+## 🚀 Deployment
+
+### Variables de Entorno
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_anon_key
+```
+
+### Build Optimization
+- Usa `vite` para builds rápidos
+- Configura tree shaking
+- Optimiza bundle size
+
+## 📊 Monitoreo y Analytics
+
+### Logging
+- Implementa logging estructurado
+- Usa diferentes niveles (debug, info, warn, error)
+- Integra con servicios de monitoreo
+
+### Analytics
+- Trackea eventos importantes
+- Mide performance de componentes
+- Monitorea errores de usuario
+
+## 🔄 Desarrollo Continuo
+
+### Git Workflow
+- Usa conventional commits
+- Mantén branches limpios
+- Code review obligatorio
+
+### Documentación
+- Documenta componentes complejos
+- Mantén README actualizado
+- Documenta APIs y tipos
+
+## 🎯 Reglas Específicas del Proyecto
+
+### Base de Datos (Supabase)
+- Tabla `Usuarios`: Maneja autenticación y perfiles
+- Tabla `Rutinas`: Catálogo de rutinas disponibles
+- Tabla `Ejercicios`: Catálogo de ejercicios
+- Tabla `ProgresoDeUsuario`: Seguimiento de progreso
+- Tabla `Programas`: Programas de entrenamiento
+- Tabla `recomendacionesia`: Recomendaciones de IA
+- Tabla `feedbackusuario`: Feedback de usuarios
+
+### Tecnologías Específicas
+- **React 19**: Usa las últimas features
+- **TypeScript**: Tipado estricto siempre
+- **Redux Toolkit**: Estado global
+- **React Router DOM**: Navegación
+- **React Hook Form + Zod**: Formularios
+- **Tailwind CSS**: Styling
+- **shadcn/ui**: Componentes UI
+- **Lucide React**: Iconos
+- **React Hot Toast**: Notificaciones
+- **SweetAlert2**: Alertas avanzadas
+- **Motion**: Animaciones
+
+### Patrones de Código
+- Usa composición sobre herencia
+- Implementa principios SOLID
+- Mantén funciones puras cuando sea posible
+- Usa TypeScript strict mode
+- Implementa error boundaries
+- Usa React.memo() para optimización
+
+### Estructura de Archivos
+```
+src/
+├── components/          # Componentes reutilizables
+│   ├── ui/            # Componentes de shadcn/ui
+│   └── AuthProvider.tsx
+├── features/           # Lógica de negocio
+│   ├── auth/          # Autenticación
+│   └── ejercicios/    # Gestión de ejercicios
+├── pages/             # Páginas completas
+├── hooks/             # Hooks personalizados
+├── store/             # Redux store
+├── supabase/          # Cliente y operaciones de Supabase
+├── routes/            # Configuración de rutas
+└── types/             # Definiciones de tipos
+```
+
+## 🚨 Reglas Críticas
+
+1. **NUNCA** expongas tokens de Supabase en el código
+2. **SIEMPRE** valida datos de entrada
+3. **SIEMPRE** maneja errores de forma elegante
+4. **NUNCA** uses `any` en TypeScript
+5. **SIEMPRE** usa tipos para props de componentes
+6. **SIEMPRE** implementa loading states
+7. **NUNCA** hagas requests sin manejo de errores
+8. **SIEMPRE** usa RLS en tablas sensibles
+9. **SIEMPRE** documenta funciones complejas
+10. **NUNCA** commits código sin testing
+
+## 📋 Checklist de Calidad
+
+- [ ] Tipos TypeScript definidos
+- [ ] Manejo de errores implementado
+- [ ] Loading states configurados
+- [ ] Responsive design aplicado
+- [ ] Accesibilidad verificada
+- [ ] Performance optimizada
+- [ ] Tests escritos (si aplica)
+- [ ] Documentación actualizada
+- [ ] ESLint sin errores
+- [ ] Build exitoso
+
+## 🎨 Guía de Estilo
+
+### Colores (Tailwind)
+- Primary: `bg-primary`, `text-primary`
+- Secondary: `bg-secondary`, `text-secondary`
+- Accent: `bg-accent`, `text-accent`
+- Destructive: `bg-destructive`, `text-destructive`
+
+### Espaciado
+- Usa el sistema de espaciado de Tailwind
+- Mantén consistencia en padding/margin
+- Usa `space-x-*` y `space-y-*` para espaciado entre elementos
+
+### Tipografía
+- Usa la jerarquía de headings apropiadamente
+- Mantén consistencia en tamaños de fuente
+- Usa `font-medium`, `font-semibold` para énfasis
+
+### Animaciones
+- Usa `motion` para animaciones complejas
+- Usa transiciones CSS para animaciones simples
+- Mantén animaciones sutiles y profesionales
+
+## 🔧 Configuración Recomendada
+
+### ESLint
+```javascript
+// Reglas específicas para el proyecto
+{
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/explicit-function-return-type": "warn",
+    "react-hooks/exhaustive-deps": "error",
+    "react-hooks/rules-of-hooks": "error"
+  }
+}
+```
+
+### TypeScript
+```json
+{
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  }
+}
+```
+
+## 📚 Recursos Útiles
+
+- [React Documentation](https://react.dev/)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
+- [Supabase Documentation](https://supabase.com/docs)
+- [Redux Toolkit Guide](https://redux-toolkit.js.org/)
+- [shadcn/ui Components](https://ui.shadcn.com/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [React Hook Form](https://react-hook-form.com/)
+- [Zod Documentation](https://zod.dev/)
+
+---
+
+**Recuerda**: Estas reglas están diseñadas para mantener la calidad, escalabilidad y mantenibilidad de tu aplicación. Sigue estas prácticas consistentemente para crear un código robusto y profesional.
+description:
+globs:
+alwaysApply: false
+---

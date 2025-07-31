@@ -5,6 +5,7 @@ import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Dashboard from "@/pages/Dashboard";
 import RegistroEjercicio from "@/pages/RegistroEjercicio";
+import CrearRutina from "@/pages/CrearRutina";
 
 export default function AppRouter() {
   return (
@@ -13,6 +14,7 @@ export default function AppRouter() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/registro-ejercicio" element={<RegistroEjercicio  />} />
+      <Route path="/crear-rutina" element={<CrearRutina  />} />
       <Route
         path="/dashboard"
         element={
