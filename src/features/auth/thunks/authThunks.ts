@@ -1,6 +1,6 @@
-import type { AppDispatch } from "../../store/store";
-import { supabase } from "../../supabase/client";
-import { setUser, clearUser, setLoading } from "./authSlice";
+import type { AppDispatch } from "../../../app/store";
+import { supabase } from "../../../lib/supabase/client";
+import { setUser, clearUser, setLoading } from "../slices/authSlice";
 import Swal from "sweetalert2";
 
 export const loginUser = (email: string, password: string) => async (dispatch: AppDispatch) => {

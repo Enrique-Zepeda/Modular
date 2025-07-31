@@ -2,11 +2,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useNavigate, Link } from "react-router-dom";
-import { useAppDispatch } from "../hooks/useAppDispatch";
-import { useAppSelector } from "../hooks/useAppSelector";
-import { registerUser } from "../features/auth/authThunks";
-import { Button } from "../components/ui/button";
-import { ThemeToggleButton } from "../components/ThemeToggleButton";
+import { useAppDispatch } from "../../hooks/useAppDispatch";
+import { useAppSelector } from "../../hooks/useAppSelector";
+import { registerUser } from "../../features/auth/thunks/authThunks";
+import { Button } from "../../components/ui/button";
+import { ThemeToggleButton } from "@/features/theme/components/ThemeToggleButton";
 
 const registerSchema = z
   .object({
@@ -21,7 +21,7 @@ const registerSchema = z
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
-export default function Register() {
+export default function RegisterPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { loading } = useAppSelector((state) => state.auth);
