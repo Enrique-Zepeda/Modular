@@ -1,10 +1,18 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import "./index.css";
+import { store } from "./store/store.ts";
+import { Provider } from "react-redux";
 
-createRoot(document.getElementById('root')!).render(
+import App from "./App.tsx";
+
+const theme = localStorage.getItem("theme") ?? "light";
+document.documentElement.classList.add(theme);
+
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
-  </StrictMode>,
-)
+    <Provider store={store}>
+      <App />
+    </Provider>
+  </StrictMode>
+);
