@@ -1,21 +1,31 @@
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+"use client";
+
 import { z } from "zod";
 import { useNavigate, Link } from "react-router-dom";
-import { useAppDispatch } from "../../hooks/useAppDispatch";
-import { useAppSelector } from "../../hooks/useAppSelector";
-import { registerUser } from "../../features/auth/thunks/authThunks";
-import { Button } from "../../components/ui/button";
+import { registerUser } from "@/features/auth/thunks/authThunks";
+import { useAppDispatch, useAppSelector } from "@/hooks";
+import { useAuthForm } from "@/hooks/useAuthForm";
+
 import { ThemeToggleButton } from "@/features/theme/components/ThemeToggleButton";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { FormBuilder } from "@/components/form/FormBuilder";
+import { Dumbbell, Loader2, CheckCircle } from "lucide-react";
 
 const registerSchema = z
   .object({
-    email: z.string().email("Email inválido"),
-    password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+    email: z.string().email("Please enter a valid email address"),
+    password: z
+      .string()
+      .min(6, "Password must be at least 6 characters long")
+      .regex(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+        "Password must contain at least one uppercase letter, one lowercase letter, and one number"
+      ),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Las contraseñas no coinciden",
+    message: "Passwords do not match",
     path: ["confirmPassword"],
   });
 
@@ -26,13 +36,7 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const { loading } = useAppSelector((state) => state.auth);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema),
-  });
+  const form = useAuthForm(registerSchema);
 
   const onSubmit = async (data: RegisterFormData) => {
     await dispatch(registerUser(data.email, data.password));
@@ -41,84 +45,111 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background text-foreground py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
       <div className="absolute top-4 right-4">
         <ThemeToggleButton />
       </div>
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-foreground">Crear cuenta</h2>
-          <p className="mt-2 text-center text-sm text-muted-foreground">
-            ¿Ya tienes una cuenta?{" "}
-            <Link to="/login" className="font-medium text-primary hover:text-primary/80">
-              Inicia sesión aquí
-            </Link>
+
+      <div className="w-full max-w-md space-y-6">
+        {/* Logo and Brand */}
+        <div className="text-center space-y-2">
+          <div className="flex justify-center">
+            <div className="p-3 bg-primary/10 rounded-full">
+              <Dumbbell className="h-8 w-8 text-primary" />
+            </div>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight">FitTracker</h1>
+          <p className="text-sm text-muted-foreground">Start your fitness transformation</p>
+        </div>
+
+        {/* Register Card */}
+        <Card className="border-0 shadow-lg">
+          <CardHeader className="space-y-1 text-center pb-4">
+            <CardTitle className="text-xl font-semibold">Create your account</CardTitle>
+            <CardDescription className="text-sm text-muted-foreground">
+              Join thousands of fitness enthusiasts
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormBuilder
+                fields={[
+                  {
+                    name: "email",
+                    label: "Email",
+                    type: "email",
+                    placeholder: "Enter your email address",
+                  },
+                  {
+                    name: "password",
+                    label: "Password",
+                    type: "password",
+                    placeholder: "Create a strong password",
+                  },
+                  {
+                    name: "confirmPassword",
+                    label: "Confirm Password",
+                    type: "password",
+                    placeholder: "Confirm your password",
+                  },
+                ]}
+                form={form}
+              />
+
+              {/* Password Requirements */}
+              <div className="bg-muted/30 rounded-lg p-3 space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Password requirements:</p>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <CheckCircle className="h-3 w-3" />
+                    <span>At least 6 characters long</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <CheckCircle className="h-3 w-3" />
+                    <span>Contains uppercase and lowercase letters</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <CheckCircle className="h-3 w-3" />
+                    <span>Contains at least one number</span>
+                  </div>
+                </div>
+              </div>
+
+              <Button type="submit" className="w-full h-10 font-medium" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating account...
+                  </>
+                ) : (
+                  "Create account"
+                )}
+              </Button>
+            </form>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Already have an account?</span>
+              </div>
+            </div>
+
+            <Button variant="outline" className="w-full bg-transparent" asChild>
+              <Link to="/login">Sign in instead</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Footer */}
+        <div className="text-center">
+          <p className="text-xs text-muted-foreground">
+            By creating an account, you agree to our{" "}
+            <button className="underline underline-offset-4 hover:text-primary">Terms of Service</button> and{" "}
+            <button className="underline underline-offset-4 hover:text-primary">Privacy Policy</button>
           </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email" className="sr-only">
-                Email
-              </label>
-              <input
-                {...register("email")}
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-input bg-background text-foreground placeholder-muted-foreground rounded-t-md focus:outline-none focus:ring-ring focus:border-ring focus:z-10 sm:text-sm"
-                placeholder="Email"
-              />
-              {errors.email && <p className="mt-1 text-sm text-destructive">{errors.email.message}</p>}
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Contraseña
-              </label>
-              <input
-                {...register("password")}
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-input bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-ring focus:border-ring focus:z-10 sm:text-sm"
-                placeholder="Contraseña"
-              />
-              {errors.password && <p className="mt-1 text-sm text-destructive">{errors.password.message}</p>}
-            </div>
-            <div>
-              <label htmlFor="confirmPassword" className="sr-only">
-                Confirmar Contraseña
-              </label>
-              <input
-                {...register("confirmPassword")}
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-input bg-background text-foreground placeholder-muted-foreground rounded-b-md focus:outline-none focus:ring-ring focus:border-ring focus:z-10 sm:text-sm"
-                placeholder="Confirmar Contraseña"
-              />
-              {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-destructive">{errors.confirmPassword.message}</p>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50"
-            >
-              {loading ? "Registrando..." : "Registrarse"}
-            </Button>
-          </div>
-        </form>
       </div>
     </div>
   );
