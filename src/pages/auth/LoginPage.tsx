@@ -1,16 +1,17 @@
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useNavigate, Link } from "react-router-dom";
-import { useAppDispatch } from "../../hooks/useAppDispatch";
-import { useAppSelector } from "../../hooks/useAppSelector";
-import { loginUser } from "../../features/auth/thunks/authThunks";
-import { Button } from "../../components/ui/button";
+import { loginUser } from "@/features/auth/thunks/authThunks";
+import { useAppDispatch, useAppSelector } from "@/hooks";
+import { useAuthForm } from "@/hooks/useAuthForm";
 import { ThemeToggleButton } from "@/features/theme/components/ThemeToggleButton";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { FormBuilder } from "@/components/form/FormBuilder";
+import { Dumbbell, Loader2 } from "lucide-react";
 
 const loginSchema = z.object({
-  email: z.string().email("Email inválido"),
-  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters long"),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -20,81 +21,94 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { loading } = useAppSelector((state) => state.auth);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-  });
+  const form = useAuthForm(loginSchema);
 
   const onSubmit = async (data: LoginFormData) => {
     await dispatch(loginUser(data.email, data.password));
-    // Navigate to dashboard after successful login
     navigate("/dashboard");
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background text-foreground py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
       <div className="absolute top-4 right-4">
         <ThemeToggleButton />
       </div>
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-foreground">Iniciar sesión</h2>
-          <p className="mt-2 text-center text-sm text-muted-foreground">
-            ¿No tienes una cuenta?{" "}
-            <Link to="/register" className="font-medium text-primary hover:text-primary/80">
-              Regístrate aquí
-            </Link>
+
+      <div className="w-full max-w-md space-y-6">
+        {/* Logo and Brand */}
+        <div className="text-center space-y-2">
+          <div className="flex justify-center">
+            <div className="p-3 bg-primary/10 rounded-full">
+              <Dumbbell className="h-8 w-8 text-primary" />
+            </div>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight">FitTracker</h1>
+          <p className="text-sm text-muted-foreground">Transform your fitness journey</p>
+        </div>
+
+        {/* Login Card */}
+        <Card className="border-0 shadow-lg">
+          <CardHeader className="space-y-1 text-center pb-4">
+            <CardTitle className="text-xl font-semibold">Welcome back</CardTitle>
+            <CardDescription className="text-sm text-muted-foreground">
+              Sign in to your account to continue
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormBuilder
+                fields={[
+                  {
+                    name: "email",
+                    label: "Email",
+                    type: "email",
+                    placeholder: "Enter your email address",
+                  },
+                  {
+                    name: "password",
+                    label: "Password",
+                    type: "password",
+                    placeholder: "Enter your password",
+                  },
+                ]}
+                form={form}
+              />
+
+              <Button type="submit" className="w-full h-10 font-medium" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  "Sign in"
+                )}
+              </Button>
+            </form>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Don't have an account?</span>
+              </div>
+            </div>
+
+            <Button variant="outline" className="w-full bg-transparent" asChild>
+              <Link to="/register">Create new account</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Footer */}
+        <div className="text-center">
+          <p className="text-xs text-muted-foreground">
+            By signing in, you agree to our{" "}
+            <button className="underline underline-offset-4 hover:text-primary">Terms of Service</button> and{" "}
+            <button className="underline underline-offset-4 hover:text-primary">Privacy Policy</button>
           </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email" className="sr-only">
-                Email
-              </label>
-              <input
-                {...register("email")}
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-input bg-background text-foreground placeholder-muted-foreground rounded-t-md focus:outline-none focus:ring-ring focus:border-ring focus:z-10 sm:text-sm"
-                placeholder="Email"
-              />
-              {errors.email && <p className="mt-1 text-sm text-destructive">{errors.email.message}</p>}
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Contraseña
-              </label>
-              <input
-                {...register("password")}
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-input bg-background text-foreground placeholder-muted-foreground rounded-b-md focus:outline-none focus:ring-ring focus:border-ring focus:z-10 sm:text-sm"
-                placeholder="Contraseña"
-              />
-              {errors.password && <p className="mt-1 text-sm text-destructive">{errors.password.message}</p>}
-            </div>
-          </div>
-
-          <div>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring disabled:opacity-50"
-            >
-              {loading ? "Iniciando sesión..." : "Iniciar sesión"}
-            </Button>
-          </div>
-        </form>
       </div>
     </div>
   );
