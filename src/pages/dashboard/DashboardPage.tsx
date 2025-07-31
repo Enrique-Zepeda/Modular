@@ -1,9 +1,8 @@
-import { useAppDispatch } from "../hooks/useAppDispatch";
-import { useAppSelector } from "../hooks/useAppSelector";
-import { logoutUser } from "../features/auth/authThunks";
-import { Button } from "../components/ui/button";
+import { Button } from "@/components/ui/button";
+import { logoutUser } from "@/features/auth/thunks/authThunks";
+import { useAppDispatch, useAppSelector } from "@/hooks";
 
-export default function Dashboard() {
+export default function DashboardPage() {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
 

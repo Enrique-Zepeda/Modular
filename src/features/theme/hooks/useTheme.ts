@@ -1,7 +1,6 @@
 import { useCallback } from "react";
-import { useAppDispatch } from "../../hooks/useAppDispatch";
-import { useAppSelector } from "../../hooks/useAppSelector";
-import { setTheme, toggleTheme } from "../../store/slices/themeSlice";
+import { setTheme, toggleTheme } from "../slices/themeSlice";
+import { useAppDispatch, useAppSelector } from "@/hooks";
 
 export function useTheme() {
   const theme = useAppSelector((state) => state.theme || "light");

@@ -1,9 +1,8 @@
 import { useEffect } from "react";
-import { useAppDispatch } from "../hooks/useAppDispatch";
-import { useAppSelector } from "../hooks/useAppSelector";
-import { checkAuthSession } from "../features/auth/authThunks";
-import LoadingSpinner from "./LoadingSpinner";
+import { checkAuthSession } from "../thunks/authThunks";
+import LoadingSpinner from "../../../components/shared/LoadingSpinner";
 import type { ReactElement } from "react";
+import { useAppDispatch, useAppSelector } from "@/hooks";
 
 interface AuthProviderProps {
   children: ReactElement;
