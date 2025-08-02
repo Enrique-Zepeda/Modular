@@ -3,7 +3,8 @@ import type { ReactElement } from "react";
 import { useAppSelector } from "@/hooks";
 
 export const ProtectedRoute = ({ children }: { children: ReactElement }) => {
-  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, loading } = useAppSelector((state) => state.auth);
+  if (loading) return null;
 
   if (!isAuthenticated) return <Navigate to="/login" />;
 

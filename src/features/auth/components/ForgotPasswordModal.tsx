@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Loader2, ArrowLeft, CheckCircle } from "lucide-react";
 
 import { useAppDispatch, useAppSelector } from "@/hooks";
-import { forgotPassword } from "@/features/auth/thunks/authThunks";
+
 import { forgotPasswordSchema, type ForgotPasswordFormData } from "@/lib/validations/schemas";
+import { forgotPassword } from "../thunks";
 
 interface ForgotPasswordModalProps {
   open: boolean;
