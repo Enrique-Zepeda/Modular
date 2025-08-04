@@ -12,6 +12,10 @@ export const checkAuthSession = () => async (dispatch: AppDispatch) => {
       error,
     } = await supabase.auth.getSession();
 
+    if (session?.user) {
+      dispatch(setUser(session.user.email || ""));
+    }
+
     if (error) {
       console.error("Error checking session:", error);
       dispatch(clearUser());

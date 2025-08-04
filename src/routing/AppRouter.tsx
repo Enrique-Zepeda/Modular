@@ -1,9 +1,8 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoutes/ProtectedRoute";
 import { PublicRoute } from "./PublicRoutes/PublicRoute";
-
 import DashboardPage from "@/pages/dashboard/DashboardPage";
-import { LoginPage, RegisterPage } from "../pages/auth";
+import { LoginPage, RegisterPage, ResetPasswordPage } from "../pages/auth";
 import AuthCallbackPage from "@/pages/auth/AuthCallbackPage";
 
 export default function AppRouter() {
@@ -24,6 +23,14 @@ export default function AppRouter() {
         element={
           <PublicRoute>
             <RegisterPage />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/auth/reset-password"
+        element={
+          <PublicRoute>
+            <ResetPasswordPage />
           </PublicRoute>
         }
       />

@@ -5,12 +5,14 @@ interface AuthState {
   user: string | null;
   isAuthenticated: boolean;
   loading: boolean;
+  isRecoveryMode: boolean;
 }
 
 const initialState: AuthState = {
   user: null,
   isAuthenticated: false,
-  loading: false,
+  loading: true, // <- antes estaba false
+  isRecoveryMode: false,
 };
 
 const authSlice = createSlice({
@@ -28,8 +30,11 @@ const authSlice = createSlice({
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;
     },
+    setRecoveryMode(state, action: PayloadAction<boolean>) {
+      state.isRecoveryMode = action.payload;
+    },
   },
 });
 
-export const { setUser, clearUser, setLoading } = authSlice.actions;
+export const { setUser, clearUser, setLoading, setRecoveryMode } = authSlice.actions;
 export default authSlice.reducer;

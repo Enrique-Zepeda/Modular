@@ -1,6 +1,3 @@
-import { Check, X } from "lucide-react";
-import { authText } from "@/lib/constants/authText";
-
 interface PasswordStrengthIndicatorProps {
   password: string;
   showRequirements?: boolean;
@@ -10,27 +7,27 @@ export function FormPasswordStrengthIndicator({ password, showRequirements = tru
   const requirements = [
     {
       key: "minLength",
-      label: authText.register.passwordRequirements.minLength,
+      label: "Mínimo 8 caracteres",
       test: (pwd: string) => pwd.length >= 8,
     },
     {
       key: "uppercase",
-      label: authText.register.passwordRequirements.uppercase,
+      label: "Al menos una letra mayúscula",
       test: (pwd: string) => /[A-Z]/.test(pwd),
     },
     {
       key: "lowercase",
-      label: authText.register.passwordRequirements.lowercase,
+      label: "Al menos una letra minúscula",
       test: (pwd: string) => /[a-z]/.test(pwd),
     },
     {
       key: "number",
-      label: authText.register.passwordRequirements.number,
+      label: "Al menos un número",
       test: (pwd: string) => /\d/.test(pwd),
     },
     {
       key: "specialChar",
-      label: authText.register.passwordRequirements.specialChar,
+      label: "Al menos un carácter especial",
       test: (pwd: string) => /[!@#$%^&*(),.?":{}|<>]/.test(pwd),
     },
   ];
@@ -71,27 +68,6 @@ export function FormPasswordStrengthIndicator({ password, showRequirements = tru
               className={`h-1.5 rounded-full transition-all duration-300 ${getStrengthColor()}`}
               style={{ width: `${strength}%` }}
             />
-          </div>
-        </div>
-      )}
-
-      {showRequirements && (
-        <div className="bg-muted/30 rounded-lg p-3 space-y-2">
-          <p className="text-xs font-medium text-muted-foreground">{authText.register.passwordRequirements.title}</p>
-          <div className="space-y-1">
-            {requirements.map((req) => {
-              const isMet = req.test(password);
-              return (
-                <div key={req.key} className="flex items-center gap-2 text-xs">
-                  {isMet ? (
-                    <Check className="h-3 w-3 text-green-600" />
-                  ) : (
-                    <X className="h-3 w-3 text-muted-foreground" />
-                  )}
-                  <span className={isMet ? "text-green-600" : "text-muted-foreground"}>{req.label}</span>
-                </div>
-              );
-            })}
           </div>
         </div>
       )}

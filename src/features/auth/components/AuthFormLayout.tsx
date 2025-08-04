@@ -2,20 +2,22 @@ import { ThemeToggleButton } from "@/features/theme/components/ThemeToggleButton
 import { Dumbbell } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import type { ReactNode } from "react";
+import type { ReactNode, FormEvent } from "react";
 
 interface AuthFormLayoutProps {
   title: string;
   description: string;
-  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: (e: FormEvent<HTMLFormElement>) => void;
   children: ReactNode;
-  footerText: string;
-  footerLinkText: string;
-  footerLinkTo: string;
+  footerText?: string;
+  footerLinkText?: string;
+  footerLinkTo?: string;
   extraActions?: ReactNode;
   loading?: boolean;
-  buttonText: string;
-  altOption?: ReactNode; // Google login, forgot password, etc.
+  buttonText?: string;
+  loadingText?: string;
+  altOption?: ReactNode;
+  showLegalNotice?: boolean;
 }
 
 export const AuthFormLayout = ({
@@ -27,8 +29,11 @@ export const AuthFormLayout = ({
   footerLinkText,
   footerLinkTo,
   extraActions,
-  loading,
+  loading = false,
+  buttonText = "Enviar",
+  loadingText = "Procesando...",
   altOption,
+  showLegalNotice = true,
 }: AuthFormLayoutProps) => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
@@ -63,10 +68,10 @@ export const AuthFormLayout = ({
                 {loading ? (
                   <div className="flex items-center justify-center gap-2">
                     <span className="h-4 w-4 animate-spin border-2 border-primary border-t-transparent rounded-full" />
-                    <span>Iniciando sesión...</span>
+                    <span>{loadingText}</span>
                   </div>
                 ) : (
-                  <span>Iniciar sesión</span>
+                  <span>{buttonText}</span>
                 )}
               </Button>
             </form>
@@ -85,24 +90,32 @@ export const AuthFormLayout = ({
               </>
             )}
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">{footerText}</span>
-              </div>
-            </div>
+            {(footerText || (footerLinkText && footerLinkTo)) && (
+              <>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">{footerText}</span>
+                  </div>
+                </div>
 
-            <Button variant="outline" className="w-full bg-transparent" asChild>
-              <a href={footerLinkTo}>{footerLinkText}</a>
-            </Button>
+                {footerLinkText && footerLinkTo && (
+                  <Button variant="outline" className="w-full bg-transparent" asChild>
+                    <a href={footerLinkTo}>{footerLinkText}</a>
+                  </Button>
+                )}
+              </>
+            )}
           </CardContent>
         </Card>
 
-        <p className="text-center text-xs text-muted-foreground">
-          Al continuar, aceptas nuestros Términos de servicio y Política de privacidad
-        </p>
+        {showLegalNotice && (
+          <p className="text-center text-xs text-muted-foreground">
+            Al continuar, aceptas nuestros Términos de servicio y Política de privacidad
+          </p>
+        )}
       </div>
     </div>
   );

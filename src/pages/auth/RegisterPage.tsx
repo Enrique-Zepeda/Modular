@@ -3,6 +3,7 @@ import { FormField } from "@/components/form/FormField";
 import { AuthFormLayout } from "@/features/auth/components/AuthFormLayout";
 import { Toaster } from "react-hot-toast";
 import { useRegisterForm } from "@/features/auth/hooks/useRegisterForm";
+import { FormPasswordStrengthIndicator } from "@/components/form/FormPasswordStrengthIndicator";
 
 export default function RegisterPage() {
   const { form, onSubmit } = useRegisterForm();
@@ -10,8 +11,11 @@ export default function RegisterPage() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = form;
+
+  const password = watch("password", "");
 
   return (
     <>
@@ -47,6 +51,7 @@ export default function RegisterPage() {
           registration={register("confirmPassword")}
           error={errors.confirmPassword}
         />
+        <FormPasswordStrengthIndicator password={password} />
       </AuthFormLayout>
     </>
   );

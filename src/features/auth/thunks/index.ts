@@ -4,3 +4,4 @@ export * from "./logoutThunk";
 export * from "./registerThunk";
 export * from "./sessionThunk";
 export * from "./loginThunk";
+export * from "./resetPasswordThunk";
