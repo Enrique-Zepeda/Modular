@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { logoutUser } from "@/features/auth/thunks/authThunks";
-import { useAppDispatch, useAppSelector } from "@/hooks";
+import { logoutUser } from "@/features/auth/thunks";
+import { useAppDispatch, useAppSelector } from "@/hooks/useStore";
 
 export default function DashboardPage() {
   const dispatch = useAppDispatch();

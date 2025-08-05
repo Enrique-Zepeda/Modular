@@ -1,4 +1,3 @@
-// src/hooks/useTheme.ts
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState } from "../app/store";
 import { toggleTheme, setTheme } from "../features/theme/slices/themeSlice";

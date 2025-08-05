@@ -3,7 +3,7 @@ import { FormField } from "./FormField";
 interface FieldProps {
   name: string;
   label: string;
-  type?: string;
+  type: string;
   placeholder?: string;
   description?: string;
 }
