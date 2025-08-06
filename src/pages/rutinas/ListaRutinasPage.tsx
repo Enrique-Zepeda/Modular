@@ -160,8 +160,8 @@ const ListaRutinasPage: React.FC = () => {
                 variant="outline"
                 onClick={() => {
                   setSearchTerm("");
-                  setFiltroNivel("");
-                  setFiltroObjetivo("");
+                  setFiltroNivel("todos");
+                  setFiltroObjetivo("todos");
                 }}
               >
                 Limpiar Filtros
