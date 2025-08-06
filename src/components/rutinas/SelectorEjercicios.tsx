@@ -223,10 +223,19 @@ const SelectorEjercicios: React.FC<SelectorEjerciciosProps> = ({
                           )}
                         </div>
                         
-                        {ejercicio.descripcion && (
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">
-                            {ejercicio.descripcion}
-                          </p>
+                        {ejercicio.ejemplo && (
+                          <div className="mt-3 flex justify-center">
+                            <img
+                              src={ejercicio.ejemplo}
+                              alt={`Ejemplo de ${ejercicio.nombre}`}
+                              className="w-16 h-16 object-cover rounded-md border border-gray-200 dark:border-gray-700"
+                              loading="lazy"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                          </div>
                         )}
                       </CardContent>
                     </Card>

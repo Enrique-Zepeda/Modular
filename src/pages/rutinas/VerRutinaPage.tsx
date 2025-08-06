@@ -277,7 +277,7 @@ const VerRutinaPage: React.FC = () => {
                           <img
                             src={ejercicioRutina.ejercicio.ejemplo}
                             alt={ejercicioRutina.ejercicio.nombre || "Ejercicio"}
-                            className="w-full h-32 object-cover rounded-md"
+                            className="w-full h-60 object-fill rounded-md"
                           />
                         </div>
                       )}
