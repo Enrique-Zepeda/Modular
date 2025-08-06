@@ -1,57 +1,45 @@
-import { Button } from "@/components/ui/button";
-import { logoutUser } from "@/features/auth/thunks";
-import { useAppDispatch, useAppSelector } from "@/hooks/useStore";
-
 export default function DashboardPage() {
-  const dispatch = useAppDispatch();
-  const { user } = useAppSelector((state) => state.auth);
-
-  const handleLogout = () => {
-    dispatch(logoutUser());
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-            <Button onClick={handleLogout} className="bg-red-600 hover:bg-red-700">
-              Cerrar sesión
-            </Button>
-          </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground">Bienvenido de vuelta. Aquí tienes un resumen de tu actividad.</p>
+      </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">Bienvenido</h3>
-              <div className="mt-2 max-w-xl text-sm text-gray-500">
-                <p>Has iniciado sesión como: {user}</p>
-              </div>
-              <div className="mt-5">
-                <div className="rounded-md bg-blue-50 p-4">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path
-                          fillRule="evenodd"
-                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-blue-800">Información</h3>
-                      <div className="mt-2 text-sm text-blue-700">
-                        <p>
-                          Esta es tu área personal. Aquí podrás gestionar tu información y acceder a las funcionalidades
-                          de la aplicación.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 p-6 rounded-lg border">
+          <h3 className="font-semibold text-blue-900 dark:text-blue-100">Rutinas Activas</h3>
+          <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-2">0</p>
+          <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">Rutinas creadas</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 p-6 rounded-lg border">
+          <h3 className="font-semibold text-green-900 dark:text-green-100">Sesiones Este Mes</h3>
+          <p className="text-3xl font-bold text-green-600 dark:text-green-400 mt-2">0</p>
+          <p className="text-sm text-green-700 dark:text-green-300 mt-1">Entrenamientos completados</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 p-6 rounded-lg border">
+          <h3 className="font-semibold text-purple-900 dark:text-purple-100">Días Consecutivos</h3>
+          <p className="text-3xl font-bold text-purple-600 dark:text-purple-400 mt-2">0</p>
+          <p className="text-sm text-purple-700 dark:text-purple-300 mt-1">Racha actual</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-card border rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-4">Actividad Reciente</h2>
+          <div className="text-center py-8 text-muted-foreground">
+            <p>No hay actividad reciente</p>
+            <p className="text-sm mt-1">Comienza creando tu primera rutina</p>
+          </div>
+        </div>
+
+        <div className="bg-card border rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-4">Próximos Entrenamientos</h2>
+          <div className="text-center py-8 text-muted-foreground">
+            <p>No hay entrenamientos programados</p>
+            <p className="text-sm mt-1">Programa tu próxima sesión</p>
           </div>
         </div>
       </div>

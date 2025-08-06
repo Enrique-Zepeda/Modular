@@ -13,16 +13,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ExerciseImage } from "@/components/ui/exercise-image";
 
 interface SelectorEjerciciosProps {
   onEjercicioAgregado: (ejercicioData: AgregarEjercicioFormData) => void;
   ejerciciosExistentes?: number[];
 }
 
-const SelectorEjercicios: React.FC<SelectorEjerciciosProps> = ({
-  onEjercicioAgregado,
-  ejerciciosExistentes = [],
-}) => {
+const SelectorEjercicios: React.FC<SelectorEjerciciosProps> = ({ onEjercicioAgregado, ejerciciosExistentes = [] }) => {
   const [filtros, setFiltros] = useState<FiltrosEjercicios>({});
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -56,21 +54,13 @@ const SelectorEjercicios: React.FC<SelectorEjerciciosProps> = ({
     form.reset();
   };
 
-  const ejerciciosDisponibles = ejercicios.filter(
-    ejercicio => !ejerciciosExistentes.includes(ejercicio.id)
-  );
+  const ejerciciosDisponibles = ejercicios.filter((ejercicio) => !ejerciciosExistentes.includes(ejercicio.id));
 
-  const gruposMusculares = Array.from(
-    new Set(ejercicios.map(e => e.grupo_muscular).filter(Boolean))
-  ).sort();
+  const gruposMusculares = Array.from(new Set(ejercicios.map((e) => e.grupo_muscular).filter(Boolean))).sort();
 
-  const dificultades = Array.from(
-    new Set(ejercicios.map(e => e.dificultad).filter(Boolean))
-  ).sort();
+  const dificultades = Array.from(new Set(ejercicios.map((e) => e.dificultad).filter(Boolean))).sort();
 
-  const equipamentos = Array.from(
-    new Set(ejercicios.map(e => e.equipamento).filter(Boolean))
-  ).sort();
+  const equipamentos = Array.from(new Set(ejercicios.map((e) => e.equipamento).filter(Boolean))).sort();
 
   return (
     <div className="space-y-4">
@@ -96,21 +86,21 @@ const SelectorEjercicios: React.FC<SelectorEjerciciosProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                         <Select
-               value={filtros.grupo_muscular || ""}
-               onValueChange={(value) =>
-                 setFiltros((prev) => ({
-                   ...prev,
-                   grupo_muscular: value === "todos" ? undefined : value,
-                 }))
-               }
-             >
+            <Select
+              value={filtros.grupo_muscular || ""}
+              onValueChange={(value) =>
+                setFiltros((prev) => ({
+                  ...prev,
+                  grupo_muscular: value === "todos" ? undefined : value,
+                }))
+              }
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Grupo muscular" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
-                {gruposMusculares.map(grupo => (
+                {gruposMusculares.map((grupo) => (
                   <SelectItem key={grupo} value={grupo || ""}>
                     {grupo}
                   </SelectItem>
@@ -118,43 +108,43 @@ const SelectorEjercicios: React.FC<SelectorEjerciciosProps> = ({
               </SelectContent>
             </Select>
 
-                         <Select
-               value={filtros.dificultad || ""}
-               onValueChange={(value) =>
-                 setFiltros((prev) => ({
-                   ...prev,
-                   dificultad: value === "todos" ? undefined : value,
-                 }))
-               }
-             >
-               <SelectTrigger>
-                 <SelectValue placeholder="Dificultad" />
-               </SelectTrigger>
-               <SelectContent>
-                 <SelectItem value="todos">Todas</SelectItem>
-                 {dificultades.map(dificultad => (
-                   <SelectItem key={dificultad} value={dificultad || ""}>
-                     {dificultad}
-                   </SelectItem>
-                 ))}
-               </SelectContent>
-             </Select>
+            <Select
+              value={filtros.dificultad || ""}
+              onValueChange={(value) =>
+                setFiltros((prev) => ({
+                  ...prev,
+                  dificultad: value === "todos" ? undefined : value,
+                }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Dificultad" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todas</SelectItem>
+                {dificultades.map((dificultad) => (
+                  <SelectItem key={dificultad} value={dificultad || ""}>
+                    {dificultad}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-             <Select
-               value={filtros.equipamento || ""}
-               onValueChange={(value) =>
-                 setFiltros((prev) => ({
-                   ...prev,
-                   equipamento: value === "todos" ? undefined : value,
-                 }))
-               }
-             >
+            <Select
+              value={filtros.equipamento || ""}
+              onValueChange={(value) =>
+                setFiltros((prev) => ({
+                  ...prev,
+                  equipamento: value === "todos" ? undefined : value,
+                }))
+              }
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Equipamento" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
-                {equipamentos.map(equipamento => (
+                {equipamentos.map((equipamento) => (
                   <SelectItem key={equipamento} value={equipamento || ""}>
                     {equipamento}
                   </SelectItem>
@@ -169,9 +159,7 @@ const SelectorEjercicios: React.FC<SelectorEjerciciosProps> = ({
       <Card>
         <CardHeader>
           <CardTitle>Ejercicios Disponibles</CardTitle>
-          <CardDescription>
-            Selecciona ejercicios para agregar a tu rutina
-          </CardDescription>
+          <CardDescription>Selecciona ejercicios para agregar a tu rutina</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -179,9 +167,7 @@ const SelectorEjercicios: React.FC<SelectorEjerciciosProps> = ({
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
           ) : ejerciciosDisponibles.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              No se encontraron ejercicios con los filtros aplicados
-            </div>
+            <div className="text-center py-8 text-gray-500">No se encontraron ejercicios con los filtros aplicados</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <AnimatePresence>
@@ -196,52 +182,41 @@ const SelectorEjercicios: React.FC<SelectorEjerciciosProps> = ({
                     <Card className="cursor-pointer hover:shadow-md transition-shadow">
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-semibold text-sm line-clamp-2">
-                            {ejercicio.nombre}
-                          </h3>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleEjercicioSelect(ejercicio)}
-                          >
+                          <h3 className="font-semibold text-sm line-clamp-2">{ejercicio.nombre}</h3>
+                          <Button size="sm" variant="ghost" onClick={() => handleEjercicioSelect(ejercicio)}>
                             <PlusIcon className="h-4 w-4" />
                           </Button>
                         </div>
-                        
+
                         <div className="space-y-2">
                           {ejercicio.grupo_muscular && (
                             <Badge variant="secondary" className="text-xs">
                               {ejercicio.grupo_muscular}
                             </Badge>
                           )}
-                          
+
                           {ejercicio.dificultad && (
                             <Badge variant="outline" className="text-xs">
                               {ejercicio.dificultad}
                             </Badge>
                           )}
-                          
+
                           {ejercicio.equipamento && (
                             <Badge variant="outline" className="text-xs">
                               {ejercicio.equipamento}
                             </Badge>
                           )}
                         </div>
-                        
-                        {ejercicio.ejemplo && (
-                          <div className="mt-3 flex justify-center">
-                            <img
-                              src={ejercicio.ejemplo}
-                              alt={`Ejemplo de ${ejercicio.nombre}`}
-                              className="w-16 h-16 object-cover rounded-md border border-gray-200 dark:border-gray-700"
-                              loading="lazy"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                              }}
-                            />
-                          </div>
-                        )}
+
+                        <div className="mt-3">
+                          <ExerciseImage
+                            src={ejercicio.ejemplo}
+                            alt={`Ejemplo de ${ejercicio.nombre}`}
+                            aspectRatio="4/3"
+                            size="md"
+                            className="w-full"
+                          />
+                        </div>
                       </CardContent>
                     </Card>
                   </motion.div>
@@ -329,12 +304,7 @@ const SelectorEjercicios: React.FC<SelectorEjerciciosProps> = ({
               </div>
 
               <div className="flex gap-2 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                  className="flex-1"
-                >
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="flex-1">
                   Cancelar
                 </Button>
                 <Button type="submit" className="flex-1">
@@ -349,4 +319,4 @@ const SelectorEjercicios: React.FC<SelectorEjerciciosProps> = ({
   );
 };
 
-export default SelectorEjercicios; 
+export default SelectorEjercicios;
