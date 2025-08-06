@@ -4,11 +4,15 @@ import { PublicRoute } from "./PublicRoutes/PublicRoute";
 import DashboardPage from "@/pages/dashboard/DashboardPage";
 import { LoginPage, RegisterPage, ResetPasswordPage } from "../pages/auth";
 import AuthCallbackPage from "@/pages/auth/AuthCallbackPage";
+import { ListaRutinasPage, CrearRutinaPage, VerRutinaPage } from "@/pages/rutinas";
 
 export default function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/dashboard" />} />
+      <Route path="/rutinas" element={<ListaRutinasPage />} />
+      <Route path="/rutinas/crear" element={<CrearRutinaPage />} />
+      <Route path="/rutinas/:id" element={<VerRutinaPage />} />
 
       <Route
         path="/login"
