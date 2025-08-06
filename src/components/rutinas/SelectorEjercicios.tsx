@@ -104,7 +104,7 @@ const SelectorEjercicios: React.FC<SelectorEjerciciosProps> = ({
                 <SelectValue placeholder="Grupo muscular" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="todos">Todos</SelectItem>
                 {gruposMusculares.map(grupo => (
                   <SelectItem key={grupo} value={grupo || ""}>
                     {grupo}
@@ -115,13 +115,18 @@ const SelectorEjercicios: React.FC<SelectorEjerciciosProps> = ({
 
             <Select
               value={filtros.dificultad || ""}
-              onValueChange={(value) => setFiltros(prev => ({ ...prev, dificultad: value || undefined }))}
+              onValueChange={(value) =>
+                setFiltros((prev) => ({
+                  ...prev,
+                  grupo_muscular: value === "todos" ? undefined : value,
+                }))
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Dificultad" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas</SelectItem>
+                <SelectItem value="todos">Todas</SelectItem>
                 {dificultades.map(dificultad => (
                   <SelectItem key={dificultad} value={dificultad || ""}>
                     {dificultad}
@@ -132,13 +137,18 @@ const SelectorEjercicios: React.FC<SelectorEjerciciosProps> = ({
 
             <Select
               value={filtros.equipamento || ""}
-              onValueChange={(value) => setFiltros(prev => ({ ...prev, equipamento: value || undefined }))}
+              onValueChange={(value) =>
+                setFiltros((prev) => ({
+                  ...prev,
+                  grupo_muscular: value === "todos" ? undefined : value,
+                }))
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Equipamento" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="todos">Todos</SelectItem>
                 {equipamentos.map(equipamento => (
                   <SelectItem key={equipamento} value={equipamento || ""}>
                     {equipamento}
