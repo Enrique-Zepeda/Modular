@@ -96,10 +96,15 @@ const SelectorEjercicios: React.FC<SelectorEjerciciosProps> = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Select
-              value={filtros.grupo_muscular || ""}
-              onValueChange={(value) => setFiltros(prev => ({ ...prev, grupo_muscular: value || undefined }))}
-            >
+                         <Select
+               value={filtros.grupo_muscular || ""}
+               onValueChange={(value) =>
+                 setFiltros((prev) => ({
+                   ...prev,
+                   grupo_muscular: value === "todos" ? undefined : value,
+                 }))
+               }
+             >
               <SelectTrigger>
                 <SelectValue placeholder="Grupo muscular" />
               </SelectTrigger>
@@ -113,37 +118,37 @@ const SelectorEjercicios: React.FC<SelectorEjerciciosProps> = ({
               </SelectContent>
             </Select>
 
-            <Select
-              value={filtros.dificultad || ""}
-              onValueChange={(value) =>
-                setFiltros((prev) => ({
-                  ...prev,
-                  grupo_muscular: value === "todos" ? undefined : value,
-                }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Dificultad" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todas</SelectItem>
-                {dificultades.map(dificultad => (
-                  <SelectItem key={dificultad} value={dificultad || ""}>
-                    {dificultad}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                         <Select
+               value={filtros.dificultad || ""}
+               onValueChange={(value) =>
+                 setFiltros((prev) => ({
+                   ...prev,
+                   dificultad: value === "todos" ? undefined : value,
+                 }))
+               }
+             >
+               <SelectTrigger>
+                 <SelectValue placeholder="Dificultad" />
+               </SelectTrigger>
+               <SelectContent>
+                 <SelectItem value="todos">Todas</SelectItem>
+                 {dificultades.map(dificultad => (
+                   <SelectItem key={dificultad} value={dificultad || ""}>
+                     {dificultad}
+                   </SelectItem>
+                 ))}
+               </SelectContent>
+             </Select>
 
-            <Select
-              value={filtros.equipamento || ""}
-              onValueChange={(value) =>
-                setFiltros((prev) => ({
-                  ...prev,
-                  grupo_muscular: value === "todos" ? undefined : value,
-                }))
-              }
-            >
+             <Select
+               value={filtros.equipamento || ""}
+               onValueChange={(value) =>
+                 setFiltros((prev) => ({
+                   ...prev,
+                   equipamento: value === "todos" ? undefined : value,
+                 }))
+               }
+             >
               <SelectTrigger>
                 <SelectValue placeholder="Equipamento" />
               </SelectTrigger>
