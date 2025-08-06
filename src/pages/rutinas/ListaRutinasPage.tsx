@@ -21,8 +21,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 const ListaRutinasPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  const [filtroNivel, setFiltroNivel] = useState<string>("");
-  const [filtroObjetivo, setFiltroObjetivo] = useState<string>("");
+  const [filtroNivel, setFiltroNivel] = useState<string>("todos");
+  const [filtroObjetivo, setFiltroObjetivo] = useState<string>("todos");
 
   const { data: rutinas = [], isLoading, error } = useGetRutinasQuery();
   const [eliminarRutina, { isLoading: isDeleting }] = useEliminarRutinaMutation();
@@ -30,8 +30,8 @@ const ListaRutinasPage: React.FC = () => {
   const rutinasFiltradas = rutinas.filter((rutina) => {
     const matchesSearch = rutina.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (rutina.descripcion && rutina.descripcion.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesNivel = !filtroNivel || rutina.nivel_recomendado === filtroNivel;
-    const matchesObjetivo = !filtroObjetivo || rutina.objetivo === filtroObjetivo;
+    const matchesNivel = filtroNivel === "todos" || rutina.nivel_recomendado === filtroNivel;
+    const matchesObjetivo = filtroObjetivo === "todos" || rutina.objetivo === filtroObjetivo;
 
     return matchesSearch && matchesNivel && matchesObjetivo;
   });
@@ -137,7 +137,7 @@ const ListaRutinasPage: React.FC = () => {
                   <SelectValue placeholder="Nivel" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos los niveles</SelectItem>
+                  <SelectItem value="todos">Todos los niveles</SelectItem>
                   <SelectItem value="principiante">Principiante</SelectItem>
                   <SelectItem value="intermedio">Intermedio</SelectItem>
                   <SelectItem value="avanzado">Avanzado</SelectItem>
@@ -149,7 +149,7 @@ const ListaRutinasPage: React.FC = () => {
                   <SelectValue placeholder="Objetivo" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos los objetivos</SelectItem>
+                  <SelectItem value="todos">Todos los objetivos</SelectItem>
                   <SelectItem value="fuerza">Fuerza</SelectItem>
                   <SelectItem value="hipertrofia">Hipertrofia</SelectItem>
                   <SelectItem value="resistencia">Resistencia</SelectItem>
