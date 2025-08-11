@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Rutinas", href: "/dashboard/routines", icon: Calendar },
-  { name: "Ejercicios", href: "/dashboard/exercises", icon: Dumbbell },
+  { name: "Ejercicios", href: "/dashboard/ejercicios", icon: Dumbbell },
   { name: "Configuración", href: "/dashboard/settings", icon: Settings },
 ];
 

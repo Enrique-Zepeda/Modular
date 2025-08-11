@@ -9,6 +9,7 @@ import RoutineDetailPage from "@/pages/dashboard/routines/RoutineDetailPage";
 import { LoginPage, RegisterPage, ResetPasswordPage } from "../pages/auth";
 import AuthCallbackPage from "@/pages/auth/AuthCallbackPage";
 import SettingsPage from "@/pages/dashboard/settings/SettingsPage";
+import ExerciseListPage from "@/features/exercises/pages/ExerciseListPage";
 
 export default function AppRouter() {
   return (
@@ -79,6 +80,16 @@ export default function AppRouter() {
           <ProtectedRoute>
             <DashboardLayout>
               <RoutineDetailPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/ejercicios"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <ExerciseListPage />
             </DashboardLayout>
           </ProtectedRoute>
         }

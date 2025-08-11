@@ -71,10 +71,9 @@ export function ExerciseImage({
   return (
     <div
       className={cn(
-        "relative overflow-hidden bg-background border border-border/50",
+        "relative overflow-hidden bg-transparent",
         aspectRatioClasses[aspectRatio],
         sizeClasses[size],
-        "hover:border-border transition-all duration-200",
         className
       )}
     >
@@ -87,10 +86,11 @@ export function ExerciseImage({
         onError={handleError}
         className={cn(
           "w-full h-full transition-all duration-300",
-          isGif ? "object-contain" : "object-cover",
+          isGif ? "object-contain bg-transparent" : "object-cover",
           isLoading ? "opacity-0" : "opacity-100"
         )}
         loading="lazy"
+        style={{ backgroundColor: "transparent" }}
       />
     </div>
   );
