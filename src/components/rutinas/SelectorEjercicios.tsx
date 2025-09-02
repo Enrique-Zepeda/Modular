@@ -210,7 +210,7 @@ const SelectorEjercicios: React.FC<SelectorEjerciciosProps> = ({ onEjercicioAgre
 
                         <div className="mt-3">
                           <ExerciseImage
-                            src={ejercicio.ejemplo}
+                            src={ejercicio.ejemplo || ""}
                             alt={`Ejemplo de ${ejercicio.nombre}`}
                             aspectRatio="4/3"
                             size="md"
