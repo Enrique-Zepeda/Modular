@@ -6,6 +6,7 @@ import DashboardPage from "@/pages/dashboard/DashboardPage";
 import RoutinesPage from "@/pages/dashboard/routines/RoutinesPage";
 import CreateRoutinePage from "@/pages/dashboard/routines/CreateRoutinePage";
 import RoutineDetailPage from "@/pages/dashboard/routines/RoutineDetailPage";
+import MyRoutinesPage from "@/pages/dashboard/routines/MyRoutinesPage";
 import { LoginPage, RegisterPage, ResetPasswordPage } from "../pages/auth";
 import AuthCallbackPage from "@/pages/auth/AuthCallbackPage";
 import SettingsPage from "@/pages/dashboard/settings/SettingsPage";
@@ -60,6 +61,16 @@ export default function AppRouter() {
           <ProtectedRoute>
             <DashboardLayout>
               <RoutinesPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/routines/my"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <MyRoutinesPage />
             </DashboardLayout>
           </ProtectedRoute>
         }

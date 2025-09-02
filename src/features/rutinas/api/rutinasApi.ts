@@ -1,13 +1,13 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { supabase } from "../../../lib/supabase/client";
-import type { Rutina, Ejercicio, EjercicioRutina, RutinaConEjercicios, CrearRutinaFormData, AgregarEjercicioFormData, FiltrosEjercicios } from "../../../types/rutinas";
+import type { Rutina, Ejercicio, EjercicioRutina, RutinaConEjercicios, CrearRutinaFormData, AgregarEjercicioFormData, FiltrosEjercicios, UsuarioRutina, RutinaConUsuario } from "../../../types/rutinas";
 
 export const rutinasApi = createApi({
   reducerPath: "rutinasApi",
   baseQuery: fetchBaseQuery({ baseUrl: "/" }),
-  tagTypes: ["Rutinas", "Ejercicios", "EjerciciosRutina"],
+  tagTypes: ["Rutinas", "Ejercicios", "EjerciciosRutina", "UsuarioRutinas"],
   endpoints: (builder) => ({
-    // Obtener todas las rutinas
+    // Obtener todas las rutinas públicas
     getRutinas: builder.query<Rutina[], void>({
       queryFn: async () => {
         try {
@@ -23,6 +23,134 @@ export const rutinasApi = createApi({
         }
       },
       providesTags: ["Rutinas"],
+    }),
+
+    // Obtener rutinas del usuario (públicas y privadas)
+    getRutinasUsuario: builder.query<RutinaConUsuario[], void>({
+      queryFn: async () => {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error("Usuario no autenticado");
+
+          // Primero obtener el id_usuario de la tabla Usuarios
+          const { data: usuarioData, error: errorUsuario } = await supabase
+            .from("Usuarios")
+            .select("id_usuario")
+            .eq("auth_uid", user.id)
+            .single();
+
+          if (errorUsuario || !usuarioData) {
+            throw new Error("Usuario no encontrado en la base de datos");
+          }
+
+          const { data, error } = await supabase
+            .from("UsuarioRutina")
+            .select(`
+              *,
+              rutina:Rutinas(*)
+            `)
+            .eq("id_usuario", usuarioData.id_usuario)
+            .order("created_at", { ascending: false });
+
+          if (error) throw error;
+
+          const rutinasConUsuario: RutinaConUsuario[] = (data || []).map(item => ({
+            ...item.rutina,
+            usuarioRutina: {
+              id: item.id,
+              id_usuario: item.id_usuario,
+              id_rutina: item.id_rutina,
+              privada: item.privada,
+              activa: item.activa,
+              created_at: item.created_at,
+              id_programa: item.id_programa,
+            }
+          }));
+
+          return { data: rutinasConUsuario };
+        } catch (error) {
+          console.error("Error en getRutinasUsuario:", error);
+          return { error: { status: 500, data: error } };
+        }
+      },
+      providesTags: ["UsuarioRutinas"],
+    }),
+
+    // Obtener rutinas activas del usuario
+    getRutinasActivas: builder.query<RutinaConUsuario[], void>({
+      queryFn: async () => {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error("Usuario no autenticado");
+
+          // Primero obtener el id_usuario de la tabla Usuarios
+          const { data: usuarioData, error: errorUsuario } = await supabase
+            .from("Usuarios")
+            .select("id_usuario")
+            .eq("auth_uid", user.id)
+            .single();
+
+          if (errorUsuario || !usuarioData) {
+            throw new Error("Usuario no encontrado en la base de datos");
+          }
+
+          const { data, error } = await supabase
+            .from("UsuarioRutina")
+            .select(`
+              *,
+              rutina:Rutinas(*)
+            `)
+            .eq("id_usuario", usuarioData.id_usuario)
+            .eq("activa", true)
+            .order("created_at", { ascending: false });
+
+          if (error) throw error;
+
+          const rutinasConUsuario: RutinaConUsuario[] = (data || []).map(item => ({
+            ...item.rutina,
+            usuarioRutina: {
+              id: item.id,
+              id_usuario: item.id_usuario,
+              id_rutina: item.id_rutina,
+              privada: item.privada,
+              activa: item.activa,
+              created_at: item.created_at,
+              id_programa: item.id_programa,
+            }
+          }));
+
+          return { data: rutinasConUsuario };
+        } catch (error) {
+          console.error("Error en getRutinasActivas:", error);
+          return { error: { status: 500, data: error } };
+        }
+      },
+      providesTags: ["UsuarioRutinas"],
+    }),
+
+    // Obtener rutinas públicas (para el listado general)
+    getRutinasPublicas: builder.query<Rutina[], void>({
+      queryFn: async () => {
+        try {
+          const { data, error } = await supabase
+            .from("UsuarioRutina")
+            .select(`
+              *,
+              rutina:Rutinas(*)
+            `)
+            .eq("privada", false)
+            .order("created_at", { ascending: false });
+
+          if (error) throw error;
+
+          const rutinasPublicas: Rutina[] = (data || []).map(item => item.rutina);
+          return { data: rutinasPublicas };
+        } catch (error) {
+          console.error("Error en getRutinasPublicas:", error);
+          return { error: { status: 500, data: error } };
+        }
+      },
+      providesTags: ["UsuarioRutinas"],
     }),
 
     // Obtener una rutina específica con sus ejercicios
@@ -219,6 +347,105 @@ export const rutinasApi = createApi({
       },
       invalidatesTags: ["Rutinas"],
     }),
+
+    // Crear rutina del usuario (con privacidad por defecto)
+    crearRutinaUsuario: builder.mutation<RutinaConUsuario, CrearRutinaFormData>({
+      queryFn: async (rutinaData) => {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error("Usuario no autenticado");
+
+          // Primero obtener el id_usuario de la tabla Usuarios
+          const { data: usuarioData, error: errorUsuario } = await supabase
+            .from("Usuarios")
+            .select("id_usuario")
+            .eq("auth_uid", user.id)
+            .single();
+
+          if (errorUsuario || !usuarioData) {
+            throw new Error("Usuario no encontrado en la base de datos");
+          }
+
+          // Crear la rutina
+          const { data: rutina, error: errorRutina } = await supabase
+            .from("Rutinas")
+            .insert([rutinaData])
+            .select()
+            .single();
+
+          if (errorRutina) throw errorRutina;
+
+          // Crear la relación UsuarioRutina (privada por defecto)
+          const { data: usuarioRutina, error: errorUsuarioRutina } = await supabase
+            .from("UsuarioRutina")
+            .insert([{
+              id_usuario: usuarioData.id_usuario,
+              id_rutina: rutina.id_rutina,
+              privada: true, // Por defecto privada
+              activa: false, // Por defecto inactiva
+            }])
+            .select()
+            .single();
+
+          if (errorUsuarioRutina) throw errorUsuarioRutina;
+
+          const rutinaConUsuario: RutinaConUsuario = {
+            ...rutina,
+            usuarioRutina: {
+              id: usuarioRutina.id,
+              id_usuario: usuarioRutina.id_usuario,
+              id_rutina: usuarioRutina.id_rutina,
+              privada: usuarioRutina.privada,
+              activa: usuarioRutina.activa,
+              created_at: usuarioRutina.created_at,
+              id_programa: usuarioRutina.id_programa,
+            }
+          };
+
+          return { data: rutinaConUsuario };
+        } catch (error) {
+          console.error("Error en crearRutinaUsuario:", error);
+          return { error: { status: 500, data: error } };
+        }
+      },
+      invalidatesTags: ["Rutinas", "UsuarioRutinas"],
+    }),
+
+    // Cambiar privacidad de una rutina
+    cambiarPrivacidadRutina: builder.mutation<void, { id_usuario_rutina: number; privada: boolean }>({
+      queryFn: async ({ id_usuario_rutina, privada }) => {
+        try {
+          const { error } = await supabase
+            .from("UsuarioRutina")
+            .update({ privada })
+            .eq("id", id_usuario_rutina);
+
+          if (error) throw error;
+          return { data: undefined };
+        } catch (error) {
+          return { error: { status: 500, data: error } };
+        }
+      },
+      invalidatesTags: ["UsuarioRutinas"],
+    }),
+
+    // Cambiar actividad de una rutina
+    cambiarActividadRutina: builder.mutation<void, { id_usuario_rutina: number; activa: boolean }>({
+      queryFn: async ({ id_usuario_rutina, activa }) => {
+        try {
+          const { error } = await supabase
+            .from("UsuarioRutina")
+            .update({ activa })
+            .eq("id", id_usuario_rutina);
+
+          if (error) throw error;
+          return { data: undefined };
+        } catch (error) {
+          return { error: { status: 500, data: error } };
+        }
+      },
+      invalidatesTags: ["UsuarioRutinas"],
+    }),
   }),
 });
 
@@ -231,4 +458,10 @@ export const {
   useRemoverEjercicioDeRutinaMutation,
   useActualizarEjercicioEnRutinaMutation,
   useEliminarRutinaMutation,
+  useGetRutinasUsuarioQuery,
+  useGetRutinasActivasQuery,
+  useGetRutinasPublicasQuery,
+  useCrearRutinaUsuarioMutation,
+  useCambiarPrivacidadRutinaMutation,
+  useCambiarActividadRutinaMutation,
 } = rutinasApi; 

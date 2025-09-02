@@ -3,12 +3,13 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { logoutUser } from "@/features/auth/thunks";
 import { useAppDispatch } from "@/hooks/useStore";
-import { Home, Calendar, Dumbbell, Settings, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { Home, Calendar, Dumbbell, Settings, LogOut, ChevronLeft, ChevronRight, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Rutinas", href: "/dashboard/routines", icon: Calendar },
+  { name: "Mis Rutinas", href: "/dashboard/routines/my", icon: User },
   { name: "Ejercicios", href: "/dashboard/ejercicios", icon: Dumbbell },
   { name: "Configuración", href: "/dashboard/settings", icon: Settings },
 ];
@@ -54,7 +55,8 @@ export default function Sidebar() {
         {navigation.map((item) => {
           const isActive =
             location.pathname === item.href ||
-            (item.href === "/dashboard/routines" && location.pathname.startsWith("/dashboard/routines"));
+            (item.href === "/dashboard/routines" && location.pathname.startsWith("/dashboard/routines") && !location.pathname.includes("/my")) ||
+            (item.href === "/dashboard/routines/my" && location.pathname === "/dashboard/routines/my");
 
           return (
             <Link key={item.name} to={item.href}>

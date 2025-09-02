@@ -30,6 +30,20 @@ export interface RutinaConEjercicios extends Rutina {
   ejercicios: (EjercicioRutina & { ejercicio: Ejercicio })[];
 }
 
+export interface UsuarioRutina {
+  id: number;
+  id_usuario: number;
+  id_rutina: number;
+  privada: boolean;
+  activa: boolean;
+  created_at: string;
+  id_programa?: number;
+}
+
+export interface RutinaConUsuario extends Rutina {
+  usuarioRutina: UsuarioRutina;
+}
+
 export interface CrearRutinaFormData {
   nombre: string;
   descripcion: string;

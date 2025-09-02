@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, Loader2 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { crearRutinaSchema, type CrearRutinaFormData } from "@/lib/validations/schemas/rutinaSchema";
-import { useCrearRutinaMutation } from "@/features/rutinas/api/rutinasApi";
+import { useCrearRutinaUsuarioMutation } from "@/features/rutinas/api/rutinasApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 export default function CreateRoutinePage() {
   const navigate = useNavigate();
-  const [crearRutina, { isLoading }] = useCrearRutinaMutation();
+  const [crearRutina, { isLoading }] = useCrearRutinaUsuarioMutation();
 
   const form = useForm<CrearRutinaFormData>({
     resolver: zodResolver(crearRutinaSchema),
@@ -29,12 +29,31 @@ export default function CreateRoutinePage() {
 
   const onSubmit = async (data: CrearRutinaFormData) => {
     try {
+      console.log("Creando rutina con datos:", data);
+      
       const rutina = await crearRutina(data).unwrap();
-      toast.success("¡Rutina creada exitosamente!");
-      navigate(`/dashboard/routines/${rutina.id_rutina}`);
+      console.log("Rutina creada exitosamente:", rutina);
+      
+      toast.success("¡Rutina creada exitosamente! Por defecto es privada e inactiva.");
+      
+      // Redirigir después de un breve delay para que se vea el toast
+      setTimeout(() => {
+        navigate(`/dashboard/routines/${rutina.id_rutina}`);
+      }, 1000);
+      
     } catch (error) {
       console.error("Error al crear rutina:", error);
-      toast.error("Error al crear la rutina. Inténtalo de nuevo.");
+      
+      // Mostrar mensaje de error más específico
+      let errorMessage = "Error al crear la rutina. Inténtalo de nuevo.";
+      
+      if (error?.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error?.data) {
+        errorMessage = `Error: ${error.data}`;
+      }
+      
+      toast.error(errorMessage);
     }
   };
 
