@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, Filter, Dumbbell, Loader2, X, ChevronDown, Activity, Target, Zap } from "lucide-react";
 import {
-  useGetExercisesQuery,
+  useLazyGetExercisesQuery,
   useGetMuscleGroupsQuery,
   useGetEquipmentTypesQuery,
   useGetDifficultyLevelsQuery,
@@ -20,43 +20,95 @@ import { ExerciseImage } from "@/components/ui/exercise-image";
 const ITEMS_PER_PAGE = 12;
 
 export default function ExerciseListPage() {
+  // Filtros y control UI
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState("all");
   const [selectedEquipment, setSelectedEquipment] = useState("all");
-  const [currentPage, setCurrentPage] = useState(0);
-  const [allExercises, setAllExercises] = useState<Exercise[]>([]);
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
+
+  // Estado de paginación/acumulación
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
 
   const debouncedSearch = useDebounce(searchTerm, 300);
 
-  // const filters: ExerciseFiltersType = {
-  //   grupo_muscular: selectedMuscleGroups,
-  //   dificultad: selectedDifficulty,
-  //   equipamento: selectedEquipment,
-  //   search: debouncedSearchTerm,
-  // };
-
-  // Get dynamic data from database
+  // Datos dinámicos para selects
   const { data: muscleGroupsResponse, isLoading: isLoadingMuscleGroups } = useGetMuscleGroupsQuery();
   const { data: equipmentResponse, isLoading: isLoadingEquipment } = useGetEquipmentTypesQuery();
   const { data: difficultyResponse, isLoading: isLoadingDifficulty } = useGetDifficultyLevelsQuery();
 
-  const muscleGroups = muscleGroupsResponse?.data || [];
-  const equipmentTypes = equipmentResponse?.data || [];
-  // Clean up difficulty levels to remove duplicates and normalize
-  const difficultyLevels = [
-    ...new Set(
-      (difficultyResponse?.data || [])
-        .map((d) => d.toLowerCase())
-        .filter((d) => ["principiante", "intermedio", "avanzado"].includes(d))
-    ),
-  ];
+  const muscleGroups = useMemo(() => muscleGroupsResponse?.data || [], [muscleGroupsResponse?.data]);
+  const equipmentTypes = useMemo(() => equipmentResponse?.data || [], [equipmentResponse?.data]);
 
-  const { data, isLoading, isFetching, error } = useGetExercisesQuery();
+  const difficultyLevels = useMemo(() => {
+    const raw = difficultyResponse?.data || [];
+    const norm = raw
+      .map((d: string) => d?.toLowerCase?.())
+      .filter((d: string) => ["principiante", "intermedio", "avanzado"].includes(d));
+    return [...new Set(norm)];
+  }, [difficultyResponse?.data]);
 
-  const handleLoadMore = () => {
-    setCurrentPage((prev) => prev + 1);
+  // Query perezosa para acumular resultados
+  const [fetchExercises, { isFetching, isLoading: isInitialQueryLoading, error }] = useLazyGetExercisesQuery();
+
+  // Construye argumentos del endpoint
+  const argsFor = (pageNum: number) => ({
+    search: debouncedSearch || undefined,
+    grupo_muscular: selectedMuscleGroup === "all" ? undefined : selectedMuscleGroup,
+    dificultad: selectedDifficulty === "all" ? undefined : selectedDifficulty,
+    equipamento: selectedEquipment === "all" ? undefined : selectedEquipment,
+    limit: ITEMS_PER_PAGE,
+    offset: pageNum * ITEMS_PER_PAGE,
+  });
+
+  // Cargar página 0 al cambiar filtros (reset seguro, sin bucles)
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      setPage(0);
+      setExercises([]);
+      setHasMore(true);
+
+      const res = await fetchExercises(argsFor(0))
+        .unwrap()
+        .catch(() => null);
+      if (!isMounted || !res) return;
+
+      const list = res.data ?? [];
+      setExercises(list);
+      setHasMore(list.length === ITEMS_PER_PAGE);
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+    // Dependencias estables (no usar objetos inline fuera de argsFor)
+  }, [debouncedSearch, selectedMuscleGroup, selectedDifficulty, selectedEquipment, fetchExercises]);
+
+  // Cargar más (append) sin depender de referencias inestables
+  const handleLoadMore = async () => {
+    const next = page + 1;
+    const res = await fetchExercises(argsFor(next))
+      .unwrap()
+      .catch(() => null);
+    if (!res) return;
+
+    const list = res.data ?? [];
+    // Evita duplicados si el backend repite rangos/IDs
+    const nextMerged = [...exercises];
+    const seen = new Set(nextMerged.map((e) => e.id));
+    for (const ex of list) {
+      if (!seen.has(ex.id)) {
+        nextMerged.push(ex);
+        seen.add(ex.id);
+      }
+    }
+
+    setExercises(nextMerged);
+    setHasMore(list.length === ITEMS_PER_PAGE);
+    setPage(next);
   };
 
   const clearFilters = () => {
@@ -64,34 +116,19 @@ export default function ExerciseListPage() {
     setSelectedMuscleGroup("all");
     setSelectedDifficulty("all");
     setSelectedEquipment("all");
-    setCurrentPage(0);
-    setAllExercises([]);
+    // El useEffect de filtros se encarga de resetear y recargar
   };
 
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(0);
-    setAllExercises([]);
-  }, [debouncedSearch, selectedMuscleGroup, selectedDifficulty, selectedEquipment]);
-
-  // Update allExercises when new data arrives
-  useEffect(() => {
-    if (data?.data) {
-      if (currentPage === 0) {
-        setAllExercises(data.data);
-      } else {
-        setAllExercises((prev) => [...prev, ...data.data]);
-      }
-    }
-  }, [data?.data, currentPage]);
-
-  const exercises = allExercises;
-  const hasMore = data?.data?.length === ITEMS_PER_PAGE;
-  const isInitialLoading = isLoading && currentPage === 0;
-  const hasActiveFilters =
-    searchTerm || selectedMuscleGroup !== "all" || selectedDifficulty !== "all" || selectedEquipment !== "all";
+  // Derivados UI
+  const isInitialLoading = isInitialQueryLoading && page === 0;
+  const hasActiveFilters = Boolean(
+    (searchTerm && searchTerm.trim() !== "") ||
+      selectedMuscleGroup !== "all" ||
+      selectedDifficulty !== "all" ||
+      selectedEquipment !== "all"
+  );
   const activeFiltersCount = [
-    searchTerm,
+    searchTerm.trim() !== "",
     selectedMuscleGroup !== "all",
     selectedDifficulty !== "all",
     selectedEquipment !== "all",
@@ -99,7 +136,6 @@ export default function ExerciseListPage() {
 
   const getDifficultyColor = (difficulty: string | null) => {
     if (!difficulty) return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
-
     switch (difficulty.toLowerCase()) {
       case "principiante":
         return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 border-emerald-200";
@@ -148,7 +184,7 @@ export default function ExerciseListPage() {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="space-y-8">
-          {/* Enhanced Header */}
+          {/* Header */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-4">
             <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-full mb-4">
               <Dumbbell className="h-8 w-8 text-primary" />
@@ -162,7 +198,7 @@ export default function ExerciseListPage() {
             <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-primary"></div>
-                <span>{data?.count || 0} ejercicios disponibles</span>
+                <span>{exercises.length} ejercicios mostrados</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
@@ -171,7 +207,7 @@ export default function ExerciseListPage() {
             </div>
           </motion.div>
 
-          {/* Enhanced Search and Filters */}
+          {/* Search & Filters */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
             <Card className="border-0 shadow-lg bg-card/80 backdrop-blur-sm">
               <CardContent className="p-6">
@@ -191,7 +227,7 @@ export default function ExerciseListPage() {
                   <div className="flex items-center justify-between">
                     <Button
                       variant="ghost"
-                      onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
+                      onClick={() => setIsFiltersExpanded((v) => !v)}
                       className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
                     >
                       <Filter className="h-4 w-4" />
@@ -242,7 +278,7 @@ export default function ExerciseListPage() {
                                     Cargando...
                                   </SelectItem>
                                 ) : (
-                                  muscleGroups.map((group) => (
+                                  muscleGroups.map((group: string) => (
                                     <SelectItem key={group} value={group}>
                                       {group}
                                     </SelectItem>
@@ -269,7 +305,7 @@ export default function ExerciseListPage() {
                                     Cargando...
                                   </SelectItem>
                                 ) : (
-                                  difficultyLevels.map((difficulty) => (
+                                  difficultyLevels.map((difficulty: string) => (
                                     <SelectItem key={difficulty} value={difficulty}>
                                       <div className="flex items-center gap-2">
                                         {getDifficultyIcon(difficulty)}
@@ -299,7 +335,7 @@ export default function ExerciseListPage() {
                                     Cargando...
                                   </SelectItem>
                                 ) : (
-                                  equipmentTypes.map((equipment) => (
+                                  equipmentTypes.map((equipment: string) => (
                                     <SelectItem key={equipment} value={equipment}>
                                       {equipment}
                                     </SelectItem>
@@ -320,7 +356,7 @@ export default function ExerciseListPage() {
           {/* Results */}
           <div className="space-y-6">
             {isInitialLoading ? (
-              // Enhanced Loading Skeletons
+              // Skeletons
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {Array.from({ length: 8 }).map((_, index) => (
                   <motion.div
@@ -354,7 +390,7 @@ export default function ExerciseListPage() {
               </div>
             ) : exercises.length > 0 ? (
               <>
-                {/* Enhanced Exercise Grid */}
+                {/* Grid */}
                 <motion.div
                   className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
                   initial={{ opacity: 0 }}
@@ -418,14 +454,14 @@ export default function ExerciseListPage() {
                               </CardDescription>
                             )}
 
-                            {/* Muscles Involved */}
+                            {/* Muscles */}
                             {exercise.musculos_involucrados && (
                               <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-2">
                                 <span className="font-medium">Músculos:</span> {exercise.musculos_involucrados}
                               </div>
                             )}
 
-                            {/* Exercise Example - Now at the bottom */}
+                            {/* Image / Example */}
                             {exercise.ejemplo && (
                               <div className="mt-4">
                                 <div className="aspect-video w-full overflow-hidden rounded-lg">
@@ -447,7 +483,7 @@ export default function ExerciseListPage() {
                   </AnimatePresence>
                 </motion.div>
 
-                {/* Enhanced Load More Button */}
+                {/* Load More */}
                 {hasMore && (
                   <motion.div
                     className="flex justify-center pt-8"
@@ -477,7 +513,7 @@ export default function ExerciseListPage() {
                 )}
               </>
             ) : (
-              // Enhanced Empty State
+              // Empty State
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
