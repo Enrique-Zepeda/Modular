@@ -1,4 +1,3 @@
-// src/app/store.ts
 import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "../features/auth/slices/authSlice";
 import themeReducer from "../features/theme/slices/themeSlice";
@@ -18,16 +17,12 @@ export const store = configureStore({
 
     // RTK Query reducers
     [rutinasApi.reducerPath]: rutinasApi.reducer,
-    [exercisesApi.reducerPath]: exercisesApi.reducer, // <-- AÑADIR
+    [exercisesApi.reducerPath]: exercisesApi.reducer,
   },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(
-      rutinasApi.middleware,
-      exercisesApi.middleware // <-- AÑADIR
-    ),
+  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(rutinasApi.middleware, exercisesApi.middleware),
 });
 
-setupListeners(store.dispatch); // opcional pero recomendado
+setupListeners(store.dispatch);
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

@@ -68,13 +68,24 @@ export default function ExercisePicker({
   const [selectedEquipment, setSelectedEquipment] = useState("Todos");
 
   const filteredExercises = useMemo(() => {
+    const s = searchTerm.toLowerCase();
+
     return exercises.filter((exercise) => {
-      const matchesSearch =
-        exercise.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        exercise.descripcion?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesMuscleGroup = selectedMuscleGroup === "Todos" || exercise.grupo_muscular === selectedMuscleGroup;
-      const matchesDifficulty = selectedDifficulty === "Todos" || exercise.dificultad === selectedDifficulty;
-      const matchesEquipment = selectedEquipment === "Todos" || exercise.equipamiento === selectedEquipment;
+      const nombre = exercise.nombre?.toLowerCase() ?? "";
+      const desc = exercise.descripcion?.toLowerCase() ?? "";
+      const grupo = exercise.grupo_muscular ?? "";
+      const diff = exercise.dificultad?.toLowerCase() ?? ""; // normalizado
+      const equip = (exercise as any).equipamento ?? (exercise as any).equipamiento ?? "";
+
+      const matchesSearch = !s || nombre.includes(s) || desc.includes(s);
+
+      const matchesMuscleGroup = selectedMuscleGroup === "Todos" || grupo === selectedMuscleGroup;
+
+      const selDiff = selectedDifficulty.toLowerCase();
+      const matchesDifficulty = selDiff === "todos" || diff === selDiff;
+
+      const selEquip = selectedEquipment.toLowerCase();
+      const matchesEquipment = selEquip === "todos" || (equip?.toString().toLowerCase?.() ?? "") === selEquip;
 
       return matchesSearch && matchesMuscleGroup && matchesDifficulty && matchesEquipment;
     });

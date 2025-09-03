@@ -55,10 +55,10 @@ export default function ExerciseListPage() {
 
   // Construye argumentos del endpoint
   const argsFor = (pageNum: number) => ({
-    search: debouncedSearch || undefined,
+    search: (debouncedSearch || "").trim() || undefined,
     grupo_muscular: selectedMuscleGroup === "all" ? undefined : selectedMuscleGroup,
-    dificultad: selectedDifficulty === "all" ? undefined : selectedDifficulty,
-    equipamento: selectedEquipment === "all" ? undefined : selectedEquipment,
+    dificultad: selectedDifficulty === "all" ? undefined : selectedDifficulty.toLowerCase(),
+    equipamento: selectedEquipment === "all" ? undefined : selectedEquipment.toLowerCase(),
     limit: ITEMS_PER_PAGE,
     offset: pageNum * ITEMS_PER_PAGE,
   });
