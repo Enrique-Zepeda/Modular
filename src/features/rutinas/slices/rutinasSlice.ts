@@ -1,6 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
-import type { Rutina, Ejercicio, FiltrosEjercicios } from "../../../types/rutinas";
+import type { Rutina, Ejercicio } from "../api/rutinasApi";
+import type { FiltrosEjercicios } from "../../../types/rutinas";
 
 interface RutinasState {
   rutinaActual: Rutina | null;
@@ -25,15 +26,13 @@ const rutinasSlice = createSlice({
     },
     agregarEjercicioSeleccionado: (state, action: PayloadAction<Ejercicio>) => {
       const ejercicio = action.payload;
-      const existe = state.ejerciciosSeleccionados.some(e => e.id === ejercicio.id);
+      const existe = state.ejerciciosSeleccionados.some((e) => e.id === ejercicio.id);
       if (!existe) {
         state.ejerciciosSeleccionados.push(ejercicio);
       }
     },
     removerEjercicioSeleccionado: (state, action: PayloadAction<number>) => {
-      state.ejerciciosSeleccionados = state.ejerciciosSeleccionados.filter(
-        e => e.id !== action.payload
-      );
+      state.ejerciciosSeleccionados = state.ejerciciosSeleccionados.filter((e) => e.id !== action.payload);
     },
     limpiarEjerciciosSeleccionados: (state) => {
       state.ejerciciosSeleccionados = [];
@@ -56,4 +55,4 @@ export const {
   setLoading,
 } = rutinasSlice.actions;
 
-export default rutinasSlice.reducer; 
+export default rutinasSlice.reducer;

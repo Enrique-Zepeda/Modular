@@ -1,14 +1,15 @@
-import { useState } from "react";
+// src/pages/dashboard/routines/RoutinesPage.tsx
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Search, Filter, Calendar, Clock, User, Target, MoreHorizontal, Edit, Copy, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
-import { useGetRutinasQuery, useEliminarRutinaMutation } from "@/features/rutinas/api/rutinasApi";
+import { useGetRutinasQuery, useDeleteRutinaMutation } from "@/features/rutinas/api/rutinasApi";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,18 +17,68 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { supabase } from "@/lib/supabase/client";
 
 export default function RoutinesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [levelFilter, setLevelFilter] = useState<string>("all");
   const [objectiveFilter, setObjectiveFilter] = useState<string>("all");
 
-  const { data: routines = [], isLoading, error } = useGetRutinasQuery();
-  const [eliminarRutina] = useEliminarRutinaMutation();
+  // 👇 estado auth desde tu hook
+  const { authLoading, isAuthenticated, requireAuth } = useAuth();
+
+  // 👇 obtenemos y mantenemos el uid actual (para keyear la query)
+  const [uid, setUid] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    let active = true;
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (active) setUid(session?.user?.id);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_e, session) => {
+      setUid(session?.user?.id);
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // 👇 la query ahora depende del uid (key por usuario)
+  const {
+    data: routines = [],
+    isLoading,
+    error,
+  } = useGetRutinasQuery(uid, {
+    skip: !uid,
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  });
+
+  const [deleteRutina] = useDeleteRutinaMutation();
+
+  // Verificar autenticación antes de renderizar
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    requireAuth();
+    return null;
+  }
 
   const filteredRoutines = routines.filter((routine) => {
     const matchesSearch =
-      routine.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (routine.nombre ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (routine.descripcion && routine.descripcion.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesLevel = levelFilter === "all" || routine.nivel_recomendado === levelFilter;
     const matchesObjective = objectiveFilter === "all" || routine.objetivo === objectiveFilter;
@@ -39,7 +90,7 @@ export default function RoutinesPage() {
     if (!confirm(`¿Estás seguro de que quieres eliminar "${name}"?`)) return;
 
     try {
-      await eliminarRutina(id).unwrap();
+      await deleteRutina({ id_rutina: id }).unwrap();
       toast.success("Rutina eliminada correctamente");
     } catch (error) {
       console.error("Error deleting routine:", error);
@@ -170,30 +221,6 @@ export default function RoutinesPage() {
                 />
               </div>
 
-              <Select value={levelFilter} onValueChange={setLevelFilter}>
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue placeholder="Todos los niveles" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los niveles</SelectItem>
-                  <SelectItem value="principiante">Principiante</SelectItem>
-                  <SelectItem value="intermedio">Intermedio</SelectItem>
-                  <SelectItem value="avanzado">Avanzado</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={objectiveFilter} onValueChange={setObjectiveFilter}>
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue placeholder="Todos los objetivos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los objetivos</SelectItem>
-                  <SelectItem value="fuerza">Fuerza</SelectItem>
-                  <SelectItem value="hipertrofia">Hipertrofia</SelectItem>
-                  <SelectItem value="resistencia">Resistencia</SelectItem>
-                </SelectContent>
-              </Select>
-
               <Button
                 variant="outline"
                 onClick={() => {
@@ -280,7 +307,7 @@ export default function RoutinesPage() {
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-destructive"
-                              onClick={() => handleDeleteRoutine(routine.id_rutina, routine.nombre)}
+                              onClick={() => handleDeleteRoutine(routine.id_rutina, routine.nombre ?? "Sin nombre")}
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
                               Eliminar

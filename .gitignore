@@ -33,6 +33,7 @@ Thumbs.db
 
 # Archivos empaquetados
 *.tgz
+*.zip
 
 # Archivos de proyectos de Visual Studio (por si abres en VS)
 *.suo

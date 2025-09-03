@@ -182,7 +182,7 @@ const SelectorEjercicios: React.FC<SelectorEjerciciosProps> = ({ onEjercicioAgre
                     <Card className="cursor-pointer hover:shadow-md transition-shadow">
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-semibold text-sm line-clamp-2">{ejercicio.nombre}</h3>
+                          <h3 className="font-semibold text-sm line-clamp-2">{ejercicio.nombre ?? "Sin nombre"}</h3>
                           <Button size="sm" variant="ghost" onClick={() => handleEjercicioSelect(ejercicio)}>
                             <PlusIcon className="h-4 w-4" />
                           </Button>
@@ -210,8 +210,8 @@ const SelectorEjercicios: React.FC<SelectorEjerciciosProps> = ({ onEjercicioAgre
 
                         <div className="mt-3">
                           <ExerciseImage
-                            src={ejercicio.ejemplo}
-                            alt={`Ejemplo de ${ejercicio.nombre}`}
+                            src={ejercicio.ejemplo ?? undefined}
+                            alt={`Ejemplo de ${ejercicio.nombre ?? "ejercicio"}`}
                             aspectRatio="4/3"
                             size="md"
                             className="w-full"
@@ -234,7 +234,7 @@ const SelectorEjercicios: React.FC<SelectorEjerciciosProps> = ({ onEjercicioAgre
             <DialogTitle>Configurar Ejercicio</DialogTitle>
             <DialogDescription>
               Configura las series, repeticiones y peso sugerido para{" "}
-              <span className="font-semibold">{ejercicioSeleccionado?.nombre}</span>
+              <span className="font-semibold">{ejercicioSeleccionado?.nombre ?? "Sin nombre"}</span>
             </DialogDescription>
           </DialogHeader>
 

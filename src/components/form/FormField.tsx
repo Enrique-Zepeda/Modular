@@ -7,7 +7,7 @@ import type { FieldError, UseFormRegisterReturn } from "react-hook-form";
 
 interface FormFieldProps {
   label: string;
-  placeholder: string;
+  placeholder?: string;
   type?: string;
   registration: UseFormRegisterReturn;
   error?: FieldError;

@@ -5,10 +5,11 @@ import { toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   useGetRutinaByIdQuery,
-  useAgregarEjercicioARutinaMutation,
-  useRemoverEjercicioDeRutinaMutation,
-  useEliminarRutinaMutation,
+  useAddEjercicioToRutinaMutation,
+  useRemoveEjercicioFromRutinaMutation,
+  useDeleteRutinaMutation,
 } from "@/features/rutinas/api/rutinasApi";
+import { useAuth } from "@/hooks/useAuth";
 import type { AgregarEjercicioFormData } from "@/types/rutinas";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,18 +28,36 @@ import { ExerciseImage } from "@/components/ui/exercise-image";
 export default function RoutineDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isAuthenticated, loading: authLoading, requireAuth } = useAuth();
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
 
   const { data: rutina, isLoading, error } = useGetRutinaByIdQuery(parseInt(id!));
-  const [agregarEjercicio] = useAgregarEjercicioARutinaMutation();
-  const [removerEjercicio, { isLoading: isRemoving }] = useRemoverEjercicioDeRutinaMutation();
-  const [eliminarRutina, { isLoading: isDeleting }] = useEliminarRutinaMutation();
+  const [agregarEjercicio] = useAddEjercicioToRutinaMutation();
+  const [removerEjercicio, { isLoading: isRemoving }] = useRemoveEjercicioFromRutinaMutation();
+  const [eliminarRutina, { isLoading: isDeleting }] = useDeleteRutinaMutation();
+
+  // Verificar autenticación antes de renderizar
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    requireAuth();
+    return null;
+  }
 
   const handleEjercicioAgregado = async (ejercicioData: AgregarEjercicioFormData) => {
     try {
       await agregarEjercicio({
         id_rutina: parseInt(id!),
-        ejercicioData,
+        id_ejercicio: ejercicioData.id_ejercicio,
+        series: ejercicioData.series,
+        repeticiones: ejercicioData.repeticiones,
+        peso_sugerido: ejercicioData.peso_sugerido,
       }).unwrap();
       toast.success("Ejercicio agregado exitosamente");
       setIsSelectorOpen(false);
@@ -65,7 +84,7 @@ export default function RoutineDetailPage() {
     if (!confirm("¿Estás seguro de que quieres eliminar esta rutina?")) return;
 
     try {
-      await eliminarRutina(parseInt(id!)).unwrap();
+      await eliminarRutina({ id_rutina: parseInt(id!) }).unwrap();
       toast.success("Rutina eliminada exitosamente");
       navigate("/dashboard/routines");
     } catch (error) {
@@ -123,7 +142,7 @@ export default function RoutineDetailPage() {
     );
   }
 
-  const ejerciciosExistentes = rutina.ejercicios.map((e) => e.id_ejercicio);
+  const ejerciciosExistentes = rutina.EjerciciosRutinas.map((e) => e.id_ejercicio);
 
   return (
     <div className="space-y-6">
@@ -202,7 +221,7 @@ export default function RoutineDetailPage() {
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle>Ejercicios ({rutina.ejercicios.length})</CardTitle>
+            <CardTitle>Ejercicios ({rutina.EjerciciosRutinas.length})</CardTitle>
 
             <Dialog open={isSelectorOpen} onOpenChange={setIsSelectorOpen}>
               <DialogTrigger asChild>
@@ -225,7 +244,7 @@ export default function RoutineDetailPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {rutina.ejercicios.length === 0 ? (
+          {rutina.EjerciciosRutinas.length === 0 ? (
             <div className="text-center py-12">
               <Plus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No hay ejercicios en esta rutina</h3>
@@ -238,7 +257,7 @@ export default function RoutineDetailPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <AnimatePresence>
-                {rutina.ejercicios.map((ejercicioRutina, index) => (
+                {rutina.EjerciciosRutinas.map((ejercicioRutina, index) => (
                   <motion.div
                     key={`${ejercicioRutina.id_rutina}-${ejercicioRutina.id_ejercicio}`}
                     initial={{ opacity: 0, scale: 0.9 }}
@@ -249,7 +268,9 @@ export default function RoutineDetailPage() {
                     <Card className="h-full">
                       <CardHeader className="pb-3">
                         <div className="flex justify-between items-start">
-                          <CardTitle className="text-lg line-clamp-2">{ejercicioRutina.ejercicio.nombre}</CardTitle>
+                          <CardTitle className="text-lg line-clamp-2">
+                            {ejercicioRutina.Ejercicios?.nombre ?? "Sin nombre"}
+                          </CardTitle>
                           <Button
                             size="sm"
                             variant="ghost"
@@ -261,8 +282,8 @@ export default function RoutineDetailPage() {
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        {ejercicioRutina.ejercicio.grupo_muscular && (
-                          <Badge variant="secondary">{ejercicioRutina.ejercicio.grupo_muscular}</Badge>
+                        {ejercicioRutina.Ejercicios?.grupo_muscular && (
+                          <Badge variant="secondary">{ejercicioRutina.Ejercicios.grupo_muscular}</Badge>
                         )}
 
                         <div className="grid grid-cols-3 gap-2 text-sm">
@@ -280,16 +301,16 @@ export default function RoutineDetailPage() {
                           </div>
                         </div>
 
-                        {ejercicioRutina.ejercicio.descripcion && (
+                        {ejercicioRutina.Ejercicios?.descripcion && (
                           <p className="text-sm text-muted-foreground line-clamp-2">
-                            {ejercicioRutina.ejercicio.descripcion}
+                            {ejercicioRutina.Ejercicios.descripcion}
                           </p>
                         )}
 
                         <div className="mt-4">
                           <ExerciseImage
-                            src={ejercicioRutina.ejercicio.ejemplo}
-                            alt={ejercicioRutina.ejercicio.nombre || "Ejercicio"}
+                            src={ejercicioRutina.Ejercicios?.ejemplo ?? undefined}
+                            alt={ejercicioRutina.Ejercicios?.nombre ?? "Ejercicio"}
                             aspectRatio="16/9"
                             size="lg"
                             className="w-full"

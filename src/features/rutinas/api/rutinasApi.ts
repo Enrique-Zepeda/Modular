@@ -1,234 +1,214 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { supabase } from "../../../lib/supabase/client";
-import type { Rutina, Ejercicio, EjercicioRutina, RutinaConEjercicios, CrearRutinaFormData, AgregarEjercicioFormData, FiltrosEjercicios } from "../../../types/rutinas";
+// src/features/rutinas/api/rutinasApi.ts
+import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react";
+import { supabase } from "@/lib/supabase/client";
+
+/** Tipos básicos */
+export type Rutina = {
+  id_rutina: number;
+  nombre: string | null;
+  descripcion: string | null;
+  nivel_recomendado: "principiante" | "intermedio" | "avanzado" | null;
+  objetivo: "fuerza" | "hipertrofia" | "resistencia" | null;
+  duracion_estimada: number | null;
+  owner_uid?: string | null;
+};
+
+export type Ejercicio = {
+  id: number;
+  nombre: string | null;
+  grupo_muscular: string | null;
+  descripcion: string | null;
+  equipamento: string | null;
+  dificultad: string | null;
+  musculos_involucrados: string | null;
+  ejemplo: string | null;
+};
+
+export type EjercicioRutina = {
+  id_rutina: number;
+  id_ejercicio: number;
+  series: number | null;
+  repeticiones: number | null;
+  peso_sugerido: number | null;
+  Ejercicios?: Ejercicio | null;
+};
+
+export type RutinaDetalle = Rutina & {
+  EjerciciosRutinas: EjercicioRutina[];
+};
+
+export type UpsertRutinaInput = {
+  nombre?: string | null;
+  descripcion?: string | null;
+  nivel_recomendado?: "principiante" | "intermedio" | "avanzado" | null;
+  objetivo?: "fuerza" | "hipertrofia" | "resistencia" | null;
+  duracion_estimada?: number | null;
+};
 
 export const rutinasApi = createApi({
   reducerPath: "rutinasApi",
-  baseQuery: fetchBaseQuery({ baseUrl: "/" }),
-  tagTypes: ["Rutinas", "Ejercicios", "EjerciciosRutina"],
+  // ⬅️ Importante: usamos fakeBaseQuery porque las llamadas las hace el SDK de Supabase
+  baseQuery: fakeBaseQuery(),
+  tagTypes: ["Rutinas", "RutinaDetalle", "EjerciciosRutinas", "Ejercicios"],
   endpoints: (builder) => ({
-    // Obtener todas las rutinas
-    getRutinas: builder.query<Rutina[], void>({
-      queryFn: async () => {
+    /** Lista de rutinas del usuario autenticado (cache key = ownerUid) */
+    getRutinas: builder.query<Rutina[], string | undefined>({
+      async queryFn(ownerUid) {
+        if (!ownerUid) return { data: [] };
         try {
           const { data, error } = await supabase
             .from("Rutinas")
-            .select("*")
-            .order("nombre");
+            .select("id_rutina, nombre, descripcion, nivel_recomendado, objetivo, duracion_estimada, owner_uid")
+            .eq("owner_uid", ownerUid)
+            .order("id_rutina", { ascending: false });
 
           if (error) throw error;
-          return { data: data || [] };
+          return { data: (data ?? []) as Rutina[] };
         } catch (error) {
-          return { error: { status: 500, data: error } };
+          return { error: { status: 500, data: error } as any };
         }
       },
-      providesTags: ["Rutinas"],
+      providesTags: (_res, _err, uid) => [{ type: "Rutinas", id: uid ?? "LIST" }],
     }),
 
-    // Obtener una rutina específica con sus ejercicios
-    getRutinaById: builder.query<RutinaConEjercicios, number>({
-      queryFn: async (id_rutina) => {
-        try {
-          // Obtener la rutina
-          const { data: rutina, error: errorRutina } = await supabase
-            .from("Rutinas")
-            .select("*")
-            .eq("id_rutina", id_rutina)
-            .single();
+    /** Listado de ejercicios (tabla pública) */
+    getEjercicios: builder.query<
+      Ejercicio[],
+      { search?: string; grupo_muscular?: string; dificultad?: string; limit?: number; offset?: number } | void
+    >({
+      async queryFn(args) {
+        const params = args ?? {};
+        const { search, grupo_muscular, dificultad, limit, offset } = params;
 
-          if (errorRutina) throw errorRutina;
+        let query = supabase
+          .from("Ejercicios")
+          .select("id, nombre, grupo_muscular, descripcion, equipamento, dificultad, musculos_involucrados, ejemplo")
+          .order("id", { ascending: true });
 
-          // Obtener los ejercicios de la rutina
-          const { data: ejerciciosRutina, error: errorEjercicios } = await supabase
-            .from("EjerciciosRutinas")
-            .select(`
-              *,
-              ejercicio:Ejercicios(*)
-            `)
-            .eq("id_rutina", id_rutina);
-
-          if (errorEjercicios) throw errorEjercicios;
-
-          const rutinaConEjercicios: RutinaConEjercicios = {
-            ...rutina,
-            ejercicios: ejerciciosRutina || [],
-          };
-
-          return { data: rutinaConEjercicios };
-        } catch (error) {
-          return { error: { status: 500, data: error } };
+        if (search && search.trim().length > 0) {
+          query = query.or(`nombre.ilike.%${search}%,descripcion.ilike.%${search}%`);
         }
+        if (grupo_muscular && grupo_muscular !== "all") {
+          query = query.eq("grupo_muscular", grupo_muscular);
+        }
+        if (dificultad && dificultad !== "all") {
+          query = query.eq("dificultad", dificultad);
+        }
+
+        if (typeof limit === "number") query = query.limit(limit);
+        if (typeof offset === "number") query = query.range(offset, offset + (limit ?? 50) - 1);
+
+        const { data, error } = await query;
+        if (error) return { error };
+        return { data: (data ?? []) as Ejercicio[] };
       },
-      providesTags: (_result, _error, id) => [{ type: "Rutinas", id }],
+      providesTags: [{ type: "Ejercicios", id: "LIST" }],
     }),
 
-    // Crear una nueva rutina
-    crearRutina: builder.mutation<Rutina, CrearRutinaFormData>({
-      queryFn: async (rutinaData) => {
+    /** Detalle de rutina + ejercicios (todo bajo RLS) */
+    getRutinaById: builder.query<RutinaDetalle | null, number>({
+      async queryFn(id_rutina) {
+        const { data, error } = await supabase
+          .from("Rutinas")
+          .select(
+            `
+            id_rutina, nombre, descripcion, nivel_recomendado, objetivo, duracion_estimada, owner_uid,
+            EjerciciosRutinas (
+              id_rutina, id_ejercicio, series, repeticiones, peso_sugerido,
+              Ejercicios ( id, nombre, grupo_muscular, descripcion, equipamento, dificultad, musculos_involucrados, ejemplo )
+            )
+          `
+          )
+          .eq("id_rutina", id_rutina)
+          .single();
+        if (error) return { error };
+        return { data: data as unknown as RutinaDetalle };
+      },
+      providesTags: (_r, _e, id) => [{ type: "RutinaDetalle", id }],
+    }),
+
+    /** Crear rutina (el trigger/DEFAULT pone owner_uid = auth.uid()) */
+    createRutina: builder.mutation<Rutina, UpsertRutinaInput>({
+      async queryFn(rutinaData) {
         try {
           const { data, error } = await supabase
             .from("Rutinas")
             .insert([rutinaData])
-            .select()
+            .select("id_rutina, nombre, descripcion, nivel_recomendado, objetivo, duracion_estimada, owner_uid")
             .single();
 
           if (error) throw error;
-          return { data };
+          return { data: data as Rutina };
         } catch (error) {
-          return { error: { status: 500, data: error } };
+          return { error: { status: 500, data: error } as any };
         }
       },
-      invalidatesTags: ["Rutinas"],
+      invalidatesTags: [{ type: "Rutinas", id: "LIST" }],
     }),
 
-    // Obtener todos los ejercicios con filtros opcionales
-    getEjercicios: builder.query<Ejercicio[], FiltrosEjercicios>({
-      queryFn: async (filtros) => {
-        try {
-          let query = supabase.from("Ejercicios").select("*");
-
-          if (filtros.grupo_muscular) {
-            query = query.eq("grupo_muscular", filtros.grupo_muscular);
-          }
-
-          if (filtros.dificultad) {
-            query = query.eq("dificultad", filtros.dificultad);
-          }
-
-          if (filtros.equipamento) {
-            query = query.eq("equipamento", filtros.equipamento);
-          }
-
-          if (filtros.search) {
-            query = query.ilike("nombre", `%${filtros.search}%`);
-          }
-
-          const { data, error } = await query.order("nombre");
-
-          if (error) throw error;
-          return { data: data || [] };
-        } catch (error) {
-          return { error: { status: 500, data: error } };
-        }
+    /** Añadir ejercicio a la rutina (sólo si eres dueño por RLS) */
+    addEjercicioToRutina: builder.mutation<
+      EjercicioRutina,
+      { id_rutina: number; id_ejercicio: number; series?: number; repeticiones?: number; peso_sugerido?: number }
+    >({
+      async queryFn({ id_rutina, id_ejercicio, series = null, repeticiones = null, peso_sugerido = null }) {
+        const { data, error } = await supabase
+          .from("EjerciciosRutinas")
+          .insert([{ id_rutina, id_ejercicio, series, repeticiones, peso_sugerido }])
+          .select(
+            `
+            id_rutina, id_ejercicio, series, repeticiones, peso_sugerido,
+            Ejercicios ( id, nombre, grupo_muscular, dificultad, ejemplo )
+          `
+          )
+          .single();
+        if (error) return { error };
+        return { data: data as unknown as EjercicioRutina };
       },
-      providesTags: ["Ejercicios"],
+      invalidatesTags: (_r, _e, arg) => [{ type: "RutinaDetalle", id: arg.id_rutina }],
     }),
 
-    // Agregar ejercicio a una rutina
-    agregarEjercicioARutina: builder.mutation<EjercicioRutina, { id_rutina: number; ejercicioData: AgregarEjercicioFormData }>({
-      queryFn: async ({ id_rutina, ejercicioData }) => {
-        try {
-          const { data, error } = await supabase
-            .from("EjerciciosRutinas")
-            .insert([{
-              id_rutina,
-              id_ejercicio: ejercicioData.id_ejercicio,
-              series: ejercicioData.series,
-              repeticiones: ejercicioData.repeticiones,
-              peso_sugerido: ejercicioData.peso_sugerido,
-            }])
-            .select()
-            .single();
-
-          if (error) throw error;
-          return { data };
-        } catch (error) {
-          return { error: { status: 500, data: error } };
-        }
+    /** Quitar ejercicio de la rutina (sólo si eres dueño por RLS) */
+    removeEjercicioFromRutina: builder.mutation<{ success: true }, { id_rutina: number; id_ejercicio: number }>({
+      async queryFn({ id_rutina, id_ejercicio }) {
+        const { error } = await supabase
+          .from("EjerciciosRutinas")
+          .delete()
+          .eq("id_rutina", id_rutina)
+          .eq("id_ejercicio", id_ejercicio);
+        if (error) return { error };
+        return { data: { success: true } };
       },
-      invalidatesTags: (_result, _error, { id_rutina }) => [
-        { type: "Rutinas", id: id_rutina },
-        "EjerciciosRutina",
+      invalidatesTags: (_r, _e, arg) => [{ type: "RutinaDetalle", id: arg.id_rutina }],
+    }),
+
+    /** Eliminar rutina (confía en RLS + cascadas si las tienes) */
+    deleteRutina: builder.mutation<{ success: true }, { id_rutina: number }>({
+      async queryFn({ id_rutina }) {
+        const { error } = await supabase.from("Rutinas").delete().eq("id_rutina", id_rutina);
+        if (error) return { error };
+        return { data: { success: true } };
+      },
+      invalidatesTags: (_r, _e, arg) => [
+        { type: "Rutinas", id: "LIST" },
+        { type: "RutinaDetalle", id: arg.id_rutina },
       ],
-    }),
-
-    // Remover ejercicio de una rutina
-    removerEjercicioDeRutina: builder.mutation<void, { id_rutina: number; id_ejercicio: number }>({
-      queryFn: async ({ id_rutina, id_ejercicio }) => {
-        try {
-          const { error } = await supabase
-            .from("EjerciciosRutinas")
-            .delete()
-            .eq("id_rutina", id_rutina)
-            .eq("id_ejercicio", id_ejercicio);
-
-          if (error) throw error;
-          return { data: undefined };
-        } catch (error) {
-          return { error: { status: 500, data: error } };
-        }
-      },
-      invalidatesTags: (_result, _error, { id_rutina }) => [
-        { type: "Rutinas", id: id_rutina },
-        "EjerciciosRutina",
-      ],
-    }),
-
-    // Actualizar ejercicio en una rutina
-    actualizarEjercicioEnRutina: builder.mutation<EjercicioRutina, { id_rutina: number; id_ejercicio: number; ejercicioData: Partial<AgregarEjercicioFormData> }>({
-      queryFn: async ({ id_rutina, id_ejercicio, ejercicioData }) => {
-        try {
-          const { data, error } = await supabase
-            .from("EjerciciosRutinas")
-            .update({
-              series: ejercicioData.series,
-              repeticiones: ejercicioData.repeticiones,
-              peso_sugerido: ejercicioData.peso_sugerido,
-            })
-            .eq("id_rutina", id_rutina)
-            .eq("id_ejercicio", id_ejercicio)
-            .select()
-            .single();
-
-          if (error) throw error;
-          return { data };
-        } catch (error) {
-          return { error: { status: 500, data: error } };
-        }
-      },
-      invalidatesTags: (_result, _error, { id_rutina }) => [
-        { type: "Rutinas", id: id_rutina },
-        "EjerciciosRutina",
-      ],
-    }),
-
-    // Eliminar una rutina
-    eliminarRutina: builder.mutation<void, number>({
-      queryFn: async (id_rutina) => {
-        try {
-          // Primero eliminar los ejercicios de la rutina
-          const { error: errorEjercicios } = await supabase
-            .from("EjerciciosRutinas")
-            .delete()
-            .eq("id_rutina", id_rutina);
-
-          if (errorEjercicios) throw errorEjercicios;
-
-          // Luego eliminar la rutina
-          const { error: errorRutina } = await supabase
-            .from("Rutinas")
-            .delete()
-            .eq("id_rutina", id_rutina);
-
-          if (errorRutina) throw errorRutina;
-
-          return { data: undefined };
-        } catch (error) {
-          return { error: { status: 500, data: error } };
-        }
-      },
-      invalidatesTags: ["Rutinas"],
     }),
   }),
 });
 
+// Hooks principales
 export const {
   useGetRutinasQuery,
   useGetRutinaByIdQuery,
-  useCrearRutinaMutation,
+  useCreateRutinaMutation,
+  useAddEjercicioToRutinaMutation,
+  useRemoveEjercicioFromRutinaMutation,
+  useDeleteRutinaMutation,
   useGetEjerciciosQuery,
-  useAgregarEjercicioARutinaMutation,
-  useRemoverEjercicioDeRutinaMutation,
-  useActualizarEjercicioEnRutinaMutation,
-  useEliminarRutinaMutation,
-} = rutinasApi; 
+} = rutinasApi;
+
+// Aliases (si los usabas en español)
+export const useCrearRutinaMutation = useCreateRutinaMutation;
+export const useEliminarRutinaMutation = useDeleteRutinaMutation;
+export const useObtenerEjerciciosQuery = useGetEjerciciosQuery;

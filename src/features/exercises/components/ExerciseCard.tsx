@@ -1,4 +1,4 @@
-import { Exercise } from "@/types/exercises";
+import type { Exercise } from "@/types/exercises";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -26,8 +26,11 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <CardTitle className="text-lg font-semibold leading-tight">{exercise.nombre}</CardTitle>
-          <Badge variant="secondary" className={cn("text-xs font-medium", getDifficultyColor(exercise.dificultad))}>
-            {exercise.dificultad}
+          <Badge
+            variant="secondary"
+            className={cn("text-xs font-medium", getDifficultyColor(exercise.dificultad ?? ""))}
+          >
+            {exercise.dificultad ?? "Sin especificar"}
           </Badge>
         </div>
       </CardHeader>

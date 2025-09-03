@@ -12,7 +12,7 @@ import {
   useGetEquipmentTypesQuery,
   useGetDifficultyLevelsQuery,
 } from "../exercisesSlice";
-import { ExerciseFilters as ExerciseFiltersType, Exercise } from "@/types/exercises";
+import type { Exercise } from "@/types/exercises";
 import { useDebounce } from "@/hooks/useDebounce";
 import { motion, AnimatePresence } from "framer-motion";
 import { ExerciseImage } from "@/components/ui/exercise-image";
@@ -30,14 +30,12 @@ export default function ExerciseListPage() {
 
   const debouncedSearch = useDebounce(searchTerm, 300);
 
-  // Build filters object
-  const filters: ExerciseFiltersType = {
-    search: debouncedSearch || undefined,
-    grupo_muscular: selectedMuscleGroup === "all" ? undefined : [selectedMuscleGroup],
-    dificultad:
-      selectedDifficulty === "all" ? undefined : (selectedDifficulty as "principiante" | "intermedio" | "avanzado"),
-    equipamento: selectedEquipment === "all" ? undefined : selectedEquipment,
-  };
+  // const filters: ExerciseFiltersType = {
+  //   grupo_muscular: selectedMuscleGroups,
+  //   dificultad: selectedDifficulty,
+  //   equipamento: selectedEquipment,
+  //   search: debouncedSearchTerm,
+  // };
 
   // Get dynamic data from database
   const { data: muscleGroupsResponse, isLoading: isLoadingMuscleGroups } = useGetMuscleGroupsQuery();
@@ -55,11 +53,7 @@ export default function ExerciseListPage() {
     ),
   ];
 
-  const { data, isLoading, isFetching, error } = useGetExercisesQuery({
-    ...filters,
-    from: currentPage * ITEMS_PER_PAGE,
-    to: (currentPage + 1) * ITEMS_PER_PAGE - 1,
-  });
+  const { data, isLoading, isFetching, error } = useGetExercisesQuery();
 
   const handleLoadMore = () => {
     setCurrentPage((prev) => prev + 1);

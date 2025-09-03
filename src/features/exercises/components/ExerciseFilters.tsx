@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { X, Search, Filter } from "lucide-react";
 import { useGetMuscleGroupsQuery } from "../exercisesSlice";
-import { ExerciseFilters as ExerciseFiltersType } from "@/types/exercises";
+import type { ExerciseFilters as ExerciseFiltersType } from "@/types/exercises";
 
 const filterSchema = z.object({
   search: z.string().optional(),

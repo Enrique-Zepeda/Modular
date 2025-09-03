@@ -24,7 +24,7 @@ export function useResetPasswordForm() {
         return;
       }
 
-      const result = await dispatch(resetPassword({ password: data.password, accessToken }));
+      const result = await dispatch(resetPassword({ password: data.password }));
 
       if (resetPassword.fulfilled.match(result)) {
         window.history.replaceState({}, document.title, window.location.pathname);

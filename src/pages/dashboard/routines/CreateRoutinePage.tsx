@@ -1,10 +1,12 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, Loader2, Bug } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { crearRutinaSchema, type CrearRutinaFormData } from "@/lib/validations/schemas/rutinaSchema";
-import { useCrearRutinaMutation } from "@/features/rutinas/api/rutinasApi";
+import { useCreateRutinaMutation } from "@/features/rutinas/api/rutinasApi";
+import { useAuth } from "@/hooks/useAuth";
+import { debugAuthStatus, debugCreateRutina, debugRLSStatus, debugUserProfile } from "@/lib/supabase/debug";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +16,8 @@ import { Textarea } from "@/components/ui/textarea";
 
 export default function CreateRoutinePage() {
   const navigate = useNavigate();
-  const [crearRutina, { isLoading }] = useCrearRutinaMutation();
+  const { isAuthenticated, loading: authLoading, requireAuth } = useAuth();
+  const [createRutina, { isLoading }] = useCreateRutinaMutation();
 
   const form = useForm<CrearRutinaFormData>({
     resolver: zodResolver(crearRutinaSchema),
@@ -27,14 +30,62 @@ export default function CreateRoutinePage() {
     },
   });
 
+  // Verificar autenticación antes de renderizar
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    requireAuth();
+    return null;
+  }
+
+  const handleDebug = async () => {
+    try {
+      console.log("=== INICIANDO DEBUG COMPLETO ===");
+
+      // Debug completo
+      await debugAuthStatus();
+      await debugRLSStatus();
+      await debugUserProfile();
+      await debugCreateRutina();
+
+      toast.success("Debug completado. Revisa la consola para diagnóstico completo.");
+    } catch (error) {
+      console.error("Error en debug:", error);
+      toast.error("Error en debug");
+    }
+  };
+
   const onSubmit = async (data: CrearRutinaFormData) => {
     try {
-      const rutina = await crearRutina(data).unwrap();
+      // Sanitizar payload para evitar violaciones de check
+      const payload = {
+        nombre: data.nombre?.trim() || null,
+        descripcion: data.descripcion?.trim() || null,
+        nivel_recomendado: ["principiante", "intermedio", "avanzado"].includes(data.nivel_recomendado)
+          ? (data.nivel_recomendado as "principiante" | "intermedio" | "avanzado")
+          : null,
+        objetivo: ["fuerza", "hipertrofia", "resistencia"].includes(data.objetivo)
+          ? (data.objetivo as "fuerza" | "hipertrofia" | "resistencia")
+          : null,
+        duracion_estimada:
+          Number.isFinite(+data.duracion_estimada) && data.duracion_estimada > 0
+            ? Number(data.duracion_estimada)
+            : null,
+      };
+
+      const rutina = await createRutina(payload).unwrap();
       toast.success("¡Rutina creada exitosamente!");
       navigate(`/dashboard/routines/${rutina.id_rutina}`);
-    } catch (error) {
-      console.error("Error al crear rutina:", error);
-      toast.error("Error al crear la rutina. Inténtalo de nuevo.");
+    } catch (err: any) {
+      // Supabase errores útiles: err.message, err.code, err.details
+      console.error("Error al crear rutina:", err?.message ?? err, err?.code, err?.details);
+      toast.error(err?.message || "No se pudo crear la rutina");
     }
   };
 
@@ -48,6 +99,14 @@ export default function CreateRoutinePage() {
           <h1 className="text-3xl font-bold tracking-tight">Crear Nueva Rutina</h1>
           <p className="text-muted-foreground">Define los detalles de tu nueva rutina de ejercicios</p>
         </div>
+      </div>
+
+      {/* Botón de debug temporal */}
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={handleDebug} className="text-xs">
+          <Bug className="h-3 w-3 mr-1" />
+          Debug RLS Completo (Temporal)
+        </Button>
       </div>
 
       <div className="max-w-2xl">
