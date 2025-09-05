@@ -53,6 +53,7 @@ export default function RoutinesPage() {
     data: routines = [],
     isLoading,
     error,
+    refetch,
   } = useGetRutinasQuery(uid, {
     skip: !uid,
     refetchOnMountOrArgChange: true,
@@ -61,6 +62,19 @@ export default function RoutinesPage() {
   });
 
   const [deleteRutina] = useDeleteRutinaMutation();
+  useEffect(() => {
+    if (!uid) return;
+    const channel = supabase
+      .channel("rutinas-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "Rutinas", filter: `owner_uid=eq.${uid}` }, () => {
+        /* por si se creó en otra pestaña */ refetch();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [uid, refetch]);
 
   // Verificar autenticación antes de renderizar
   if (authLoading) {

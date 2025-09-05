@@ -1,4 +1,3 @@
-// src/features/rutinas/api/rutinasApi.ts
 import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react";
 import { supabase } from "@/lib/supabase/client";
 
@@ -47,7 +46,7 @@ export type UpsertRutinaInput = {
 
 export const rutinasApi = createApi({
   reducerPath: "rutinasApi",
-  // ⬅️ Importante: usamos fakeBaseQuery porque las llamadas las hace el SDK de Supabase
+  // usamos fakeBaseQuery porque llamamos al SDK de Supabase
   baseQuery: fakeBaseQuery(),
   tagTypes: ["Rutinas", "RutinaDetalle", "EjerciciosRutinas", "Ejercicios"],
   endpoints: (builder) => ({
@@ -68,7 +67,10 @@ export const rutinasApi = createApi({
           return { error: { status: 500, data: error } as any };
         }
       },
-      providesTags: (_res, _err, uid) => [{ type: "Rutinas", id: uid ?? "LIST" }],
+      providesTags: (_res, _err, uid) => [
+        { type: "Rutinas", id: "LIST" },
+        { type: "Rutinas", id: uid ?? "ANON" },
+      ],
     }),
 
     /** Listado de ejercicios (tabla pública) */
@@ -127,7 +129,7 @@ export const rutinasApi = createApi({
       providesTags: (_r, _e, id) => [{ type: "RutinaDetalle", id }],
     }),
 
-    /** Crear rutina (el trigger/DEFAULT pone owner_uid = auth.uid()) */
+    /** Crear rutina (el DEFAULT pone owner_uid = auth.uid()) */
     createRutina: builder.mutation<Rutina, UpsertRutinaInput>({
       async queryFn(rutinaData) {
         try {
@@ -182,12 +184,46 @@ export const rutinasApi = createApi({
       invalidatesTags: (_r, _e, arg) => [{ type: "RutinaDetalle", id: arg.id_rutina }],
     }),
 
-    /** Eliminar rutina (confía en RLS + cascadas si las tienes) */
+    /** Eliminar rutina con optimistic update */
     deleteRutina: builder.mutation<{ success: true }, { id_rutina: number }>({
       async queryFn({ id_rutina }) {
         const { error } = await supabase.from("Rutinas").delete().eq("id_rutina", id_rutina);
         if (error) return { error };
         return { data: { success: true } };
+      },
+      // 🔥 optimista: quita la rutina del cache inmediatamente
+      async onQueryStarted({ id_rutina }, { dispatch, queryFulfilled }) {
+        // necesitamos el uid para tocar el cache de getRutinas(uid)
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const uid = session?.user?.id;
+
+        // patch lista
+        const patchList = uid
+          ? dispatch(
+              rutinasApi.util.updateQueryData("getRutinas", uid, (draft) => {
+                const idx = draft.findIndex((r) => r.id_rutina === id_rutina);
+                if (idx !== -1) draft.splice(idx, 1);
+              })
+            )
+          : { undo: () => {} };
+
+        // patch detalle (por si estaba abierto)
+        const patchDetail = dispatch(
+          rutinasApi.util.updateQueryData("getRutinaById", id_rutina, (_draft) => {
+            // Si quisieras, podrías setear null. RTKQ exige retornar algo, así que
+            // no mutamos y dejamos que la navegación/invalidación haga su trabajo.
+          })
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          // si falla, deshacemos
+          patchList.undo();
+          patchDetail.undo();
+        }
       },
       invalidatesTags: (_r, _e, arg) => [
         { type: "Rutinas", id: "LIST" },
