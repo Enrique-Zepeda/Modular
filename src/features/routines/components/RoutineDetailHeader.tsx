@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Edit, Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export function RoutineDetailHeader({
@@ -27,10 +27,6 @@ export function RoutineDetailHeader({
       </div>
 
       <div className="flex gap-2">
-        <Button variant="outline" size="sm">
-          <Edit className="h-4 w-4 mr-2" />
-          Editar
-        </Button>
         <Button variant="outline" size="sm" onClick={onDelete} disabled={deleting}>
           <Trash2 className="h-4 w-4 mr-2" />
           {deleting ? "Eliminando..." : "Eliminar"}

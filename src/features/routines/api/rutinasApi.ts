@@ -10,6 +10,7 @@ export type Rutina = {
   objetivo: "fuerza" | "hipertrofia" | "resistencia" | null;
   duracion_estimada: number | null;
   owner_uid?: string | null;
+  ejercicios_count?: number;
 };
 
 export type Ejercicio = {
@@ -57,12 +58,30 @@ export const rutinasApi = createApi({
         try {
           const { data, error } = await supabase
             .from("Rutinas")
-            .select("id_rutina, nombre, descripcion, nivel_recomendado, objetivo, duracion_estimada, owner_uid")
+            .select(
+              `
+              id_rutina, 
+              nombre, 
+              descripcion, 
+              nivel_recomendado, 
+              objetivo, 
+              duracion_estimada, 
+              owner_uid,
+              ejercicios_count:EjerciciosRutinas(count)
+            `
+            )
             .eq("owner_uid", ownerUid)
             .order("id_rutina", { ascending: false });
 
           if (error) throw error;
-          return { data: (data ?? []) as Rutina[] };
+
+          // Transform the data to include exercise count as a number
+          const rutinasWithCount = (data ?? []).map((rutina) => ({
+            ...rutina,
+            ejercicios_count: rutina.ejercicios_count?.[0]?.count || 0,
+          }));
+
+          return { data: rutinasWithCount as (Rutina & { ejercicios_count: number })[] };
         } catch (error) {
           return { error: { status: 500, data: error } as any };
         }
@@ -117,7 +136,7 @@ export const rutinasApi = createApi({
             id_rutina, nombre, descripcion, nivel_recomendado, objetivo, duracion_estimada, owner_uid,
             EjerciciosRutinas (
               id_rutina, id_ejercicio, series, repeticiones, peso_sugerido,
-              Ejercicios ( id, nombre, grupo_muscular, descripcion, equipamento, dificultad, musculos_involucrados, ejemplo )
+              Ejercicios ( id, nombre, grupo_muscular, dificultad, ejemplo )
             )
           `
           )
