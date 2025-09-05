@@ -1,10 +1,10 @@
 import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "../features/auth/slices/authSlice";
 import themeReducer from "../features/theme/slices/themeSlice";
-import rutinasReducer from "../features/rutinas/slices/rutinasSlice";
+import rutinasReducer from "../features/routines/slices/rutinasSlice";
 
 // RTK Query APIs
-import { rutinasApi } from "../features/rutinas/api/rutinasApi";
+import { rutinasApi } from "../features/routines/api/rutinasApi";
 import { exercisesApi } from "../features/exercises/exercisesSlice"; // <-- IMPORTANTE
 
 import { setupListeners } from "@reduxjs/toolkit/query";

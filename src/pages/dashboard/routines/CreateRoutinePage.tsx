@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, Loader2, Bug } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { crearRutinaSchema, type CrearRutinaFormData } from "@/lib/validations/schemas/rutinaSchema";
-import { useCreateRutinaMutation } from "@/features/rutinas/api/rutinasApi";
+import { useCreateRutinaMutation } from "@/features/routines/api/rutinasApi";
 import { useAuth } from "@/hooks/useAuth";
 import { debugAuthStatus, debugCreateRutina, debugRLSStatus, debugUserProfile } from "@/lib/supabase/debug";
 import { Button } from "@/components/ui/button";

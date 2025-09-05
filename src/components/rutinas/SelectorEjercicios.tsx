@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
 import { MagnifyingGlassIcon, FunnelIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { agregarEjercicioSchema, type AgregarEjercicioFormData } from "../../lib/validations/schemas/ejercicioSchema";
-import { useGetEjerciciosQuery } from "../../features/rutinas/api/rutinasApi";
+import { useGetEjerciciosQuery } from "../../features/routines/api/rutinasApi";
 import type { Ejercicio, FiltrosEjercicios } from "../../types/rutinas";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";

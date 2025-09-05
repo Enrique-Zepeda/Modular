@@ -3,7 +3,7 @@ import type { AppDispatch } from "@/app/store";
 import { supabase } from "@/lib/supabase/client";
 import { clearUser } from "../slices/authSlice";
 import toast from "react-hot-toast";
-import { rutinasApi } from "@/features/rutinas/api/rutinasApi";
+import { rutinasApi } from "@/features/routines/api/rutinasApi";
 
 export const logoutUser = () => async (dispatch: AppDispatch) => {
   try {

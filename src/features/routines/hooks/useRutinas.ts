@@ -13,7 +13,7 @@ import type { Ejercicio, FiltrosEjercicios } from "../../../types/rutinas";
 export const useRutinas = () => {
   const dispatch = useDispatch();
   const rutinasState = useSelector((state: RootState) => state.rutinas);
-
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const setRutinaActualAction = (rutina: any) => {
     dispatch(setRutinaActual(rutina));
   };
@@ -47,4 +47,4 @@ export const useRutinas = () => {
     setFiltrosEjercicios: setFiltrosEjerciciosAction,
     setLoading: setLoadingAction,
   };
-}; 
+};

@@ -4,7 +4,7 @@ import type { ReactElement } from "react";
 import { useAppDispatch } from "@/hooks";
 import { supabase } from "@/lib/supabase/client";
 import { setUser, clearUser, setLoading } from "../slices/authSlice";
-import { rutinasApi } from "@/features/rutinas/api/rutinasApi";
+import { rutinasApi } from "@/features/routines/api/rutinasApi";
 
 interface AuthProviderProps {
   children: ReactElement;
