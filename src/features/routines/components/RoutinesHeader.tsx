@@ -10,7 +10,7 @@ export function RoutinesHeader() {
         <p className="text-muted-foreground">Gestiona y crea tus rutinas de ejercicios personalizadas</p>
       </div>
       <Button asChild className="rounded-xl">
-        <Link to="/dashboard/routines/create">
+        <Link to="/dashboard/routines/new">
           <Plus className="h-4 w-4 mr-2" />
           Nueva Rutina
         </Link>

@@ -167,6 +167,29 @@ export const rutinasApi = createApi({
       invalidatesTags: [{ type: "Rutinas", id: "LIST" }],
     }),
 
+    /** Actualizar rutina existente */
+    updateRutina: builder.mutation<Rutina, { id_rutina: number } & UpsertRutinaInput>({
+      async queryFn({ id_rutina, ...rutinaData }) {
+        try {
+          const { data, error } = await supabase
+            .from("Rutinas")
+            .update(rutinaData)
+            .eq("id_rutina", id_rutina)
+            .select("id_rutina, nombre, descripcion, nivel_recomendado, objetivo, duracion_estimada, owner_uid")
+            .single();
+
+          if (error) throw error;
+          return { data: data as Rutina };
+        } catch (error) {
+          return { error: { status: 500, data: error } as any };
+        }
+      },
+      invalidatesTags: (_r, _e, arg) => [
+        { type: "Rutinas", id: "LIST" },
+        { type: "RutinaDetalle", id: arg.id_rutina },
+      ],
+    }),
+
     /** Añadir ejercicio a la rutina (sólo si eres dueño por RLS) */
     addEjercicioToRutina: builder.mutation<
       EjercicioRutina,
@@ -257,6 +280,7 @@ export const {
   useGetRutinasQuery,
   useGetRutinaByIdQuery,
   useCreateRutinaMutation,
+  useUpdateRutinaMutation,
   useAddEjercicioToRutinaMutation,
   useRemoveEjercicioFromRutinaMutation,
   useDeleteRutinaMutation,
@@ -265,5 +289,6 @@ export const {
 
 // Aliases (si los usabas en español)
 export const useCrearRutinaMutation = useCreateRutinaMutation;
+export const useActualizarRutinaMutation = useUpdateRutinaMutation;
 export const useEliminarRutinaMutation = useDeleteRutinaMutation;
 export const useObtenerEjerciciosQuery = useGetEjerciciosQuery;

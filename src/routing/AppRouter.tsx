@@ -4,8 +4,8 @@ import { PublicRoute } from "./PublicRoutes/PublicRoute";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import DashboardPage from "@/pages/dashboard/DashboardPage";
 import RoutinesPage from "@/pages/dashboard/routines/RoutinesPage";
-import CreateRoutinePage from "@/pages/dashboard/routines/CreateRoutinePage";
 import RoutineDetailPage from "@/pages/dashboard/routines/RoutineDetailPage";
+import RoutineBuilderPage from "@/pages/dashboard/routines/RoutineBuilderPage";
 import { LoginPage, RegisterPage, ResetPasswordPage } from "../pages/auth";
 import AuthCallbackPage from "@/pages/auth/AuthCallbackPage";
 import SettingsPage from "@/pages/dashboard/settings/SettingsPage";
@@ -64,12 +64,23 @@ export default function AppRouter() {
           </ProtectedRoute>
         }
       />
+      {/* Added unified builder routes for create and edit */}
       <Route
-        path="/dashboard/routines/create"
+        path="/dashboard/routines/new"
         element={
           <ProtectedRoute>
             <DashboardLayout>
-              <CreateRoutinePage />
+              <RoutineBuilderPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/routines/:id/edit"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <RoutineBuilderPage />
             </DashboardLayout>
           </ProtectedRoute>
         }
@@ -107,8 +118,10 @@ export default function AppRouter() {
 
       {/* Legacy routes for compatibility */}
       <Route path="/rutinas" element={<Navigate to="/dashboard/routines" />} />
-      <Route path="/rutinas/crear" element={<Navigate to="/dashboard/routines/create" />} />
+      <Route path="/rutinas/crear" element={<Navigate to="/dashboard/routines/new" />} />
+      {/* Updated legacy route to use new builder */}
       <Route path="/rutinas/:id" element={<Navigate to="/dashboard/routines/:id" />} />
+      <Route path="/rutinas/:id/editar" element={<Navigate to="/dashboard/routines/:id/edit" />} />
     </Routes>
   );
 }
