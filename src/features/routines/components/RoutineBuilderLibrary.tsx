@@ -12,6 +12,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useGetEjerciciosQuery } from "@/features/routines/api/rutinasApi";
 import { agregarEjercicioSchema, type AgregarEjercicioFormData } from "@/lib/validations/schemas/ejercicioSchema";
 import { ExerciseImage } from "@/components/ui/exercise-image";
+import { normalizeExerciseData } from "@/utils/exerciseNormalization";
 import type { Ejercicio } from "@/features/routines/api/rutinasApi";
 
 interface RoutineBuilderLibraryProps {
@@ -153,45 +154,47 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
             </div>
           ) : (
             <div className="space-y-3">
-              {availableExercises.map((exercise) => (
-                <Card
-                  key={exercise.id}
-                  className="cursor-pointer hover:shadow-sm transition-shadow"
-                  onClick={() => handleExerciseSelect(exercise)}
-                >
-                  <CardContent className="p-3">
-                    <div className="flex gap-3">
-                      <ExerciseImage
-                        src={exercise.ejemplo}
-                        alt={exercise.nombre || "Ejercicio"}
-                        aspectRatio="1"
-                        size="sm"
-                        className="w-12 h-12 rounded flex-shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-1">
-                          <h4 className="font-medium text-sm line-clamp-2 leading-tight">
-                            {exercise.nombre || "Ejercicio sin nombre"}
-                          </h4>
-                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0 flex-shrink-0">
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        <div className="space-y-1">
-                          {exercise.grupo_muscular && (
-                            <Badge variant="secondary" className="text-xs">
-                              {exercise.grupo_muscular}
-                            </Badge>
-                          )}
-                          {exercise.equipamento && (
-                            <p className="text-xs text-muted-foreground line-clamp-1">{exercise.equipamento}</p>
-                          )}
+              {availableExercises.map((exercise) => {
+                const { nombre, imagen } = normalizeExerciseData(exercise);
+
+                return (
+                  <Card
+                    key={exercise.id}
+                    className="cursor-pointer hover:shadow-sm transition-shadow"
+                    onClick={() => handleExerciseSelect(exercise)}
+                  >
+                    <CardContent className="p-3">
+                      <div className="flex gap-3">
+                        <ExerciseImage
+                          src={imagen}
+                          alt={nombre}
+                          aspectRatio="1"
+                          size="sm"
+                          className="w-12 h-12 rounded flex-shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between mb-1">
+                            <h4 className="font-medium text-sm line-clamp-2 leading-tight">{nombre}</h4>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 flex-shrink-0">
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          <div className="space-y-1">
+                            {exercise.grupo_muscular && (
+                              <Badge variant="secondary" className="text-xs">
+                                {exercise.grupo_muscular}
+                              </Badge>
+                            )}
+                            {exercise.equipamento && (
+                              <p className="text-xs text-muted-foreground line-clamp-1">{exercise.equipamento}</p>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>

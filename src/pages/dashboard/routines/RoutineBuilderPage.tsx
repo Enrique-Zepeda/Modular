@@ -23,6 +23,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { RoutineBuilderExerciseList } from "@/features/routines/components/RoutineBuilderExerciseList";
 import { RoutineBuilderLibrary } from "@/features/routines/components/RoutineBuilderLibrary";
+import { ExitConfirmationDialog } from "@/components/ui/exit-confirmation-dialog";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import type { AgregarEjercicioFormData } from "@/types/rutinas";
 
 export default function RoutineBuilderPage() {
@@ -45,7 +47,9 @@ export default function RoutineBuilderPage() {
   // Local state
   const [exercises, setExercises] = useState<EjercicioRutina[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
+  // Form setup
   const form = useForm<CrearRutinaFormData>({
     resolver: zodResolver(crearRutinaSchema),
     defaultValues: {
@@ -55,6 +59,12 @@ export default function RoutineBuilderPage() {
       objetivo: "fuerza",
       duracion_estimada: 30,
     },
+  });
+
+  // Exit confirmation functionality
+  const { showExitModal, handleNavigation, confirmExit, cancelExit } = useUnsavedChanges({
+    hasUnsavedChanges,
+    onNavigateAway: () => setHasUnsavedChanges(false),
   });
 
   // Load existing routine data in edit mode
@@ -70,6 +80,15 @@ export default function RoutineBuilderPage() {
       setExercises(existingRoutine.EjerciciosRutinas || []);
     }
   }, [existingRoutine, isEditMode, form]);
+
+  useEffect(() => {
+    const subscription = form.watch(() => {
+      if (!isEditMode) {
+        setHasUnsavedChanges(true);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form, isEditMode]);
 
   // Auth check
   if (authLoading || (isEditMode && isLoadingRoutine)) {
@@ -104,9 +123,17 @@ export default function RoutineBuilderPage() {
         series: exerciseData.series,
         repeticiones: exerciseData.repeticiones,
         peso_sugerido: exerciseData.peso_sugerido,
-        Ejercicios: null, // Will be populated by the library component
+        Ejercicios: exerciseData.exerciseDetails
+          ? {
+              id: exerciseData.exerciseDetails.id,
+              nombre: exerciseData.exerciseDetails.nombre,
+              ejemplo: exerciseData.exerciseDetails.ejemplo,
+              grupo_muscular: exerciseData.exerciseDetails.grupo_muscular,
+            }
+          : null,
       };
       setExercises((prev) => [...prev, newExercise]);
+      setHasUnsavedChanges(true);
       toast.success("Ejercicio agregado");
       return;
     }
@@ -131,6 +158,7 @@ export default function RoutineBuilderPage() {
     if (!isEditMode) {
       // In create mode, just remove from local state
       setExercises((prev) => prev.filter((ex) => ex.id_ejercicio !== exerciseId));
+      setHasUnsavedChanges(true);
       toast.success("Ejercicio removido");
       return;
     }
@@ -152,6 +180,7 @@ export default function RoutineBuilderPage() {
     if (!isEditMode) {
       // In create mode, just update local state
       setExercises(newExercises);
+      setHasUnsavedChanges(true);
     } else {
       // In edit mode, we could implement server-side ordering if needed
       // For now, just update the UI optimistically
@@ -197,6 +226,7 @@ export default function RoutineBuilderPage() {
         toast.success("¡Rutina creada exitosamente!");
       }
 
+      setHasUnsavedChanges(false);
       navigate("/dashboard/routines");
     } catch (err: any) {
       console.error("Error saving routine:", err);
@@ -216,7 +246,7 @@ export default function RoutineBuilderPage() {
       <div className="flex-shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center justify-between p-6">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/routines")}>
+            <Button variant="ghost" size="sm" onClick={() => handleNavigation("/dashboard/routines")}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>
@@ -368,6 +398,9 @@ export default function RoutineBuilderPage() {
           <RoutineBuilderLibrary onAddExercise={handleAddExercise} excludedExerciseIds={currentExerciseIds} />
         </div>
       </div>
+
+      {/* Exit Confirmation Dialog */}
+      <ExitConfirmationDialog open={showExitModal} onOpenChange={cancelExit} onConfirm={confirmExit} />
     </div>
   );
 }

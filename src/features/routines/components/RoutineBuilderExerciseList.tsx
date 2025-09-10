@@ -5,6 +5,7 @@ import { Trash2, Plus } from "lucide-react";
 import { ExerciseImage } from "@/components/ui/exercise-image";
 import { SortableItem } from "@/components/ui/sortable-item";
 import { useDragAndDrop } from "@/hooks/useDragAndDrop";
+import { normalizeExerciseData } from "@/utils/exerciseNormalization";
 import type { EjercicioRutina } from "@/features/routines/api/rutinasApi";
 
 interface RoutineBuilderExerciseListProps {
@@ -12,14 +13,6 @@ interface RoutineBuilderExerciseListProps {
   onRemoveExercise: (exerciseId: number) => void;
   onReorderExercises?: (newExercises: EjercicioRutina[]) => void;
   isEditMode: boolean;
-}
-
-function normalizeExerciseData(exercise: EjercicioRutina) {
-  return {
-    nombre: exercise.Ejercicios?.nombre || "Ejercicio sin nombre",
-    imagen: exercise.Ejercicios?.ejemplo || null,
-    grupo_muscular: exercise.Ejercicios?.grupo_muscular || null,
-  };
 }
 
 export function RoutineBuilderExerciseList({

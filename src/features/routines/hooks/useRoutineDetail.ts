@@ -21,6 +21,7 @@ export function useRoutineDetail() {
   const [eliminarRutina, { isLoading: isDeleting }] = useDeleteRutinaMutation();
 
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const ejerciciosExistentes = useMemo(
     () => (rutina?.EjerciciosRutinas ?? []).map((e) => e.id_ejercicio),
@@ -63,7 +64,6 @@ export function useRoutineDetail() {
   );
 
   const handleEliminarRutina = useCallback(async () => {
-    if (!confirm("¿Estás seguro de que quieres eliminar esta rutina?")) return;
     try {
       await eliminarRutina({ id_rutina: routineId }).unwrap();
       toast.success("Rutina eliminada exitosamente");
@@ -73,6 +73,10 @@ export function useRoutineDetail() {
       toast.error("Error al eliminar la rutina");
     }
   }, [eliminarRutina, routineId, navigate]);
+
+  const confirmDeleteRutina = useCallback(() => {
+    setShowDeleteDialog(true);
+  }, []);
 
   return {
     rutina,
@@ -86,5 +90,8 @@ export function useRoutineDetail() {
     handleEjercicioAgregado,
     handleRemoverEjercicio,
     handleEliminarRutina,
+    showDeleteDialog,
+    setShowDeleteDialog,
+    confirmDeleteRutina,
   };
 }

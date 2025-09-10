@@ -30,21 +30,32 @@ export function DeleteRoutineDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Eliminar rutina</AlertDialogTitle>
           <AlertDialogDescription>
-            Esta acción no se puede deshacer. ¿Seguro que deseas eliminar{" "}
-            {routineName ? `"${routineName}"` : "esta rutina"}?
+            {routineName ? (
+              <>
+                ¿Seguro que quieres eliminar <span className="font-semibold">“{routineName}”</span>? Esta acción no se
+                puede deshacer.
+              </>
+            ) : (
+              <>¿Seguro que quieres eliminar esta rutina? Esta acción no se puede deshacer.</>
+            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isLoading} type="button">
+          <AlertDialogCancel type="button" disabled={isLoading}>
             Cancelar
           </AlertDialogCancel>
           <AlertDialogAction
-            onClick={onConfirm}
-            disabled={isLoading}
             type="button"
+            disabled={isLoading}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={() => {
+              // cerrar primero para liberar overlay
+              onOpenChange(false);
+              // ejecutar confirm en el siguiente frame
+              requestAnimationFrame(() => onConfirm());
+            }}
           >
-            {isLoading ? "Eliminando..." : "Eliminar"}
+            Eliminar
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

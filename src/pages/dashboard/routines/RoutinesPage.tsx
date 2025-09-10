@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useGetRutinasQuery, useDeleteRutinaMutation } from "@/features/routines/api/rutinasApi";
@@ -10,6 +10,7 @@ import {
   RoutinesHeader,
   RoutinesSkeleton,
 } from "@/features/routines/components";
+import { DeleteRoutineDialog } from "@/components/ui/delete-routine-dialog";
 
 export default function RoutinesPage() {
   const { loading: authLoading, isAuthenticated, requireAuth } = useAuth();
@@ -29,7 +30,13 @@ export default function RoutinesPage() {
     refetchOnReconnect: true,
   });
 
-  const [deleteRutina] = useDeleteRutinaMutation();
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; routineId: number; routineName: string }>({
+    open: false,
+    routineId: 0,
+    routineName: "",
+  });
+
+  const [deleteRutina, { isLoading: isDeleting }] = useDeleteRutinaMutation();
 
   const filteredRoutines = useMemo(() => {
     const q = filters.searchTerm.toLowerCase();
@@ -42,19 +49,25 @@ export default function RoutinesPage() {
     });
   }, [routines, filters.searchTerm, filters.levelFilter, filters.objectiveFilter]);
 
-  const handleDelete = useCallback(
-    async (id: number, name: string) => {
-      if (!confirm(`¿Estás seguro de que quieres eliminar "${name}"?`)) return;
-      try {
-        await deleteRutina({ id_rutina: id }).unwrap();
-        toast.success("Rutina eliminada correctamente");
-      } catch (e) {
-        console.error("Error deleting routine:", e);
-        toast.error("Error al eliminar la rutina");
-      }
-    },
-    [deleteRutina]
-  );
+  const handleDelete = useCallback((id: number, name: string) => {
+    // deja cerrar el dropdown en este tick
+    setTimeout(() => setDeleteDialog({ open: true, routineId: id, routineName: name }), 0);
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    // 1) Cerrar diálogo y limpiar antes de mutar
+    const toDelete = deleteDialog.routineId;
+    setDeleteDialog({ open: false, routineId: 0, routineName: "" });
+
+    // 2) Hacer la mutación después de liberar el overlay
+    try {
+      await deleteRutina({ id_rutina: toDelete }).unwrap();
+      toast.success("Rutina eliminada correctamente");
+    } catch (e) {
+      console.error("Error deleting routine:", e);
+      toast.error("Error al eliminar la rutina");
+    }
+  }, [deleteRutina, deleteDialog.routineId]);
 
   if (authLoading)
     return (
@@ -99,6 +112,16 @@ export default function RoutinesPage() {
       ) : (
         <RoutinesGrid items={filteredRoutines} onDelete={handleDelete} />
       )}
+
+      <DeleteRoutineDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) =>
+          setDeleteDialog((prev) => (open ? { ...prev, open } : { open: false, routineId: 0, routineName: "" }))
+        }
+        onConfirm={confirmDelete}
+        routineName={deleteDialog.routineName}
+        isLoading={isDeleting}
+      />
     </div>
   );
 }
