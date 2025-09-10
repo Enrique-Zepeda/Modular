@@ -20,7 +20,7 @@ export function RoutinesEmptyState({ hasAny, onCreate }: { hasAny: boolean; onCr
         </div>
         {!hasAny && (
           <Button asChild className="rounded-xl" onClick={onCreate}>
-            <Link to="/dashboard/routines/create">
+            <Link to="/dashboard/routines/new">
               <Plus className="h-4 w-4 mr-2" />
               Crear Primera Rutina
             </Link>
