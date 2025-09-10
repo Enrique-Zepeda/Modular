@@ -2,8 +2,8 @@ export interface Rutina {
   id_rutina: number;
   nombre: string;
   descripcion: string | null;
-  nivel_recomendado: 'principiante' | 'intermedio' | 'avanzado' | null;
-  objetivo: 'fuerza' | 'hipertrofia' | 'resistencia' | null;
+  nivel_recomendado: "principiante" | "intermedio" | "avanzado" | null;
+  objetivo: "fuerza" | "hipertrofia" | "resistencia" | null;
   duracion_estimada: number | null;
 }
 
@@ -24,17 +24,26 @@ export interface EjercicioRutina {
   series: number | null;
   repeticiones: number | null;
   peso_sugerido: number | null;
+  order?: number; // For drag-and-drop ordering
+}
+
+export interface EjercicioRutinaWithDetails extends EjercicioRutina {
+  Ejercicios?: Ejercicio | null;
+  // Normalized fields for easier access
+  nombre?: string;
+  imagen?: string;
+  grupo_muscular?: string;
 }
 
 export interface RutinaConEjercicios extends Rutina {
-  ejercicios: (EjercicioRutina & { ejercicio: Ejercicio })[];
+  ejercicios: (EjercicioRutinaWithDetails & { ejercicio: Ejercicio })[];
 }
 
 export interface CrearRutinaFormData {
   nombre: string;
   descripcion: string;
-  nivel_recomendado: 'principiante' | 'intermedio' | 'avanzado';
-  objetivo: 'fuerza' | 'hipertrofia' | 'resistencia';
+  nivel_recomendado: "principiante" | "intermedio" | "avanzado";
+  objetivo: "fuerza" | "hipertrofia" | "resistencia";
   duracion_estimada: number;
 }
 
@@ -50,4 +59,4 @@ export interface FiltrosEjercicios {
   dificultad?: string;
   equipamento?: string;
   search?: string;
-} 
+}

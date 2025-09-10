@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +15,7 @@ import { ExerciseImage } from "@/components/ui/exercise-image";
 import type { Ejercicio } from "@/features/routines/api/rutinasApi";
 
 interface RoutineBuilderLibraryProps {
-  onAddExercise: (exerciseData: AgregarEjercicioFormData) => void;
+  onAddExercise: (exerciseData: AgregarEjercicioFormData & { exerciseDetails?: Ejercicio }) => void;
   excludedExerciseIds: number[];
 }
 
@@ -57,7 +55,10 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
   };
 
   const handleSubmit = (data: AgregarEjercicioFormData) => {
-    onAddExercise(data);
+    onAddExercise({
+      ...data,
+      exerciseDetails: selectedExercise || undefined,
+    });
     setIsConfigDialogOpen(false);
     setSelectedExercise(null);
     form.reset({
@@ -169,7 +170,9 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between mb-1">
-                          <h4 className="font-medium text-sm line-clamp-2 leading-tight">{exercise.nombre}</h4>
+                          <h4 className="font-medium text-sm line-clamp-2 leading-tight">
+                            {exercise.nombre || "Ejercicio sin nombre"}
+                          </h4>
                           <Button size="sm" variant="ghost" className="h-6 w-6 p-0 flex-shrink-0">
                             <Plus className="h-3 w-3" />
                           </Button>
