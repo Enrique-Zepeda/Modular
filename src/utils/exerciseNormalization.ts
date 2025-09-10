@@ -2,35 +2,60 @@ export interface NormalizedExercise {
   nombre: string;
   imagen: string | null;
   grupo_muscular: string | null;
+  equipamiento?: string | null;
+  dificultad?: string | null; // Etiqueta capitalizada
+  dificultadKey?: "principiante" | "intermedio" | "avanzado" | null; // Para filtrar
+  descripcion?: string;
 }
 
 /**
- * Normalizes exercise data from different sources (library, API, etc.)
- * Handles common field name variations for exercise properties
+ * Normaliza un ejercicio cualquiera (venga plano o dentro de Ejercicios).
+ * Cubre alias comunes: ejemplo, gif_url, imagen_url, imagen, image, thumbnail, etc.
  */
 export function normalizeExerciseData(exercise: any): NormalizedExercise {
-  // Handle nested Ejercicios object (from routine exercises)
-  const source = exercise?.Ejercicios || exercise;
+  // Si viene de la rutina, los datos reales están en Ejercicios
+  const source = exercise?.Ejercicios ?? exercise ?? {};
 
-  // Normalize name - try multiple possible field names
-  const nombre = source?.nombre || source?.name || source?.title || "Ejercicio sin nombre";
+  // Nombre
+  const nombre = source.nombre ?? source.name ?? source.title ?? "Ejercicio sin nombre";
 
-  // Normalize image - try multiple possible field names
-  const imagen =
-    source?.ejemplo ||
-    source?.image ||
-    source?.img_url ||
-    source?.thumbnail ||
-    source?.gifUrl ||
-    source?.imageUrl ||
+  // Imagen (incluye 'ejemplo', que es el que usa la UI del builder)
+  const rawImg =
+    source.ejemplo ??
+    source.gif_url ??
+    source.imagen_url ??
+    source.imagen ??
+    source.image ??
+    source.img ??
+    source.gifUrl ??
+    source.imageUrl ??
+    source.thumbnail ??
     null;
 
-  // Normalize muscle group
-  const grupo_muscular = source?.grupo_muscular || source?.muscle_group || source?.muscleGroup || null;
+  const imagen = rawImg ? String(rawImg) : null;
 
-  return {
-    nombre,
-    imagen,
-    grupo_muscular,
-  };
+  // Grupo muscular
+  const grupo_muscular = source.grupo_muscular ?? source.muscle_group ?? source.muscleGroup ?? null;
+
+  // Equipamiento (acepta legado 'equipamento')
+  const equipRaw = source.equipamiento ?? source.equipamento ?? source.equipment ?? null;
+  const equipamiento = equipRaw ? String(equipRaw) : null;
+
+  // Dificultad para filtros y etiqueta capitalizada para la UI
+  const diffRaw = (source.dificultad ?? source.difficulty ?? "").toString().trim().toLowerCase();
+  const dificultadKey =
+    diffRaw === "principiante" || diffRaw === "intermedio" || diffRaw === "avanzado" ? (diffRaw as any) : null;
+
+  const dificultad =
+    dificultadKey === "principiante"
+      ? "Principiante"
+      : dificultadKey === "intermedio"
+      ? "Intermedio"
+      : dificultadKey === "avanzado"
+      ? "Avanzado"
+      : null;
+
+  const descripcion = source.descripcion ?? source.description ?? "";
+
+  return { nombre, imagen, grupo_muscular, equipamiento, dificultad, dificultadKey, descripcion };
 }

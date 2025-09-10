@@ -1,12 +1,12 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Loader2, Bug } from "lucide-react";
+import { ArrowLeft, Plus, Loader2 } from "lucide-react"; //Bug ---para debug temporal
 import { toast } from "react-hot-toast";
 import { crearRutinaSchema, type CrearRutinaFormData } from "@/lib/validations/schemas/rutinaSchema";
 import { useCreateRutinaMutation } from "@/features/routines/api/rutinasApi";
 import { useAuth } from "@/hooks/useAuth";
-import { debugAuthStatus, debugCreateRutina, debugRLSStatus, debugUserProfile } from "@/lib/supabase/debug";
+// import { debugAuthStatus, debugCreateRutina, debugRLSStatus, debugUserProfile } from "@/lib/supabase/debug";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,22 +44,22 @@ export default function CreateRoutinePage() {
     return null;
   }
 
-  const handleDebug = async () => {
-    try {
-      console.log("=== INICIANDO DEBUG COMPLETO ===");
+  // const handleDebug = async () => {
+  //   try {
+  //     console.log("=== INICIANDO DEBUG COMPLETO ===");
 
-      // Debug completo
-      await debugAuthStatus();
-      await debugRLSStatus();
-      await debugUserProfile();
-      await debugCreateRutina();
+  //     // Debug completo
+  //     await debugAuthStatus();
+  //     await debugRLSStatus();
+  //     await debugUserProfile();
+  //     await debugCreateRutina();
 
-      toast.success("Debug completado. Revisa la consola para diagnóstico completo.");
-    } catch (error) {
-      console.error("Error en debug:", error);
-      toast.error("Error en debug");
-    }
-  };
+  //     toast.success("Debug completado. Revisa la consola para diagnóstico completo.");
+  //   } catch (error) {
+  //     console.error("Error en debug:", error);
+  //     toast.error("Error en debug");
+  //   }
+  // };
 
   const onSubmit = async (data: CrearRutinaFormData) => {
     try {
@@ -101,13 +101,13 @@ export default function CreateRoutinePage() {
         </div>
       </div>
 
-      {/* Botón de debug temporal */}
+      {/* Botón de debug temporal
       <div className="flex justify-end">
         <Button variant="outline" size="sm" onClick={handleDebug} className="text-xs">
           <Bug className="h-3 w-3 mr-1" />
           Debug RLS Completo (Temporal)
         </Button>
-      </div>
+      </div> */}
 
       <div className="max-w-2xl">
         <Card>

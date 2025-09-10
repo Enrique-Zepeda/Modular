@@ -106,7 +106,7 @@ export default function RoutinesPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-screen-xl space-y-8">
       <RoutinesHeader />
-      <RoutinesFilters searchTerm={filters.searchTerm} onSearch={filters.setSearchTerm} onClear={filters.clear} />
+      <RoutinesFilters searchTerm={filters.searchTerm} onSearch={filters.setSearchTerm} />
       {filteredRoutines.length === 0 ? (
         <RoutinesEmptyState hasAny={hasAny} />
       ) : (

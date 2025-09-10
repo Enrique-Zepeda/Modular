@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Search, Plus } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useGetEjerciciosQuery } from "@/features/routines/api/rutinasApi";
 import { agregarEjercicioSchema, type AgregarEjercicioFormData } from "@/lib/validations/schemas/ejercicioSchema";
 import { ExerciseImage } from "@/components/ui/exercise-image";
@@ -20,15 +21,43 @@ interface RoutineBuilderLibraryProps {
   excludedExerciseIds: number[];
 }
 
+/** Mantén los valores en minúsculas para que hagan match con el backend */
+const DIFFICULTY_OPTIONS = [
+  { value: "all", label: "Todas las dificultades" },
+  { value: "principiante", label: "Principiante" },
+  { value: "intermedio", label: "Intermedio" },
+  { value: "avanzado", label: "Avanzado" },
+];
+
+const buildExerciseDetailsForBuilder = (ex: any) => {
+  const { nombre, imagen, grupo_muscular } = normalizeExerciseData(ex);
+  return {
+    id: ex.id, // <- ID real del ejercicio
+    nombre: nombre ?? ex.nombre ?? null, // <- nombre visible
+    ejemplo: imagen ?? ex.ejemplo ?? ex.gif_url ?? ex.imagen_url ?? null, // <- imagen que consume el builder
+    grupo_muscular: grupo_muscular ?? ex.grupo_muscular ?? null,
+  };
+};
+
 export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: RoutineBuilderLibraryProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string>("all");
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
   const [selectedEquipment, setSelectedEquipment] = useState<string>("all");
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState<Ejercicio | null>(null);
 
+  // Debounce para el buscador
+  const debouncedSearch = useDebounce(searchTerm, 300);
+
+  // 1) Consulta base (sin filtros) para listas de opciones estables
+  const { data: baseExercises = [] } = useGetEjerciciosQuery({});
+
+  // 2) Consulta con filtros compatibles con tu endpoint
+  //    - Mantén 'equipamento' (portugués) en la query
+  //    - dificultad la filtramos en cliente (por si el endpoint no la soporta)
   const { data: exercises = [], isLoading } = useGetEjerciciosQuery({
-    search: searchTerm,
+    search: debouncedSearch || undefined,
     grupo_muscular: selectedMuscleGroup === "all" ? undefined : selectedMuscleGroup,
     equipamento: selectedEquipment === "all" ? undefined : selectedEquipment,
   });
@@ -43,11 +72,60 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
     },
   });
 
-  const availableExercises = exercises.filter((exercise) => !excludedExerciseIds.includes(exercise.id));
+  // Opciones: usa la consulta base + normalización + tokeniza equipamiento por comas
+  const muscleGroups = useMemo(() => {
+    const set = new Set<string>();
+    baseExercises.forEach((e: any) => {
+      const { grupo_muscular } = normalizeExerciseData(e);
+      if (grupo_muscular) set.add(grupo_muscular);
+    });
+    return Array.from(set).sort();
+  }, [baseExercises]);
 
-  const muscleGroups = Array.from(new Set(exercises.map((e) => e.grupo_muscular).filter(Boolean))).sort();
+  const equipmentTypes = useMemo(() => {
+    const set = new Set<string>();
+    baseExercises.forEach((e: any) => {
+      const { equipamiento } = normalizeExerciseData(e);
+      if (equipamiento) {
+        equipamiento
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean)
+          .forEach((t) => set.add(t));
+      }
+    });
+    return Array.from(set).sort();
+  }, [baseExercises]);
 
-  const equipmentTypes = Array.from(new Set(exercises.map((e) => e.equipamento).filter(Boolean))).sort();
+  // Filtrado final en cliente: dificultad + equipamiento (tokens) + search extra
+  const filteredList = useMemo(() => {
+    const s = (debouncedSearch || "").toLowerCase();
+
+    return exercises.filter((raw: any) => {
+      const { nombre, descripcion, grupo_muscular, dificultadKey, equipamiento } = normalizeExerciseData(raw);
+
+      const matchesSearch = !s || nombre.toLowerCase().includes(s) || descripcion.toLowerCase().includes(s);
+      const matchesMuscle = selectedMuscleGroup === "all" || grupo_muscular === selectedMuscleGroup;
+
+      const matchesDifficulty = selectedDifficulty === "all" || dificultadKey === selectedDifficulty;
+
+      const eq = (equipamiento || "").toLowerCase();
+      const eqTokens = eq
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
+      const wantedEq = selectedEquipment.toLowerCase();
+      const matchesEquipment = selectedEquipment === "all" || eqTokens.includes(wantedEq);
+
+      return matchesSearch && matchesMuscle && matchesDifficulty && matchesEquipment;
+    });
+  }, [exercises, debouncedSearch, selectedMuscleGroup, selectedDifficulty, selectedEquipment]);
+
+  // Evitar mostrar los ya agregados en el builder
+  const availableExercises = useMemo(
+    () => filteredList.filter((e: any) => !excludedExerciseIds.includes(e.id)),
+    [filteredList, excludedExerciseIds]
+  );
 
   const handleExerciseSelect = (exercise: Ejercicio) => {
     setSelectedExercise(exercise);
@@ -56,10 +134,13 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
   };
 
   const handleSubmit = (data: AgregarEjercicioFormData) => {
+    const details = selectedExercise ? buildExerciseDetailsForBuilder(selectedExercise) : undefined;
+
     onAddExercise({
       ...data,
-      exerciseDetails: selectedExercise || undefined,
+      exerciseDetails: details, // <- ahora llega {id, nombre, ejemplo, grupo_muscular}
     });
+
     setIsConfigDialogOpen(false);
     setSelectedExercise(null);
     form.reset({
@@ -73,22 +154,24 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
   const clearFilters = () => {
     setSearchTerm("");
     setSelectedMuscleGroup("all");
+    setSelectedDifficulty("all");
     setSelectedEquipment("all");
   };
 
-  const hasActiveFilters = searchTerm || selectedMuscleGroup !== "all" || selectedEquipment !== "all";
+  const hasActiveFilters =
+    Boolean(searchTerm) || selectedMuscleGroup !== "all" || selectedDifficulty !== "all" || selectedEquipment !== "all";
 
   return (
     <>
       <div className="h-full flex flex-col">
-        {/* Library Header */}
+        {/* Header */}
         <div className="flex-shrink-0 p-4 border-b">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold">Librería de Ejercicios</h3>
             <Badge variant="secondary">{availableExercises.length}</Badge>
           </div>
 
-          {/* Search */}
+          {/* Buscar */}
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -99,48 +182,73 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
             />
           </div>
 
-          {/* Filters */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Filtros</span>
-              {hasActiveFilters && (
-                <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs h-6">
-                  Limpiar
-                </Button>
-              )}
+          {/* Filtros (3) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Grupo Muscular */}
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">Grupo Muscular</span>
+              <Select value={selectedMuscleGroup} onValueChange={setSelectedMuscleGroup}>
+                <SelectTrigger className="h-8">
+                  <SelectValue placeholder="Todos los grupos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los grupos</SelectItem>
+                  {muscleGroups.map((group) => (
+                    <SelectItem key={group} value={group!}>
+                      {group}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            <Select value={selectedMuscleGroup} onValueChange={setSelectedMuscleGroup}>
-              <SelectTrigger className="h-8">
-                <SelectValue placeholder="Grupo muscular" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos los músculos</SelectItem>
-                {muscleGroups.map((group) => (
-                  <SelectItem key={group} value={group!}>
-                    {group}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Dificultad */}
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">Dificultad</span>
+              <Select value={selectedDifficulty} onValueChange={setSelectedDifficulty}>
+                <SelectTrigger className="h-8">
+                  <SelectValue placeholder="Todas las dificultades" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DIFFICULTY_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select value={selectedEquipment} onValueChange={setSelectedEquipment}>
-              <SelectTrigger className="h-8">
-                <SelectValue placeholder="Equipamiento" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todo el equipo</SelectItem>
-                {equipmentTypes.map((equipment) => (
-                  <SelectItem key={equipment} value={equipment!}>
-                    {equipment}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Equipamiento */}
+            <div className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">Equipamiento</span>
+              <Select value={selectedEquipment} onValueChange={setSelectedEquipment}>
+                <SelectTrigger className="h-8">
+                  <SelectValue placeholder="Todo el equipamiento" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todo el equipamiento</SelectItem>
+                  {equipmentTypes.map((equipment) => (
+                    <SelectItem key={equipment} value={equipment!}>
+                      {equipment}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+
+          {/* Limpiar */}
+          {hasActiveFilters && (
+            <div className="mt-3">
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="text-xs h-6">
+                Limpiar filtros
+              </Button>
+            </div>
+          )}
         </div>
 
-        {/* Exercise List */}
+        {/* Lista */}
         <div className="flex-1 overflow-y-auto p-4">
           {isLoading ? (
             <div className="flex justify-center py-8">
@@ -155,7 +263,7 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
           ) : (
             <div className="space-y-3">
               {availableExercises.map((exercise) => {
-                const { nombre, imagen } = normalizeExerciseData(exercise);
+                const { nombre, imagen, grupo_muscular, equipamiento, dificultad } = normalizeExerciseData(exercise);
 
                 return (
                   <Card
@@ -168,7 +276,7 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
                         <ExerciseImage
                           src={imagen}
                           alt={nombre}
-                          aspectRatio="1"
+                          aspectRatio="1/1"
                           size="sm"
                           className="w-12 h-12 rounded flex-shrink-0"
                         />
@@ -180,13 +288,27 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
                             </Button>
                           </div>
                           <div className="space-y-1">
-                            {exercise.grupo_muscular && (
+                            {grupo_muscular && (
                               <Badge variant="secondary" className="text-xs">
-                                {exercise.grupo_muscular}
+                                {grupo_muscular}
                               </Badge>
                             )}
-                            {exercise.equipamento && (
-                              <p className="text-xs text-muted-foreground line-clamp-1">{exercise.equipamento}</p>
+                            {dificultad && (
+                              <Badge
+                                variant="outline"
+                                className={`text-xs ${
+                                  dificultad === "Principiante"
+                                    ? "border-green-500 text-green-700 bg-green-50 dark:bg-green-900/20"
+                                    : dificultad === "Intermedio"
+                                    ? "border-yellow-500 text-yellow-700 bg-yellow-50 dark:bg-yellow-900/20"
+                                    : "border-red-500 text-red-700 bg-red-50 dark:bg-red-900/20"
+                                }`}
+                              >
+                                {dificultad}
+                              </Badge>
+                            )}
+                            {equipamiento && (
+                              <p className="text-xs text-muted-foreground line-clamp-1">{equipamiento}</p>
                             )}
                           </div>
                         </div>
@@ -200,7 +322,7 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
         </div>
       </div>
 
-      {/* Exercise Configuration Dialog */}
+      {/* Modal de configuración */}
       <Dialog open={isConfigDialogOpen} onOpenChange={setIsConfigDialogOpen}>
         <DialogContent>
           <DialogHeader>
