@@ -1,11 +1,14 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Plus, Loader2 } from "lucide-react"; //Bug ---para debug temporal
 import { toast } from "react-hot-toast";
 import { crearRutinaSchema, type CrearRutinaFormData } from "@/lib/validations/schemas/rutinaSchema";
 import { useCreateRutinaMutation } from "@/features/routines/api/rutinasApi";
 import { useAuth } from "@/hooks/useAuth";
+import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
+import { ExitConfirmationDialog } from "@/components/ui/exit-confirmation-dialog";
 // import { debugAuthStatus, debugCreateRutina, debugRLSStatus, debugUserProfile } from "@/lib/supabase/debug";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +22,8 @@ export default function CreateRoutinePage() {
   const { isAuthenticated, loading: authLoading, requireAuth } = useAuth();
   const [createRutina, { isLoading }] = useCreateRutinaMutation();
 
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
   const form = useForm<CrearRutinaFormData>({
     resolver: zodResolver(crearRutinaSchema),
     defaultValues: {
@@ -30,7 +35,18 @@ export default function CreateRoutinePage() {
     },
   });
 
-  // Verificar autenticación antes de renderizar
+  const { showExitModal, handleNavigation, confirmExit, cancelExit } = useUnsavedChanges({
+    hasUnsavedChanges,
+    onNavigateAway: () => setHasUnsavedChanges(false),
+  });
+
+  useEffect(() => {
+    const subscription = form.watch(() => {
+      setHasUnsavedChanges(true);
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
+
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -44,26 +60,8 @@ export default function CreateRoutinePage() {
     return null;
   }
 
-  // const handleDebug = async () => {
-  //   try {
-  //     console.log("=== INICIANDO DEBUG COMPLETO ===");
-
-  //     // Debug completo
-  //     await debugAuthStatus();
-  //     await debugRLSStatus();
-  //     await debugUserProfile();
-  //     await debugCreateRutina();
-
-  //     toast.success("Debug completado. Revisa la consola para diagnóstico completo.");
-  //   } catch (error) {
-  //     console.error("Error en debug:", error);
-  //     toast.error("Error en debug");
-  //   }
-  // };
-
   const onSubmit = async (data: CrearRutinaFormData) => {
     try {
-      // Sanitizar payload para evitar violaciones de check
       const payload = {
         nombre: data.nombre?.trim() || null,
         descripcion: data.descripcion?.trim() || null,
@@ -80,10 +78,10 @@ export default function CreateRoutinePage() {
       };
 
       const rutina = await createRutina(payload).unwrap();
+      setHasUnsavedChanges(false);
       toast.success("¡Rutina creada exitosamente!");
       navigate(`/dashboard/routines/${rutina.id_rutina}`);
     } catch (err: any) {
-      // Supabase errores útiles: err.message, err.code, err.details
       console.error("Error al crear rutina:", err?.message ?? err, err?.code, err?.details);
       toast.error(err?.message || "No se pudo crear la rutina");
     }
@@ -92,7 +90,7 @@ export default function CreateRoutinePage() {
   return (
     <div className="space-y-8">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+        <Button variant="ghost" size="sm" onClick={() => handleNavigation("/dashboard/routines")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="space-y-1">
@@ -100,14 +98,6 @@ export default function CreateRoutinePage() {
           <p className="text-muted-foreground">Define los detalles de tu nueva rutina de ejercicios</p>
         </div>
       </div>
-
-      {/* Botón de debug temporal
-      <div className="flex justify-end">
-        <Button variant="outline" size="sm" onClick={handleDebug} className="text-xs">
-          <Bug className="h-3 w-3 mr-1" />
-          Debug RLS Completo (Temporal)
-        </Button>
-      </div> */}
 
       <div className="max-w-2xl">
         <Card>
@@ -214,7 +204,7 @@ export default function CreateRoutinePage() {
                           max="300"
                           placeholder="30"
                           {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                          onChange={(e) => field.onChange(Number.parseInt(e.target.value) || 0)}
                         />
                       </FormControl>
                       <FormMessage />
@@ -223,7 +213,12 @@ export default function CreateRoutinePage() {
                 />
 
                 <div className="flex gap-4 pt-6">
-                  <Button type="button" variant="outline" onClick={() => navigate(-1)} className="flex-1">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleNavigation("/dashboard/routines")}
+                    className="flex-1"
+                  >
                     Cancelar
                   </Button>
                   <Button type="submit" disabled={isLoading} className="flex-1">
@@ -236,6 +231,8 @@ export default function CreateRoutinePage() {
           </CardContent>
         </Card>
       </div>
+
+      <ExitConfirmationDialog open={showExitModal} onOpenChange={cancelExit} onConfirm={confirmExit} />
     </div>
   );
 }

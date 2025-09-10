@@ -33,7 +33,12 @@ export function ExitConfirmationDialog({
           <AlertDialogCancel disabled={isLoading} type="button">
             Cancelar
           </AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} disabled={isLoading} type="button">
+          <AlertDialogAction
+            onClick={onConfirm}
+            disabled={isLoading}
+            type="button"
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
             Salir
           </AlertDialogAction>
         </AlertDialogFooter>
