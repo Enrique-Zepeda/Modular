@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -186,6 +188,19 @@ export default function RoutineBuilderPage() {
       // For now, just update the UI optimistically
       console.log("[v0] Exercise reordering in edit mode - updating UI optimistically");
     }
+  };
+
+  const handleUpdateExercise = async (exerciseId: number, updates: Partial<EjercicioRutina>) => {
+    if (!isEditMode) {
+      // En modo creación, actualizar estado local
+      setExercises((prev) => prev.map((ex) => (ex.id_ejercicio === exerciseId ? { ...ex, ...updates } : ex)));
+      setHasUnsavedChanges(true);
+      return;
+    }
+
+    // En modo edición, podrías implementar una mutación específica para actualizar ejercicios
+    // Por ahora, actualizar optimísticamente en la UI
+    console.log("[v0] Exercise update in edit mode - updating UI optimistically", { exerciseId, updates });
   };
 
   const onSubmit = async (data: CrearRutinaFormData) => {
@@ -388,6 +403,7 @@ export default function RoutineBuilderPage() {
               exercises={isEditMode ? existingRoutine?.EjerciciosRutinas || [] : exercises}
               onRemoveExercise={handleRemoveExercise}
               onReorderExercises={handleReorderExercises}
+              onUpdateExercise={handleUpdateExercise}
               isEditMode={isEditMode}
             />
           </div>
