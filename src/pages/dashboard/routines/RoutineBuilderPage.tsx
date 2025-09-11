@@ -44,8 +44,14 @@ export default function RoutineBuilderPage() {
   const [addEjercicio] = useAddEjercicioToRutinaMutation();
   const [removeEjercicio] = useRemoveEjercicioFromRutinaMutation();
 
-  // Local state
+  // Local state for exercises
   const [exercises, setExercises] = useState<EjercicioRutina[]>([]);
+
+  // Track changes in edit mode
+  const [originalExercises, setOriginalExercises] = useState<EjercicioRutina[]>([]);
+  const [exercisesToAdd, setExercisesToAdd] = useState<EjercicioRutina[]>([]);
+  const [exercisesToRemove, setExercisesToRemove] = useState<number[]>([]);
+
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -77,10 +83,16 @@ export default function RoutineBuilderPage() {
         objetivo: existingRoutine.objetivo || "fuerza",
         duracion_estimada: existingRoutine.duracion_estimada || 30,
       });
-      setExercises(existingRoutine.EjerciciosRutinas || []);
+
+      const routineExercises = existingRoutine.EjerciciosRutinas || [];
+      setExercises(routineExercises);
+      setOriginalExercises(JSON.parse(JSON.stringify(routineExercises))); // Deep copy
+      setExercisesToAdd([]);
+      setExercisesToRemove([]);
     }
   }, [existingRoutine, isEditMode, form]);
 
+  // Track form changes
   useEffect(() => {
     const subscription = form.watch(() => {
       setHasUnsavedChanges(true);
@@ -113,89 +125,71 @@ export default function RoutineBuilderPage() {
   }
 
   const handleAddExercise = async (exerciseData: AgregarEjercicioFormData) => {
-    if (!isEditMode) {
-      // In create mode, just add to local state
-      const newExercise: EjercicioRutina = {
-        id_rutina: 0, // Will be set when routine is created
-        id_ejercicio: exerciseData.id_ejercicio,
-        series: exerciseData.series,
-        repeticiones: exerciseData.repeticiones,
-        peso_sugerido: exerciseData.peso_sugerido,
-        Ejercicios: exerciseData.exerciseDetails
-          ? {
-              id: exerciseData.exerciseDetails.id,
-              nombre: exerciseData.exerciseDetails.nombre,
-              ejemplo: exerciseData.exerciseDetails.ejemplo,
-              grupo_muscular: exerciseData.exerciseDetails.grupo_muscular,
-            }
-          : null,
-      };
-      setExercises((prev) => [...prev, newExercise]);
-      setHasUnsavedChanges(true);
-      toast.success("Ejercicio agregado");
-      return;
-    }
+    const newExercise: EjercicioRutina = {
+      id_rutina: routineId || 0,
+      id_ejercicio: exerciseData.id_ejercicio,
+      series: exerciseData.series,
+      repeticiones: exerciseData.repeticiones,
+      peso_sugerido: exerciseData.peso_sugerido,
+      Ejercicios: exerciseData.exerciseDetails
+        ? {
+            id: exerciseData.exerciseDetails.id,
+            nombre: exerciseData.exerciseDetails.nombre,
+            ejemplo: exerciseData.exerciseDetails.ejemplo,
+            grupo_muscular: exerciseData.exerciseDetails.grupo_muscular,
+          }
+        : null,
+    };
 
-    // In edit mode, save immediately
-    try {
-      await addEjercicio({
-        id_rutina: routineId!,
-        id_ejercicio: exerciseData.id_ejercicio,
-        series: exerciseData.series,
-        repeticiones: exerciseData.repeticiones,
-        peso_sugerido: exerciseData.peso_sugerido,
-      }).unwrap();
-      toast.success("Ejercicio agregado exitosamente");
-    } catch (error) {
-      console.error("Error adding exercise:", error);
-      toast.error("Error al agregar el ejercicio");
-    }
-  };
+    // Add to local state
+    setExercises((prev) => [...prev, newExercise]);
 
-  const handleRemoveExercise = async (exerciseId: number) => {
-    if (!isEditMode) {
-      // In create mode, just remove from local state
-      setExercises((prev) => prev.filter((ex) => ex.id_ejercicio !== exerciseId));
-      setHasUnsavedChanges(true);
-      toast.success("Ejercicio removido");
-      return;
-    }
-
-    // In edit mode, remove from database
-    try {
-      await removeEjercicio({
-        id_rutina: routineId!,
-        id_ejercicio: exerciseId,
-      }).unwrap();
-      toast.success("Ejercicio removido exitosamente");
-    } catch (error) {
-      console.error("Error removing exercise:", error);
-      toast.error("Error al remover el ejercicio");
-    }
-  };
-
-  const handleReorderExercises = (newExercises: EjercicioRutina[]) => {
-    if (!isEditMode) {
-      // In create mode, just update local state
-      setExercises(newExercises);
-      setHasUnsavedChanges(true);
-    } else {
-      // In edit mode, we could implement server-side ordering if needed
-      // For now, just update the UI optimistically
-      console.log("[v0] Exercise reordering in edit mode - updating UI optimistically");
-    }
-  };
-
-  const handleUpdateExercise = async (exerciseId: number, updates: Partial<EjercicioRutina>) => {
-    if (!isEditMode) {
-      // En modo creación, actualizar estado local
-      setExercises((prev) => prev.map((ex) => (ex.id_ejercicio === exerciseId ? { ...ex, ...updates } : ex)));
-      setHasUnsavedChanges(true);
-      return;
+    // Track for edit mode
+    if (isEditMode) {
+      const isOriginal = originalExercises.some((ex) => ex.id_ejercicio === exerciseData.id_ejercicio);
+      if (!isOriginal) {
+        setExercisesToAdd((prev) => [...prev, newExercise]);
+      }
+      // If it was previously marked for removal, unmark it
+      setExercisesToRemove((prev) => prev.filter((id) => id !== exerciseData.id_ejercicio));
     }
 
     setHasUnsavedChanges(true);
-    console.log("[v0] Exercise update in edit mode - marking unsaved changes", { exerciseId, updates });
+    toast.success("Ejercicio agregado");
+  };
+
+  const handleRemoveExercise = async (exerciseId: number) => {
+    // Remove from local state
+    setExercises((prev) => prev.filter((ex) => ex.id_ejercicio !== exerciseId));
+
+    if (isEditMode) {
+      // Check if it's an original exercise that needs to be removed from DB
+      const isOriginal = originalExercises.some((ex) => ex.id_ejercicio === exerciseId);
+      if (isOriginal) {
+        setExercisesToRemove((prev) => [...prev, exerciseId]);
+      }
+      // Remove from exercises to add if it was there
+      setExercisesToAdd((prev) => prev.filter((ex) => ex.id_ejercicio !== exerciseId));
+    }
+
+    setHasUnsavedChanges(true);
+    toast.success("Ejercicio removido");
+  };
+
+  const handleReorderExercises = (newExercises: EjercicioRutina[]) => {
+    setExercises(newExercises);
+    setHasUnsavedChanges(true);
+  };
+
+  const handleUpdateExercise = async (exerciseId: number, updates: Partial<EjercicioRutina>) => {
+    setExercises((prev) => prev.map((ex) => (ex.id_ejercicio === exerciseId ? { ...ex, ...updates } : ex)));
+
+    // Update in exercisesToAdd if it's there
+    if (isEditMode) {
+      setExercisesToAdd((prev) => prev.map((ex) => (ex.id_ejercicio === exerciseId ? { ...ex, ...updates } : ex)));
+    }
+
+    setHasUnsavedChanges(true);
   };
 
   const onSubmit = async (data: CrearRutinaFormData) => {
@@ -215,8 +209,60 @@ export default function RoutineBuilderPage() {
       };
 
       if (isEditMode) {
-        // Update existing routine
+        // Update existing routine metadata
         await updateRutina({ id_rutina: routineId!, ...payload }).unwrap();
+
+        // Remove exercises marked for deletion
+        for (const exerciseId of exercisesToRemove) {
+          await removeEjercicio({
+            id_rutina: routineId!,
+            id_ejercicio: exerciseId,
+          }).unwrap();
+        }
+
+        // Add new exercises
+        for (const exercise of exercisesToAdd) {
+          await addEjercicio({
+            id_rutina: routineId!,
+            id_ejercicio: exercise.id_ejercicio,
+            series: exercise.series,
+            repeticiones: exercise.repeticiones,
+            peso_sugerido: exercise.peso_sugerido,
+          }).unwrap();
+        }
+
+        // Update existing exercises that have been modified
+        for (const exercise of exercises) {
+          const isNew = exercisesToAdd.some((ex) => ex.id_ejercicio === exercise.id_ejercicio);
+          const wasRemoved = exercisesToRemove.includes(exercise.id_ejercicio);
+
+          if (!isNew && !wasRemoved) {
+            // This is an existing exercise that may have been modified
+            const original = originalExercises.find((ex) => ex.id_ejercicio === exercise.id_ejercicio);
+            if (
+              original &&
+              (original.series !== exercise.series ||
+                original.repeticiones !== exercise.repeticiones ||
+                original.peso_sugerido !== exercise.peso_sugerido)
+            ) {
+              // First remove the old one
+              await removeEjercicio({
+                id_rutina: routineId!,
+                id_ejercicio: exercise.id_ejercicio,
+              }).unwrap();
+
+              // Then add with new values
+              await addEjercicio({
+                id_rutina: routineId!,
+                id_ejercicio: exercise.id_ejercicio,
+                series: exercise.series,
+                repeticiones: exercise.repeticiones,
+                peso_sugerido: exercise.peso_sugerido,
+              }).unwrap();
+            }
+          }
+        }
+
         toast.success("¡Rutina actualizada exitosamente!");
       } else {
         // Create new routine
@@ -246,9 +292,7 @@ export default function RoutineBuilderPage() {
     }
   };
 
-  const currentExerciseIds = isEditMode
-    ? (existingRoutine?.EjerciciosRutinas || []).map((ex) => ex.id_ejercicio)
-    : exercises.map((ex) => ex.id_ejercicio);
+  const currentExerciseIds = exercises.map((ex) => ex.id_ejercicio);
 
   return (
     <div className="h-full flex flex-col">
@@ -395,7 +439,7 @@ export default function RoutineBuilderPage() {
 
             {/* Exercise List */}
             <RoutineBuilderExerciseList
-              exercises={isEditMode ? existingRoutine?.EjerciciosRutinas || [] : exercises}
+              exercises={exercises}
               onRemoveExercise={handleRemoveExercise}
               onReorderExercises={handleReorderExercises}
               onUpdateExercise={handleUpdateExercise}
