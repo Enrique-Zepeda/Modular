@@ -81,6 +81,7 @@ export default function RoutineDetailPage() {
         description={rutina.descripcion ?? "Sin descripción"}
         onDelete={handleEliminarRutina}
         deleting={isDeleting}
+        routineId={rutina.id_rutina} // Pasando el ID de la rutina
       />
 
       <RoutineStats nivel={rutina.nivel_recomendado} objetivo={rutina.objetivo} duracion={rutina.duracion_estimada} />

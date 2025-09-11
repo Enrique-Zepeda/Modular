@@ -20,10 +20,10 @@ export function SortableItem({ id, children, className }: SortableItemProps) {
 
   return (
     <div ref={setNodeRef} style={style} className={cn("relative", isDragging && "z-50 opacity-50", className)}>
-      <div className="flex items-start gap-4 p-4 border rounded-lg bg-card hover:bg-accent/50 transition-colors">
+      <div className="flex items-start gap-4 p-4 border rounded-lg bg-card hover:border-primary/40 hover:shadow-sm transition-all duration-200">
         {/* Drag Handle */}
-        <div className="flex-shrink-0 mt-2 cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
-          <GripVertical className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+        <div className="flex-shrink-0 mt-2 cursor-grab active:cursor-grabbing group" {...attributes} {...listeners}>
+          <GripVertical className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-200" />
         </div>
 
         {children}

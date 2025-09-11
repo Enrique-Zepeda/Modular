@@ -2,17 +2,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
 import { RoutineExerciseCard } from "./RoutineExerciseCard";
-import { SelectorEjercicios } from "@/components/rutinas";
 
 export function RoutineExercisesSection({
   count,
@@ -20,6 +11,7 @@ export function RoutineExercisesSection({
   isSelectorOpen,
   setIsSelectorOpen,
   ejerciciosExistentes,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onAdd,
   removing,
   routineName,
@@ -49,21 +41,7 @@ export function RoutineExercisesSection({
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>Ejercicios ({count})</CardTitle>
-          <Dialog open={isSelectorOpen} onOpenChange={setIsSelectorOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Agregar Ejercicio
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Agregar Ejercicios a la Rutina</DialogTitle>
-                <DialogDescription>Selecciona ejercicios para agregar a “{routineName}”</DialogDescription>
-              </DialogHeader>
-              <SelectorEjercicios onEjercicioAgregado={onAdd} ejerciciosExistentes={ejerciciosExistentes} />
-            </DialogContent>
-          </Dialog>
+          <div className="text-sm text-muted-foreground">Usa "Editar Rutina" para modificar ejercicios</div>
         </div>
       </CardHeader>
 

@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -85,12 +83,10 @@ export default function RoutineBuilderPage() {
 
   useEffect(() => {
     const subscription = form.watch(() => {
-      if (!isEditMode) {
-        setHasUnsavedChanges(true);
-      }
+      setHasUnsavedChanges(true);
     });
     return () => subscription.unsubscribe();
-  }, [form, isEditMode]);
+  }, [form]);
 
   // Auth check
   if (authLoading || (isEditMode && isLoadingRoutine)) {
@@ -111,7 +107,7 @@ export default function RoutineBuilderPage() {
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <h2 className="text-2xl font-bold text-destructive mb-2">Rutina no encontrada</h2>
         <p className="text-muted-foreground mb-4">La rutina que buscas no existe o no tienes permisos para editarla</p>
-        <Button onClick={() => navigate("/dashboard/routines")}>Volver a Rutinas</Button>
+        <Button onClick={() => navigate("/dashboard/rutinas")}>Volver a Rutinas</Button>
       </div>
     );
   }
@@ -198,9 +194,8 @@ export default function RoutineBuilderPage() {
       return;
     }
 
-    // En modo edición, podrías implementar una mutación específica para actualizar ejercicios
-    // Por ahora, actualizar optimísticamente en la UI
-    console.log("[v0] Exercise update in edit mode - updating UI optimistically", { exerciseId, updates });
+    setHasUnsavedChanges(true);
+    console.log("[v0] Exercise update in edit mode - marking unsaved changes", { exerciseId, updates });
   };
 
   const onSubmit = async (data: CrearRutinaFormData) => {
