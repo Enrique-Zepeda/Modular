@@ -30,6 +30,8 @@ export type EjercicioRutina = {
   series: number | null;
   repeticiones: number | null;
   peso_sugerido: number | null;
+  /** NUEVO: posición dentro de la rutina (1..N) */
+  orden?: number | null;
   Ejercicios?: Ejercicio | null;
 };
 
@@ -75,7 +77,6 @@ export const rutinasApi = createApi({
 
           if (error) throw error;
 
-          // Transform the data to include exercise count as a number
           const rutinasWithCount = (data ?? []).map((rutina) => ({
             ...rutina,
             ejercicios_count: rutina.ejercicios_count?.[0]?.count || 0,
@@ -129,21 +130,36 @@ export const rutinasApi = createApi({
     /** Detalle de rutina + ejercicios (todo bajo RLS) */
     getRutinaById: builder.query<RutinaDetalle | null, number>({
       async queryFn(id_rutina) {
+        // Nota: se ordena por 'orden' asc y luego por id_ejercicio asc como tie-breaker
         const { data, error } = await supabase
           .from("Rutinas")
           .select(
             `
             id_rutina, nombre, descripcion, nivel_recomendado, objetivo, duracion_estimada, owner_uid,
             EjerciciosRutinas (
-              id_rutina, id_ejercicio, series, repeticiones, peso_sugerido,
+              id_rutina, id_ejercicio, series, repeticiones, peso_sugerido, orden,
               Ejercicios ( id, nombre, grupo_muscular, dificultad, ejemplo )
             )
           `
           )
           .eq("id_rutina", id_rutina)
           .single();
+
         if (error) return { error };
-        return { data: data as unknown as RutinaDetalle };
+
+        // Aseguramos orden consistente en el cliente por si acaso
+        const sorted =
+          data?.EjerciciosRutinas?.slice().sort((a: EjercicioRutina, b: EjercicioRutina) => {
+            const ao = (a.orden ?? 999999) - (b.orden ?? 999999);
+            return ao !== 0 ? ao : a.id_ejercicio - b.id_ejercicio;
+          }) ?? [];
+
+        return {
+          data: {
+            ...(data as Rutina),
+            EjerciciosRutinas: sorted,
+          } as RutinaDetalle,
+        };
       },
       providesTags: (_r, _e, id) => [{ type: "RutinaDetalle", id }],
     }),
@@ -190,18 +206,30 @@ export const rutinasApi = createApi({
       ],
     }),
 
-    /** Añadir ejercicio a la rutina (sólo si eres dueño por RLS) */
+    /** Añadir ejercicio a la rutina (sólo si eres dueño por RLS)
+     *  El trigger en DB asigna 'orden' al final si no se envía.
+     */
     addEjercicioToRutina: builder.mutation<
       EjercicioRutina,
-      { id_rutina: number; id_ejercicio: number; series?: number; repeticiones?: number; peso_sugerido?: number }
+      {
+        id_rutina: number;
+        id_ejercicio: number;
+        series?: number;
+        repeticiones?: number;
+        peso_sugerido?: number;
+        orden?: number;
+      }
     >({
-      async queryFn({ id_rutina, id_ejercicio, series = null, repeticiones = null, peso_sugerido = null }) {
+      async queryFn({ id_rutina, id_ejercicio, series = null, repeticiones = null, peso_sugerido = null, orden }) {
+        const payload: any = { id_rutina, id_ejercicio, series, repeticiones, peso_sugerido };
+        if (typeof orden === "number") payload.orden = orden;
+
         const { data, error } = await supabase
           .from("EjerciciosRutinas")
-          .insert([{ id_rutina, id_ejercicio, series, repeticiones, peso_sugerido }])
+          .insert([payload])
           .select(
             `
-            id_rutina, id_ejercicio, series, repeticiones, peso_sugerido,
+            id_rutina, id_ejercicio, series, repeticiones, peso_sugerido, orden,
             Ejercicios ( id, nombre, grupo_muscular, dificultad, ejemplo )
           `
           )
@@ -226,6 +254,46 @@ export const rutinasApi = createApi({
       invalidatesTags: (_r, _e, arg) => [{ type: "RutinaDetalle", id: arg.id_rutina }],
     }),
 
+    /** NUEVO: Reordenamiento en bloque (tipo Hevy) usando RPC reorder_exercises
+     *  items = [{ id_ejercicio, orden }, ...] con orden denso 1..N
+     */
+    reorderEjercicios: builder.mutation<
+      { success: true },
+      { id_rutina: number; items: { id_ejercicio: number; orden: number }[] }
+    >({
+      async queryFn({ id_rutina, items }) {
+        const { error } = await supabase.rpc("reorder_exercises", {
+          p_id_rutina: id_rutina,
+          p_pairs: items, // Supabase convierte array TS -> jsonb
+        });
+        if (error) return { error };
+        return { data: { success: true } };
+      },
+      invalidatesTags: (_r, _e, arg) => [{ type: "RutinaDetalle", id: arg.id_rutina }],
+      // Opcional: optimistic update para UX instantánea
+      async onQueryStarted({ id_rutina, items }, { dispatch, queryFulfilled }) {
+        const patch = dispatch(
+          rutinasApi.util.updateQueryData("getRutinaById", id_rutina, (draft) => {
+            if (!draft) return;
+            const mapOrden = new Map(items.map((i) => [i.id_ejercicio, i.orden]));
+            draft.EjerciciosRutinas.forEach((er) => {
+              const nuevo = mapOrden.get(er.id_ejercicio);
+              if (typeof nuevo === "number") er.orden = nuevo;
+            });
+            draft.EjerciciosRutinas.sort((a, b) => {
+              const ao = (a.orden ?? 999999) - (b.orden ?? 999999);
+              return ao !== 0 ? ao : a.id_ejercicio - b.id_ejercicio;
+            });
+          })
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
+    }),
+
     /** Eliminar rutina con optimistic update */
     deleteRutina: builder.mutation<{ success: true }, { id_rutina: number }>({
       async queryFn({ id_rutina }) {
@@ -241,7 +309,6 @@ export const rutinasApi = createApi({
         } = await supabase.auth.getSession();
         const uid = session?.user?.id;
 
-        // patch lista
         const patchList = uid
           ? dispatch(
               rutinasApi.util.updateQueryData("getRutinas", uid, (draft) => {
@@ -251,18 +318,15 @@ export const rutinasApi = createApi({
             )
           : { undo: () => {} };
 
-        // patch detalle (por si estaba abierto)
         const patchDetail = dispatch(
           rutinasApi.util.updateQueryData("getRutinaById", id_rutina, (_draft) => {
-            // Si quisieras, podrías setear null. RTKQ exige retornar algo, así que
-            // no mutamos y dejamos que la navegación/invalidación haga su trabajo.
+            /* noop */
           })
         );
 
         try {
           await queryFulfilled;
         } catch {
-          // si falla, deshacemos
           patchList.undo();
           patchDetail.undo();
         }
@@ -285,6 +349,7 @@ export const {
   useRemoveEjercicioFromRutinaMutation,
   useDeleteRutinaMutation,
   useGetEjerciciosQuery,
+  useReorderEjerciciosMutation, // 👈 NUEVO
 } = rutinasApi;
 
 // Aliases (si los usabas en español)

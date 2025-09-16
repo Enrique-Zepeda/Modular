@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, useParams } from "react-router-dom";
@@ -11,6 +11,7 @@ import {
   useGetRutinaByIdQuery,
   useAddEjercicioToRutinaMutation,
   useRemoveEjercicioFromRutinaMutation,
+  useReorderEjerciciosMutation,
   type EjercicioRutina,
 } from "@/features/routines/api/rutinasApi";
 import { useAuth } from "@/hooks/useAuth";
@@ -43,6 +44,7 @@ export default function RoutineBuilderPage() {
   const [updateRutina, { isLoading: isUpdating }] = useUpdateRutinaMutation();
   const [addEjercicio] = useAddEjercicioToRutinaMutation();
   const [removeEjercicio] = useRemoveEjercicioFromRutinaMutation();
+  const [reorderEjercicios, { isLoading: isReordering }] = useReorderEjerciciosMutation();
 
   // Local state for exercises
   const [exercises, setExercises] = useState<EjercicioRutina[]>([]);
@@ -73,6 +75,15 @@ export default function RoutineBuilderPage() {
     onNavigateAway: () => setHasUnsavedChanges(false),
   });
 
+  // Memoized sorted exercises (with proper order handling)
+  const sortedDetailExercises = useMemo(() => {
+    if (!existingRoutine?.EjerciciosRutinas) return [];
+    return existingRoutine.EjerciciosRutinas.slice().sort((a, b) => {
+      const ao = (a.orden ?? 999999) - (b.orden ?? 999999);
+      return ao !== 0 ? ao : a.id_ejercicio - b.id_ejercicio;
+    });
+  }, [existingRoutine]);
+
   // Load existing routine data in edit mode
   useEffect(() => {
     if (isEditMode && existingRoutine) {
@@ -84,13 +95,25 @@ export default function RoutineBuilderPage() {
         duracion_estimada: existingRoutine.duracion_estimada || 30,
       });
 
-      const routineExercises = existingRoutine.EjerciciosRutinas || [];
-      setExercises(routineExercises);
-      setOriginalExercises(JSON.parse(JSON.stringify(routineExercises))); // Deep copy
+      // Use memoized sorted exercises
+      setExercises(sortedDetailExercises);
+      setOriginalExercises(JSON.parse(JSON.stringify(sortedDetailExercises)));
       setExercisesToAdd([]);
       setExercisesToRemove([]);
+      setHasUnsavedChanges(false);
     }
-  }, [existingRoutine, isEditMode, form]);
+  }, [existingRoutine, isEditMode, form, sortedDetailExercises]);
+
+  // Reset for create mode
+  useEffect(() => {
+    if (!isEditMode) {
+      setExercises([]);
+      setOriginalExercises([]);
+      setExercisesToAdd([]);
+      setExercisesToRemove([]);
+      setHasUnsavedChanges(false);
+    }
+  }, [isEditMode]);
 
   // Track form changes
   useEffect(() => {
@@ -125,12 +148,15 @@ export default function RoutineBuilderPage() {
   }
 
   const handleAddExercise = async (exerciseData: AgregarEjercicioFormData) => {
+    const nextOrder = Math.max(0, ...exercises.map((ex) => ex.orden || 0)) + 1;
+
     const newExercise: EjercicioRutina = {
       id_rutina: routineId || 0,
       id_ejercicio: exerciseData.id_ejercicio,
       series: exerciseData.series,
       repeticiones: exerciseData.repeticiones,
       peso_sugerido: exerciseData.peso_sugerido,
+      orden: nextOrder,
       Ejercicios: exerciseData.exerciseDetails
         ? {
             id: exerciseData.exerciseDetails.id,
@@ -159,8 +185,11 @@ export default function RoutineBuilderPage() {
   };
 
   const handleRemoveExercise = async (exerciseId: number) => {
-    // Remove from local state
-    setExercises((prev) => prev.filter((ex) => ex.id_ejercicio !== exerciseId));
+    // Remove from local state and densify order
+    setExercises((prev) => {
+      const filtered = prev.filter((ex) => ex.id_ejercicio !== exerciseId);
+      return filtered.map((ex, idx) => ({ ...ex, orden: idx + 1 }));
+    });
 
     if (isEditMode) {
       // Check if it's an original exercise that needs to be removed from DB
@@ -177,7 +206,8 @@ export default function RoutineBuilderPage() {
   };
 
   const handleReorderExercises = (newExercises: EjercicioRutina[]) => {
-    setExercises(newExercises);
+    const densified = newExercises.map((ex, idx) => ({ ...ex, orden: idx + 1 }));
+    setExercises(densified);
     setHasUnsavedChanges(true);
   };
 
@@ -212,32 +242,38 @@ export default function RoutineBuilderPage() {
         // Update existing routine metadata
         await updateRutina({ id_rutina: routineId!, ...payload }).unwrap();
 
-        // Remove exercises marked for deletion
-        for (const exerciseId of exercisesToRemove) {
+        // Calculate differences for optimized updates
+        const origIds = new Set(originalExercises.map((x) => x.id_ejercicio));
+        const nowIds = new Set(exercises.map((x) => x.id_ejercicio));
+
+        // Remove exercises that are no longer in the routine
+        const toRemove = [...origIds].filter((id) => !nowIds.has(id));
+        for (const id_ejercicio of toRemove) {
           await removeEjercicio({
             id_rutina: routineId!,
-            id_ejercicio: exerciseId,
+            id_ejercicio,
           }).unwrap();
         }
 
         // Add new exercises
-        for (const exercise of exercisesToAdd) {
+        const toAdd = exercises.filter((x) => !origIds.has(x.id_ejercicio));
+        for (const exercise of toAdd) {
           await addEjercicio({
             id_rutina: routineId!,
             id_ejercicio: exercise.id_ejercicio,
             series: exercise.series,
             repeticiones: exercise.repeticiones,
             peso_sugerido: exercise.peso_sugerido,
+            orden: exercise.orden ?? 1,
           }).unwrap();
         }
 
         // Update existing exercises that have been modified
         for (const exercise of exercises) {
-          const isNew = exercisesToAdd.some((ex) => ex.id_ejercicio === exercise.id_ejercicio);
-          const wasRemoved = exercisesToRemove.includes(exercise.id_ejercicio);
+          const isNew = toAdd.some((ex) => ex.id_ejercicio === exercise.id_ejercicio);
+          const wasRemoved = toRemove.includes(exercise.id_ejercicio);
 
           if (!isNew && !wasRemoved) {
-            // This is an existing exercise that may have been modified
             const original = originalExercises.find((ex) => ex.id_ejercicio === exercise.id_ejercicio);
             if (
               original &&
@@ -245,22 +281,32 @@ export default function RoutineBuilderPage() {
                 original.repeticiones !== exercise.repeticiones ||
                 original.peso_sugerido !== exercise.peso_sugerido)
             ) {
-              // First remove the old one
+              // Remove and re-add with updated values
               await removeEjercicio({
                 id_rutina: routineId!,
                 id_ejercicio: exercise.id_ejercicio,
               }).unwrap();
 
-              // Then add with new values
               await addEjercicio({
                 id_rutina: routineId!,
                 id_ejercicio: exercise.id_ejercicio,
                 series: exercise.series,
                 repeticiones: exercise.repeticiones,
                 peso_sugerido: exercise.peso_sugerido,
+                orden: exercise.orden ?? 1,
               }).unwrap();
             }
           }
+        }
+
+        // Final reorder to ensure correct sequence
+        const finalItems = exercises.map((ex, idx) => ({
+          id_ejercicio: ex.id_ejercicio,
+          orden: idx + 1,
+        }));
+
+        if (finalItems.length > 0) {
+          await reorderEjercicios({ id_rutina: routineId!, items: finalItems }).unwrap();
         }
 
         toast.success("¡Rutina actualizada exitosamente!");
@@ -268,15 +314,27 @@ export default function RoutineBuilderPage() {
         // Create new routine
         const newRoutine = await createRutina(payload).unwrap();
 
-        // Add exercises to the new routine
-        for (const exercise of exercises) {
+        // Add exercises to the new routine with proper order
+        for (let i = 0; i < exercises.length; i++) {
+          const exercise = exercises[i];
           await addEjercicio({
             id_rutina: newRoutine.id_rutina,
             id_ejercicio: exercise.id_ejercicio,
             series: exercise.series,
             repeticiones: exercise.repeticiones,
             peso_sugerido: exercise.peso_sugerido,
+            orden: i + 1,
           }).unwrap();
+        }
+
+        // Ensure final order is correct
+        const finalItems = exercises.map((ex, idx) => ({
+          id_ejercicio: ex.id_ejercicio,
+          orden: idx + 1,
+        }));
+
+        if (finalItems.length > 0) {
+          await reorderEjercicios({ id_rutina: newRoutine.id_rutina, items: finalItems }).unwrap();
         }
 
         toast.success("¡Rutina creada exitosamente!");
@@ -310,8 +368,8 @@ export default function RoutineBuilderPage() {
               </p>
             </div>
           </div>
-          <Button onClick={form.handleSubmit(onSubmit)} disabled={isSaving} className="min-w-[120px]">
-            {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          <Button onClick={form.handleSubmit(onSubmit)} disabled={isSaving || isReordering} className="min-w-[120px]">
+            {(isSaving || isReordering) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             {isEditMode ? "Actualizar" : "Guardar"}
           </Button>
         </div>
@@ -437,14 +495,22 @@ export default function RoutineBuilderPage() {
 
             <Separator />
 
-            {/* Exercise List */}
+            {/* Exercise List with improved reordering */}
             <RoutineBuilderExerciseList
               exercises={exercises}
               onRemoveExercise={handleRemoveExercise}
               onReorderExercises={handleReorderExercises}
               onUpdateExercise={handleUpdateExercise}
               isEditMode={isEditMode}
+              isLoading={isReordering}
             />
+
+            {/* Unsaved changes indicator */}
+            {hasUnsavedChanges && (
+              <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md p-3">
+                Tienes cambios sin guardar.
+              </div>
+            )}
           </div>
         </div>
 
