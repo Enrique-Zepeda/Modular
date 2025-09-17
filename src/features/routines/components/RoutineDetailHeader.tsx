@@ -19,7 +19,7 @@ export function RoutineDetailHeader({
 
   const handleEditRoutine = () => {
     if (routineId) {
-      navigate(`/dashboard/routines/${routineId}/edit`);
+      navigate(`/dashboard/routines/${routineId}/edit`, { replace: true });
     }
   };
 

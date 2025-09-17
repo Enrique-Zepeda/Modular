@@ -41,7 +41,6 @@ export function RoutineExercisesSection({
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>Ejercicios ({count})</CardTitle>
-          <div className="text-sm text-muted-foreground">Usa "Editar Rutina" para modificar ejercicios</div>
         </div>
       </CardHeader>
 

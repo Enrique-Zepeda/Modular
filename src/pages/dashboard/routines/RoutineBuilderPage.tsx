@@ -73,6 +73,9 @@ export default function RoutineBuilderPage() {
     },
   });
 
+  // Define the return path based on edit mode
+  const getReturnPath = () => (isEditMode && routineId ? `/dashboard/routines/${routineId}` : "/dashboard/routines");
+
   // Exit confirmation functionality
   const { showExitModal, handleNavigation, confirmExit, cancelExit } = useUnsavedChanges({
     hasUnsavedChanges,
@@ -362,7 +365,7 @@ export default function RoutineBuilderPage() {
       }
 
       setHasUnsavedChanges(false);
-      navigate("/dashboard/routines");
+      navigate(getReturnPath(), { replace: true });
     } catch (err: any) {
       console.error("Error saving routine:", err);
       toast.error(err?.message || "No se pudo guardar la rutina");
@@ -380,7 +383,17 @@ export default function RoutineBuilderPage() {
       <div className="flex-shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex items-center justify-between p-6">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => handleNavigation("/dashboard/routines")}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (hasUnsavedChanges) {
+                  handleNavigation(getReturnPath(), { replace: true });
+                } else {
+                  navigate(getReturnPath(), { replace: true });
+                }
+              }}
+            >
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>

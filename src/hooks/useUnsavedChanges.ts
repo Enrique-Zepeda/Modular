@@ -20,7 +20,7 @@ export function useUnsavedChanges({ hasUnsavedChanges, onNavigateAway }: Unsaved
         setShowExitModal(true);
         return false;
       }
-      navigate(path);
+      navigate(path, { replace: true });
       return true;
     },
     [hasUnsavedChanges, navigate]
@@ -29,7 +29,7 @@ export function useUnsavedChanges({ hasUnsavedChanges, onNavigateAway }: Unsaved
   // Confirm exit without saving
   const confirmExit = useCallback(() => {
     if (pendingNavigation) {
-      navigate(pendingNavigation);
+      navigate(pendingNavigation, { replace: true });
     }
     if (onNavigateAway) {
       onNavigateAway();
