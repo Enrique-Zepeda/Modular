@@ -12,7 +12,9 @@ import {
   useAddEjercicioToRutinaMutation,
   useRemoveEjercicioFromRutinaMutation,
   useReorderEjerciciosMutation,
+  useReplaceExerciseSetsMutation,
   type EjercicioRutina,
+  type SetEntry,
 } from "@/features/routines/api/rutinasApi";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -27,6 +29,9 @@ import { RoutineBuilderLibrary } from "@/features/routines/components/RoutineBui
 import { ExitConfirmationDialog } from "@/components/ui/exit-confirmation-dialog";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import type { AgregarEjercicioFormData } from "@/types/rutinas";
+
+// Extended type for exercises with sets
+type ExtendedEjercicioRutina = EjercicioRutina & { sets?: SetEntry[] };
 
 export default function RoutineBuilderPage() {
   const navigate = useNavigate();
@@ -45,14 +50,13 @@ export default function RoutineBuilderPage() {
   const [addEjercicio] = useAddEjercicioToRutinaMutation();
   const [removeEjercicio] = useRemoveEjercicioFromRutinaMutation();
   const [reorderEjercicios, { isLoading: isReordering }] = useReorderEjerciciosMutation();
+  const [replaceSets] = useReplaceExerciseSetsMutation();
 
-  // Local state for exercises
-  const [exercises, setExercises] = useState<EjercicioRutina[]>([]);
+  // Local state for exercises with sets support
+  const [exercises, setExercises] = useState<ExtendedEjercicioRutina[]>([]);
 
   // Track changes in edit mode
-  const [originalExercises, setOriginalExercises] = useState<EjercicioRutina[]>([]);
-  const [exercisesToAdd, setExercisesToAdd] = useState<EjercicioRutina[]>([]);
-  const [exercisesToRemove, setExercisesToRemove] = useState<number[]>([]);
+  const [originalExercises, setOriginalExercises] = useState<ExtendedEjercicioRutina[]>([]);
 
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -75,12 +79,27 @@ export default function RoutineBuilderPage() {
     onNavigateAway: () => setHasUnsavedChanges(false),
   });
 
-  // Memoized sorted exercises (with proper order handling)
+  // Memoized sorted exercises with proper sets handling
   const sortedDetailExercises = useMemo(() => {
     if (!existingRoutine?.EjerciciosRutinas) return [];
-    return existingRoutine.EjerciciosRutinas.slice().sort((a, b) => {
+
+    const arr = existingRoutine.EjerciciosRutinas.slice().sort((a, b) => {
       const ao = (a.orden ?? 999999) - (b.orden ?? 999999);
       return ao !== 0 ? ao : a.id_ejercicio - b.id_ejercicio;
+    });
+
+    // Process sets for each exercise
+    return arr.map((er) => {
+      const normalizedSets: SetEntry[] =
+        er.sets && er.sets.length > 0
+          ? er.sets.slice().sort((a, b) => a.idx - b.idx)
+          : Array.from({ length: er.series ?? 0 }, (_, i) => ({
+              idx: i + 1,
+              kg: er.peso_sugerido ?? null,
+              reps: er.repeticiones ?? null,
+            }));
+
+      return { ...er, sets: normalizedSets };
     });
   }, [existingRoutine]);
 
@@ -95,11 +114,8 @@ export default function RoutineBuilderPage() {
         duracion_estimada: existingRoutine.duracion_estimada || 30,
       });
 
-      // Use memoized sorted exercises
       setExercises(sortedDetailExercises);
       setOriginalExercises(JSON.parse(JSON.stringify(sortedDetailExercises)));
-      setExercisesToAdd([]);
-      setExercisesToRemove([]);
       setHasUnsavedChanges(false);
     }
   }, [existingRoutine, isEditMode, form, sortedDetailExercises]);
@@ -109,8 +125,6 @@ export default function RoutineBuilderPage() {
     if (!isEditMode) {
       setExercises([]);
       setOriginalExercises([]);
-      setExercisesToAdd([]);
-      setExercisesToRemove([]);
       setHasUnsavedChanges(false);
     }
   }, [isEditMode]);
@@ -150,13 +164,14 @@ export default function RoutineBuilderPage() {
   const handleAddExercise = async (exerciseData: AgregarEjercicioFormData) => {
     const nextOrder = Math.max(0, ...exercises.map((ex) => ex.orden || 0)) + 1;
 
-    const newExercise: EjercicioRutina = {
+    const newExercise: ExtendedEjercicioRutina = {
       id_rutina: routineId || 0,
       id_ejercicio: exerciseData.id_ejercicio,
-      series: exerciseData.series,
+      series: 0, // Will be updated when sets are added
       repeticiones: exerciseData.repeticiones,
       peso_sugerido: exerciseData.peso_sugerido,
       orden: nextOrder,
+      sets: [], // Start with empty sets array
       Ejercicios: exerciseData.exerciseDetails
         ? {
             id: exerciseData.exerciseDetails.id,
@@ -167,58 +182,67 @@ export default function RoutineBuilderPage() {
         : null,
     };
 
-    // Add to local state
     setExercises((prev) => [...prev, newExercise]);
-
-    // Track for edit mode
-    if (isEditMode) {
-      const isOriginal = originalExercises.some((ex) => ex.id_ejercicio === exerciseData.id_ejercicio);
-      if (!isOriginal) {
-        setExercisesToAdd((prev) => [...prev, newExercise]);
-      }
-      // If it was previously marked for removal, unmark it
-      setExercisesToRemove((prev) => prev.filter((id) => id !== exerciseData.id_ejercicio));
-    }
-
     setHasUnsavedChanges(true);
     toast.success("Ejercicio agregado");
   };
 
   const handleRemoveExercise = async (exerciseId: number) => {
-    // Remove from local state and densify order
     setExercises((prev) => {
       const filtered = prev.filter((ex) => ex.id_ejercicio !== exerciseId);
       return filtered.map((ex, idx) => ({ ...ex, orden: idx + 1 }));
     });
-
-    if (isEditMode) {
-      // Check if it's an original exercise that needs to be removed from DB
-      const isOriginal = originalExercises.some((ex) => ex.id_ejercicio === exerciseId);
-      if (isOriginal) {
-        setExercisesToRemove((prev) => [...prev, exerciseId]);
-      }
-      // Remove from exercises to add if it was there
-      setExercisesToAdd((prev) => prev.filter((ex) => ex.id_ejercicio !== exerciseId));
-    }
-
     setHasUnsavedChanges(true);
     toast.success("Ejercicio removido");
   };
 
-  const handleReorderExercises = (newExercises: EjercicioRutina[]) => {
+  const handleReorderExercises = (newExercises: ExtendedEjercicioRutina[]) => {
     const densified = newExercises.map((ex, idx) => ({ ...ex, orden: idx + 1 }));
     setExercises(densified);
     setHasUnsavedChanges(true);
   };
 
-  const handleUpdateExercise = async (exerciseId: number, updates: Partial<EjercicioRutina>) => {
+  // Sets management functions
+  const handleSetChange = (id_ejercicio: number, idx0: number, field: "kg" | "reps", value: string) => {
+    setExercises((prev) =>
+      prev.map((er) => {
+        if (er.id_ejercicio !== id_ejercicio) return er;
+        const sets = (er.sets ?? []).slice();
+        const v = value === "" ? null : Number(value);
+        sets[idx0] = { ...sets[idx0], [field]: v, idx: idx0 + 1 };
+        return { ...er, sets, series: sets.length };
+      })
+    );
+    setHasUnsavedChanges(true);
+  };
+
+  const handleAddSet = (id_ejercicio: number) => {
+    setExercises((prev) =>
+      prev.map((er) => {
+        if (er.id_ejercicio !== id_ejercicio) return er;
+        const sets = [...(er.sets ?? []), { idx: (er.sets?.length ?? 0) + 1, kg: null, reps: null }];
+        return { ...er, sets, series: sets.length };
+      })
+    );
+    setHasUnsavedChanges(true);
+  };
+
+  const handleRemoveSet = (id_ejercicio: number, idx0: number) => {
+    setExercises((prev) =>
+      prev.map((er) => {
+        if (er.id_ejercicio !== id_ejercicio) return er;
+        const sets = (er.sets ?? []).slice();
+        sets.splice(idx0, 1);
+        // Re-densify idx
+        const densified = sets.map((s, i) => ({ ...s, idx: i + 1 }));
+        return { ...er, sets: densified, series: densified.length };
+      })
+    );
+    setHasUnsavedChanges(true);
+  };
+
+  const handleUpdateExercise = async (exerciseId: number, updates: Partial<ExtendedEjercicioRutina>) => {
     setExercises((prev) => prev.map((ex) => (ex.id_ejercicio === exerciseId ? { ...ex, ...updates } : ex)));
-
-    // Update in exercisesToAdd if it's there
-    if (isEditMode) {
-      setExercisesToAdd((prev) => prev.map((ex) => (ex.id_ejercicio === exerciseId ? { ...ex, ...updates } : ex)));
-    }
-
     setHasUnsavedChanges(true);
   };
 
@@ -261,42 +285,11 @@ export default function RoutineBuilderPage() {
           await addEjercicio({
             id_rutina: routineId!,
             id_ejercicio: exercise.id_ejercicio,
-            series: exercise.series,
-            repeticiones: exercise.repeticiones,
-            peso_sugerido: exercise.peso_sugerido,
+            series: exercise.sets?.length ?? 0,
+            repeticiones: exercise.repeticiones ?? null,
+            peso_sugerido: exercise.peso_sugerido ?? null,
             orden: exercise.orden ?? 1,
           }).unwrap();
-        }
-
-        // Update existing exercises that have been modified
-        for (const exercise of exercises) {
-          const isNew = toAdd.some((ex) => ex.id_ejercicio === exercise.id_ejercicio);
-          const wasRemoved = toRemove.includes(exercise.id_ejercicio);
-
-          if (!isNew && !wasRemoved) {
-            const original = originalExercises.find((ex) => ex.id_ejercicio === exercise.id_ejercicio);
-            if (
-              original &&
-              (original.series !== exercise.series ||
-                original.repeticiones !== exercise.repeticiones ||
-                original.peso_sugerido !== exercise.peso_sugerido)
-            ) {
-              // Remove and re-add with updated values
-              await removeEjercicio({
-                id_rutina: routineId!,
-                id_ejercicio: exercise.id_ejercicio,
-              }).unwrap();
-
-              await addEjercicio({
-                id_rutina: routineId!,
-                id_ejercicio: exercise.id_ejercicio,
-                series: exercise.series,
-                repeticiones: exercise.repeticiones,
-                peso_sugerido: exercise.peso_sugerido,
-                orden: exercise.orden ?? 1,
-              }).unwrap();
-            }
-          }
         }
 
         // Final reorder to ensure correct sequence
@@ -307,6 +300,20 @@ export default function RoutineBuilderPage() {
 
         if (finalItems.length > 0) {
           await reorderEjercicios({ id_rutina: routineId!, items: finalItems }).unwrap();
+        }
+
+        // Save sets for each exercise
+        for (const ex of exercises) {
+          const sets = (ex.sets ?? []).map((s, i) => ({
+            idx: i + 1,
+            kg: s.kg ?? null,
+            reps: s.reps ?? null,
+          }));
+          await replaceSets({
+            id_rutina: routineId!,
+            id_ejercicio: ex.id_ejercicio,
+            sets,
+          }).unwrap();
         }
 
         toast.success("¡Rutina actualizada exitosamente!");
@@ -320,9 +327,9 @@ export default function RoutineBuilderPage() {
           await addEjercicio({
             id_rutina: newRoutine.id_rutina,
             id_ejercicio: exercise.id_ejercicio,
-            series: exercise.series,
-            repeticiones: exercise.repeticiones,
-            peso_sugerido: exercise.peso_sugerido,
+            series: exercise.sets?.length ?? 0,
+            repeticiones: exercise.repeticiones ?? null,
+            peso_sugerido: exercise.peso_sugerido ?? null,
             orden: i + 1,
           }).unwrap();
         }
@@ -335,6 +342,20 @@ export default function RoutineBuilderPage() {
 
         if (finalItems.length > 0) {
           await reorderEjercicios({ id_rutina: newRoutine.id_rutina, items: finalItems }).unwrap();
+        }
+
+        // Save sets for each exercise
+        for (const ex of exercises) {
+          const sets = (ex.sets ?? []).map((s, i) => ({
+            idx: i + 1,
+            kg: s.kg ?? null,
+            reps: s.reps ?? null,
+          }));
+          await replaceSets({
+            id_rutina: newRoutine.id_rutina,
+            id_ejercicio: ex.id_ejercicio,
+            sets,
+          }).unwrap();
         }
 
         toast.success("¡Rutina creada exitosamente!");
@@ -351,6 +372,7 @@ export default function RoutineBuilderPage() {
   };
 
   const currentExerciseIds = exercises.map((ex) => ex.id_ejercicio);
+  const isSavingAny = isSaving || isReordering;
 
   return (
     <div className="h-full flex flex-col">
@@ -368,8 +390,8 @@ export default function RoutineBuilderPage() {
               </p>
             </div>
           </div>
-          <Button onClick={form.handleSubmit(onSubmit)} disabled={isSaving || isReordering} className="min-w-[120px]">
-            {(isSaving || isReordering) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          <Button onClick={form.handleSubmit(onSubmit)} disabled={isSavingAny} className="min-w-[120px]">
+            {isSavingAny && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             {isEditMode ? "Actualizar" : "Guardar"}
           </Button>
         </div>
@@ -495,22 +517,18 @@ export default function RoutineBuilderPage() {
 
             <Separator />
 
-            {/* Exercise List with improved reordering */}
+            {/* Exercise List with sets management */}
             <RoutineBuilderExerciseList
               exercises={exercises}
               onRemoveExercise={handleRemoveExercise}
               onReorderExercises={handleReorderExercises}
               onUpdateExercise={handleUpdateExercise}
+              onSetChange={handleSetChange}
+              onAddSet={handleAddSet}
+              onRemoveSet={handleRemoveSet}
               isEditMode={isEditMode}
               isLoading={isReordering}
             />
-
-            {/* Unsaved changes indicator */}
-            {hasUnsavedChanges && (
-              <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md p-3">
-                Tienes cambios sin guardar.
-              </div>
-            )}
           </div>
         </div>
 

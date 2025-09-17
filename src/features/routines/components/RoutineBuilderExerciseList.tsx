@@ -3,25 +3,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, GripVertical } from "lucide-react";
 import { ExerciseImage } from "@/components/ui/exercise-image";
 import { SortableItem } from "@/components/ui/sortable-item";
 import { DeleteExerciseDialog } from "@/components/ui/delete-exercise-dialog";
 import { useDragAndDrop } from "@/hooks/useDragAndDrop";
 import { normalizeExerciseData } from "@/utils/exerciseNormalization";
-import type { EjercicioRutina } from "@/features/routines/api/rutinasApi";
+import type { EjercicioRutina, SetEntry } from "@/features/routines/api/rutinasApi";
+
+// Extended type to include sets
+type ExtendedEjercicioRutina = EjercicioRutina & { sets?: SetEntry[] };
 
 interface RoutineBuilderExerciseListProps {
-  exercises: EjercicioRutina[];
+  exercises: ExtendedEjercicioRutina[];
   onRemoveExercise: (exerciseId: number) => void;
-  onReorderExercises?: (newExercises: EjercicioRutina[]) => void;
-  onUpdateExercise?: (exerciseId: number, updates: Partial<EjercicioRutina>) => void;
+  onReorderExercises?: (newExercises: ExtendedEjercicioRutina[]) => void;
+  onUpdateExercise?: (exerciseId: number, updates: Partial<ExtendedEjercicioRutina>) => void;
+  // New props for individual sets management
+  onSetChange?: (id_ejercicio: number, idx0: number, field: "kg" | "reps", value: string) => void;
+  onAddSet?: (id_ejercicio: number) => void;
+  onRemoveSet?: (id_ejercicio: number, idx0: number) => void;
   isEditMode: boolean;
-}
-
-interface ExerciseSetData {
-  peso: number;
-  repeticiones: number;
+  isLoading?: boolean;
 }
 
 export function RoutineBuilderExerciseList({
@@ -29,7 +32,11 @@ export function RoutineBuilderExerciseList({
   onRemoveExercise,
   onReorderExercises,
   onUpdateExercise,
+  onSetChange,
+  onAddSet,
+  onRemoveSet,
   isEditMode,
+  isLoading,
 }: RoutineBuilderExerciseListProps) {
   const { sensors, handleDragEnd, DndContext, SortableContext, verticalListSortingStrategy, closestCenter } =
     useDragAndDrop(exercises, onReorderExercises || (() => {}));
@@ -44,22 +51,6 @@ export function RoutineBuilderExerciseList({
     exerciseName: "",
   });
 
-  const [exerciseSets, setExerciseSets] = useState<Record<number, ExerciseSetData[]>>({});
-
-  useEffect(() => {
-    const newExerciseSets: Record<number, ExerciseSetData[]> = {};
-
-    exercises.forEach((exercise) => {
-      const seriesCount = exercise.series || 1;
-      newExerciseSets[exercise.id_ejercicio] = Array.from({ length: seriesCount }, () => ({
-        peso: exercise.peso_sugerido || 0,
-        repeticiones: exercise.repeticiones || 0,
-      }));
-    });
-
-    setExerciseSets(newExerciseSets);
-  }, [exercises]);
-
   const handleDeleteClick = (exerciseId: number, exerciseName: string) => {
     setDeleteDialog({
       open: true,
@@ -73,76 +64,23 @@ export function RoutineBuilderExerciseList({
     setDeleteDialog({ open: false, exerciseId: 0, exerciseName: "" });
   };
 
+  // Handle set changes with proper typing
+  const handleSetChange = (exerciseId: number, setIndex: number, field: "kg" | "reps", value: string) => {
+    if (onSetChange) {
+      onSetChange(exerciseId, setIndex, field, value);
+    }
+  };
+
   const handleAddSet = (exerciseId: number) => {
-    const exercise = exercises.find((ex) => ex.id_ejercicio === exerciseId);
-    if (!exercise) return;
-
-    const newSeries = (exercise.series || 0) + 1;
-
-    onUpdateExercise?.(exerciseId, { series: newSeries });
-
-    setExerciseSets((prev) => ({
-      ...prev,
-      [exerciseId]: [
-        ...(prev[exerciseId] || []),
-        { peso: exercise.peso_sugerido || 0, repeticiones: exercise.repeticiones || 0 },
-      ],
-    }));
+    if (onAddSet) {
+      onAddSet(exerciseId);
+    }
   };
 
   const handleRemoveSet = (exerciseId: number, setIndex: number) => {
-    const exercise = exercises.find((ex) => ex.id_ejercicio === exerciseId);
-    if (!exercise || (exercise.series || 0) <= 1) return;
-
-    const newSeries = (exercise.series || 0) - 1;
-
-    onUpdateExercise?.(exerciseId, { series: newSeries });
-
-    setExerciseSets((prev) => {
-      const exerciseSetsData = prev[exerciseId] || [];
-      const updatedSets = exerciseSetsData.filter((_, index) => index !== setIndex);
-
-      return {
-        ...prev,
-        [exerciseId]: updatedSets,
-      };
-    });
-  };
-
-  const handleSetUpdate = (exerciseId: number, setIndex: number, field: "peso" | "repeticiones", value: number) => {
-    onUpdateExercise?.(exerciseId, {
-      [field === "peso" ? "peso_sugerido" : "repeticiones"]: value,
-    });
-
-    setExerciseSets((prev) => {
-      const exerciseSetsData = prev[exerciseId] || [];
-      const updatedSets = [...exerciseSetsData];
-
-      if (!updatedSets[setIndex]) {
-        updatedSets[setIndex] = { peso: 0, repeticiones: 0 };
-      }
-
-      updatedSets[setIndex] = {
-        ...updatedSets[setIndex],
-        [field]: value,
-      };
-
-      return {
-        ...prev,
-        [exerciseId]: updatedSets,
-      };
-    });
-  };
-
-  const getSetData = (exerciseId: number, setIndex: number, exercise: EjercicioRutina): ExerciseSetData => {
-    const exerciseSetsData = exerciseSets[exerciseId];
-    if (exerciseSetsData && exerciseSetsData[setIndex]) {
-      return exerciseSetsData[setIndex];
+    if (onRemoveSet) {
+      onRemoveSet(exerciseId, setIndex);
     }
-    return {
-      peso: exercise.peso_sugerido || 0,
-      repeticiones: exercise.repeticiones || 0,
-    };
   };
 
   if (exercises.length === 0) {
@@ -171,14 +109,22 @@ export function RoutineBuilderExerciseList({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {isLoading && <div className="text-sm text-muted-foreground text-center py-4">Reordenando ejercicios...</div>}
+
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={exercises.map((ex) => ex.id_ejercicio)} strategy={verticalListSortingStrategy}>
               {exercises.map((exercise, index) => {
                 const { nombre, imagen, grupo_muscular } = normalizeExerciseData(exercise);
+                const sets = exercise.sets || [];
 
                 return (
                   <SortableItem key={`${exercise.id_rutina}-${exercise.id_ejercicio}`} id={exercise.id_ejercicio}>
-                    <div className="flex-shrink-0">
+                    {/* Drag Handle */}
+                    <div className="flex-shrink-0 flex items-start gap-2">
+                      <div className="cursor-grab active:cursor-grabbing p-1 rounded-md hover:bg-muted mt-2">
+                        <GripVertical className="h-5 w-5 text-muted-foreground" />
+                      </div>
+
                       <ExerciseImage
                         src={imagen}
                         alt={nombre}
@@ -208,9 +154,7 @@ export function RoutineBuilderExerciseList({
                       <div className="space-y-3">
                         {/* Header de la tabla de series */}
                         <div className="flex items-center justify-between">
-                          <div className="text-xs font-medium text-muted-foreground">
-                            Series: {exercise.series || 0}
-                          </div>
+                          <div className="text-xs font-medium text-muted-foreground">Series: {sets.length}</div>
                           <Button
                             variant="outline"
                             size="sm"
@@ -222,7 +166,7 @@ export function RoutineBuilderExerciseList({
                           </Button>
                         </div>
 
-                        {/* Tabla de series editable */}
+                        {/* Tabla de series editable con sets individuales */}
                         <div className="bg-muted/30 rounded-lg p-3 space-y-2">
                           <div className="grid grid-cols-4 gap-2 text-xs font-medium text-muted-foreground">
                             <span>SET</span>
@@ -231,10 +175,12 @@ export function RoutineBuilderExerciseList({
                             <span></span>
                           </div>
 
-                          {Array.from({ length: exercise.series || 1 }).map((_, setIndex) => {
-                            const setData = getSetData(exercise.id_ejercicio, setIndex, exercise);
-
-                            return (
+                          {sets.length === 0 ? (
+                            <div className="text-xs text-muted-foreground text-center py-4">
+                              No hay series añadidas. Haz clic en "Añadir serie" para comenzar.
+                            </div>
+                          ) : (
+                            sets.map((set, setIndex) => (
                               <div key={setIndex} className="grid grid-cols-4 gap-2 items-center">
                                 <span className="text-xs font-medium">{setIndex + 1}</span>
 
@@ -244,14 +190,9 @@ export function RoutineBuilderExerciseList({
                                   min="0"
                                   max="1000"
                                   step="0.5"
-                                  value={setData.peso}
+                                  value={set.kg || ""}
                                   onChange={(e) =>
-                                    handleSetUpdate(
-                                      exercise.id_ejercicio,
-                                      setIndex,
-                                      "peso",
-                                      Number.parseFloat(e.target.value) || 0
-                                    )
+                                    handleSetChange(exercise.id_ejercicio, setIndex, "kg", e.target.value)
                                   }
                                   className="h-7 text-xs"
                                   placeholder="0"
@@ -262,14 +203,9 @@ export function RoutineBuilderExerciseList({
                                   type="number"
                                   min="1"
                                   max="100"
-                                  value={setData.repeticiones}
+                                  value={set.reps || ""}
                                   onChange={(e) =>
-                                    handleSetUpdate(
-                                      exercise.id_ejercicio,
-                                      setIndex,
-                                      "repeticiones",
-                                      Number.parseInt(e.target.value) || 0
-                                    )
+                                    handleSetChange(exercise.id_ejercicio, setIndex, "reps", e.target.value)
                                   }
                                   className="h-7 text-xs"
                                   placeholder="0"
@@ -279,14 +215,14 @@ export function RoutineBuilderExerciseList({
                                   variant="destructive"
                                   size="sm"
                                   onClick={() => handleRemoveSet(exercise.id_ejercicio, setIndex)}
-                                  disabled={(exercise.series || 0) <= 1}
+                                  disabled={sets.length <= 1}
                                   className="h-7 w-7 p-0 disabled:opacity-30"
                                 >
                                   <Trash2 className="h-3 w-3" />
                                 </Button>
                               </div>
-                            );
-                          })}
+                            ))
+                          )}
                         </div>
                       </div>
                     </div>

@@ -24,15 +24,21 @@ export type Ejercicio = {
   ejemplo: string | null;
 };
 
+export type SetEntry = {
+  idx: number; // 1..N
+  kg: number | null;
+  reps: number | null;
+};
+
 export type EjercicioRutina = {
   id_rutina: number;
   id_ejercicio: number;
   series: number | null;
-  repeticiones: number | null;
-  peso_sugerido: number | null;
-  /** NUEVO: posición dentro de la rutina (1..N) */
-  orden?: number | null;
+  repeticiones: number | null; // legado / sugerencia general
+  peso_sugerido: number | null; // legado / sugerencia general
+  orden?: number | null; // posición del ejercicio en la rutina
   Ejercicios?: Ejercicio | null;
+  sets?: SetEntry[]; // 👈 NUEVO
 };
 
 export type RutinaDetalle = Rutina & {
@@ -49,7 +55,6 @@ export type UpsertRutinaInput = {
 
 export const rutinasApi = createApi({
   reducerPath: "rutinasApi",
-  // usamos fakeBaseQuery porque llamamos al SDK de Supabase
   baseQuery: fakeBaseQuery(),
   tagTypes: ["Rutinas", "RutinaDetalle", "EjerciciosRutinas", "Ejercicios"],
   endpoints: (builder) => ({
@@ -127,10 +132,9 @@ export const rutinasApi = createApi({
       providesTags: [{ type: "Ejercicios", id: "LIST" }],
     }),
 
-    /** Detalle de rutina + ejercicios (todo bajo RLS) */
+    /** Detalle de rutina + ejercicios + sets (todo bajo RLS) */
     getRutinaById: builder.query<RutinaDetalle | null, number>({
       async queryFn(id_rutina) {
-        // Nota: se ordena por 'orden' asc y luego por id_ejercicio asc como tie-breaker
         const { data, error } = await supabase
           .from("Rutinas")
           .select(
@@ -138,7 +142,8 @@ export const rutinasApi = createApi({
             id_rutina, nombre, descripcion, nivel_recomendado, objetivo, duracion_estimada, owner_uid,
             EjerciciosRutinas (
               id_rutina, id_ejercicio, series, repeticiones, peso_sugerido, orden,
-              Ejercicios ( id, nombre, grupo_muscular, dificultad, ejemplo )
+              Ejercicios ( id, nombre, grupo_muscular, dificultad, ejemplo ),
+              sets:EjerciciosRutinaSets ( idx, kg, reps )
             )
           `
           )
@@ -147,24 +152,28 @@ export const rutinasApi = createApi({
 
         if (error) return { error };
 
-        // Aseguramos orden consistente en el cliente por si acaso
-        const sorted =
-          data?.EjerciciosRutinas?.slice().sort((a: EjercicioRutina, b: EjercicioRutina) => {
-            const ao = (a.orden ?? 999999) - (b.orden ?? 999999);
-            return ao !== 0 ? ao : a.id_ejercicio - b.id_ejercicio;
-          }) ?? [];
+        // Ordena ejercicios por 'orden' y tie-breaker id_ejercicio
+        const ejercicios = (data?.EjerciciosRutinas ?? []).slice().sort((a: any, b: any) => {
+          const ao = (a.orden ?? 999999) - (b.orden ?? 999999);
+          return ao !== 0 ? ao : a.id_ejercicio - b.id_ejercicio;
+        });
+
+        // Ordena sets por idx
+        ejercicios.forEach((er: EjercicioRutina & { sets?: SetEntry[] }) => {
+          er.sets = (er.sets ?? []).slice().sort((a, b) => a.idx - b.idx);
+        });
 
         return {
           data: {
             ...(data as Rutina),
-            EjerciciosRutinas: sorted,
+            EjerciciosRutinas: ejercicios,
           } as RutinaDetalle,
         };
       },
       providesTags: (_r, _e, id) => [{ type: "RutinaDetalle", id }],
     }),
 
-    /** Crear rutina (el DEFAULT pone owner_uid = auth.uid()) */
+    /** Crear rutina */
     createRutina: builder.mutation<Rutina, UpsertRutinaInput>({
       async queryFn(rutinaData) {
         try {
@@ -183,7 +192,7 @@ export const rutinasApi = createApi({
       invalidatesTags: [{ type: "Rutinas", id: "LIST" }],
     }),
 
-    /** Actualizar rutina existente */
+    /** Actualizar rutina */
     updateRutina: builder.mutation<Rutina, { id_rutina: number } & UpsertRutinaInput>({
       async queryFn({ id_rutina, ...rutinaData }) {
         try {
@@ -206,9 +215,7 @@ export const rutinasApi = createApi({
       ],
     }),
 
-    /** Añadir ejercicio a la rutina (sólo si eres dueño por RLS)
-     *  El trigger en DB asigna 'orden' al final si no se envía.
-     */
+    /** Añadir ejercicio a la rutina (trigger pone orden al final si no se envía) */
     addEjercicioToRutina: builder.mutation<
       EjercicioRutina,
       {
@@ -240,7 +247,7 @@ export const rutinasApi = createApi({
       invalidatesTags: (_r, _e, arg) => [{ type: "RutinaDetalle", id: arg.id_rutina }],
     }),
 
-    /** Quitar ejercicio de la rutina (sólo si eres dueño por RLS) */
+    /** Quitar ejercicio de la rutina */
     removeEjercicioFromRutina: builder.mutation<{ success: true }, { id_rutina: number; id_ejercicio: number }>({
       async queryFn({ id_rutina, id_ejercicio }) {
         const { error } = await supabase
@@ -254,9 +261,7 @@ export const rutinasApi = createApi({
       invalidatesTags: (_r, _e, arg) => [{ type: "RutinaDetalle", id: arg.id_rutina }],
     }),
 
-    /** NUEVO: Reordenamiento en bloque (tipo Hevy) usando RPC reorder_exercises
-     *  items = [{ id_ejercicio, orden }, ...] con orden denso 1..N
-     */
+    /** Reordenamiento en bloque (ejercicios) */
     reorderEjercicios: builder.mutation<
       { success: true },
       { id_rutina: number; items: { id_ejercicio: number; orden: number }[] }
@@ -264,13 +269,12 @@ export const rutinasApi = createApi({
       async queryFn({ id_rutina, items }) {
         const { error } = await supabase.rpc("reorder_exercises", {
           p_id_rutina: id_rutina,
-          p_pairs: items, // Supabase convierte array TS -> jsonb
+          p_pairs: items,
         });
         if (error) return { error };
         return { data: { success: true } };
       },
       invalidatesTags: (_r, _e, arg) => [{ type: "RutinaDetalle", id: arg.id_rutina }],
-      // Opcional: optimistic update para UX instantánea
       async onQueryStarted({ id_rutina, items }, { dispatch, queryFulfilled }) {
         const patch = dispatch(
           rutinasApi.util.updateQueryData("getRutinaById", id_rutina, (draft) => {
@@ -294,16 +298,49 @@ export const rutinasApi = createApi({
       },
     }),
 
-    /** Eliminar rutina con optimistic update */
+    /** 👇 NUEVO: Reemplazar todos los sets de un ejercicio en una rutina (transaccional) */
+    replaceExerciseSets: builder.mutation<
+      { success: true },
+      { id_rutina: number; id_ejercicio: number; sets: SetEntry[] }
+    >({
+      async queryFn({ id_rutina, id_ejercicio, sets }) {
+        const { error } = await supabase.rpc("replace_exercise_sets", {
+          p_id_rutina: id_rutina,
+          p_id_ejercicio: id_ejercicio,
+          p_sets: sets,
+        });
+        if (error) return { error };
+        return { data: { success: true } };
+      },
+      invalidatesTags: (_r, _e, arg) => [{ type: "RutinaDetalle", id: arg.id_rutina }],
+      // optimista simple
+      async onQueryStarted({ id_rutina, id_ejercicio, sets }, { dispatch, queryFulfilled }) {
+        const patch = dispatch(
+          rutinasApi.util.updateQueryData("getRutinaById", id_rutina, (draft) => {
+            if (!draft) return;
+            const er = draft.EjerciciosRutinas.find((x) => x.id_ejercicio === id_ejercicio);
+            if (er) {
+              er.sets = sets.slice().sort((a, b) => a.idx - b.idx);
+              er.series = sets.length;
+            }
+          })
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
+    }),
+
+    /** Eliminar rutina */
     deleteRutina: builder.mutation<{ success: true }, { id_rutina: number }>({
       async queryFn({ id_rutina }) {
         const { error } = await supabase.from("Rutinas").delete().eq("id_rutina", id_rutina);
         if (error) return { error };
         return { data: { success: true } };
       },
-      // 🔥 optimista: quita la rutina del cache inmediatamente
       async onQueryStarted({ id_rutina }, { dispatch, queryFulfilled }) {
-        // necesitamos el uid para tocar el cache de getRutinas(uid)
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -318,11 +355,7 @@ export const rutinasApi = createApi({
             )
           : { undo: () => {} };
 
-        const patchDetail = dispatch(
-          rutinasApi.util.updateQueryData("getRutinaById", id_rutina, (_draft) => {
-            /* noop */
-          })
-        );
+        const patchDetail = dispatch(rutinasApi.util.updateQueryData("getRutinaById", id_rutina, (_draft) => {}));
 
         try {
           await queryFulfilled;
@@ -339,7 +372,7 @@ export const rutinasApi = createApi({
   }),
 });
 
-// Hooks principales
+// Hooks
 export const {
   useGetRutinasQuery,
   useGetRutinaByIdQuery,
@@ -349,10 +382,11 @@ export const {
   useRemoveEjercicioFromRutinaMutation,
   useDeleteRutinaMutation,
   useGetEjerciciosQuery,
-  useReorderEjerciciosMutation, // 👈 NUEVO
+  useReorderEjerciciosMutation,
+  useReplaceExerciseSetsMutation, // 👈 NUEVO
 } = rutinasApi;
 
-// Aliases (si los usabas en español)
+// Aliases
 export const useCrearRutinaMutation = useCreateRutinaMutation;
 export const useActualizarRutinaMutation = useUpdateRutinaMutation;
 export const useEliminarRutinaMutation = useDeleteRutinaMutation;
