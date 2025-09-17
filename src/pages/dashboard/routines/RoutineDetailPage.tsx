@@ -3,8 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { RoutineDetailHeader, RoutineExercisesSection, RoutineStats } from "@/features/routines/components";
 import { useRoutineDetail } from "@/features/routines/hooks";
+import { useNavigate, useParams } from "react-router-dom";
 
 export default function RoutineDetailPage() {
+  const navigate = useNavigate();
+  const { id } = useParams();
   const { isAuthenticated, loading: authLoading, requireAuth } = useAuth();
   const {
     rutina,
@@ -85,7 +88,11 @@ export default function RoutineDetailPage() {
       />
 
       <RoutineStats nivel={rutina.nivel_recomendado} objetivo={rutina.objetivo} duracion={rutina.duracion_estimada} />
-
+      <div className="flex gap-2">
+        <Button onClick={() => navigate(`/dashboard/workout/${id}`)} className="ml-auto">
+          Empezar Entrenamiento
+        </Button>
+      </div>
       <RoutineExercisesSection
         count={rutina.EjerciciosRutinas.length}
         items={rutina.EjerciciosRutinas.map((er) => ({

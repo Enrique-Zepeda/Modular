@@ -1,0 +1,430 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Loader2, Plus, Clock, Trash2, Image as ImageIcon } from "lucide-react";
+import { useGetRutinaByIdQuery } from "@/features/routines/api/rutinasApi";
+
+import { toast } from "react-hot-toast";
+import { useCreateWorkoutSessionMutation } from "../api/workoutsApi";
+
+// Tipos locales
+type SetPlantilla = { idx: number; kg?: number | null; reps?: number | null };
+type WorkoutSet = {
+  idx: number;
+  kg: string;
+  reps: string;
+  rpe: string; // 'Fácil' | 'Moderado' | 'Difícil' | 'Muy difícil' | 'Al fallo' | ''
+  done: boolean;
+  doneAt?: string;
+};
+type WorkoutExercise = {
+  id_ejercicio: number;
+  nombre?: string;
+  imagen?: string | null;
+  orden: number;
+  sets: WorkoutSet[];
+};
+type WorkoutState = {
+  id_rutina: number;
+  nombre?: string | null;
+  descripcion?: string | null;
+  startedAt: string;
+  exercises: WorkoutExercise[];
+};
+
+const RPE_OPCIONES = ["Fácil", "Moderado", "Difícil", "Muy difícil", "Al fallo"] as const;
+
+// Cronómetro que inicia al montar (sin pausa/reinicio)
+function useAutoStopwatch() {
+  const [elapsed, setElapsed] = useState(0);
+  const lastTickRef = useRef<number | null>(null);
+  useEffect(() => {
+    let raf: number;
+    const tick = (t: number) => {
+      if (lastTickRef.current == null) lastTickRef.current = t;
+      const delta = t - lastTickRef.current;
+      lastTickRef.current = t;
+      setElapsed((e) => e + delta);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return elapsed;
+}
+
+function formatElapsed(ms: number) {
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+}
+
+export function WorkoutLivePage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const id_rutina = Number(id);
+  const [createWorkout, { isLoading: saving }] = useCreateWorkoutSessionMutation();
+
+  // 1) Query (hook SIEMPRE llamada)
+  const { data, isLoading, isError } = useGetRutinaByIdQuery(id_rutina, { skip: !id_rutina });
+
+  // 2) Cronómetro (hook SIEMPRE llamada)
+  const elapsed = useAutoStopwatch();
+
+  // 3) Estado inicial desde la jerarquía real de tu API (hook SIEMPRE llamada)
+  const initialState = useMemo<WorkoutState | null>(() => {
+    if (!data) return null;
+
+    const ejercicios = data.EjerciciosRutinas ?? [];
+    const exercises: WorkoutExercise[] = ejercicios
+      .slice()
+      .sort((a: any, b: any) => (a.orden ?? 999999) - (b.orden ?? 999999) || a.id_ejercicio - b.id_ejercicio)
+      .map((ex: any) => {
+        const plantilla: SetPlantilla[] = (ex.sets ?? [])
+          .slice()
+          .sort((s1: any, s2: any) => (s1.idx ?? 0) - (s2.idx ?? 0));
+        const sets: WorkoutSet[] =
+          plantilla.length > 0
+            ? plantilla.map((s) => ({
+                idx: s.idx,
+                kg: s.kg != null ? String(s.kg) : "",
+                reps: s.reps != null ? String(s.reps) : "",
+                rpe: "",
+                done: false,
+              }))
+            : [{ idx: 1, kg: "", reps: "", rpe: "", done: false }];
+
+        return {
+          id_ejercicio: ex.id_ejercicio,
+          nombre: ex.Ejercicios?.nombre,
+          imagen: ex.Ejercicios?.ejemplo ?? null,
+          orden: ex.orden ?? 0,
+          sets,
+        };
+      });
+
+    return {
+      id_rutina: data.id_rutina,
+      nombre: data.nombre,
+      descripcion: data.descripcion,
+      startedAt: new Date().toISOString(),
+      exercises,
+    };
+  }, [data]);
+
+  // 4) Estado local de la sesión (hooks SIEMPRE llamadas)
+  const [workout, setWorkout] = useState<WorkoutState | null>(null);
+  useEffect(() => {
+    if (initialState) setWorkout(initialState);
+  }, [initialState]);
+
+  // 5) Derivados SIEMPRE llamados (aunque workout sea null)
+  const { doneSets, totalVolume, totalSets } = useMemo(() => {
+    const exs = workout?.exercises ?? [];
+    let done = 0;
+    let volume = 0;
+    let setsCount = 0;
+    for (const ex of exs) {
+      setsCount += ex.sets.length;
+      for (const s of ex.sets) {
+        if (s.done) {
+          done += 1;
+          const kg = parseFloat(s.kg || "0");
+          const reps = parseInt(s.reps || "0", 10);
+          if (!Number.isNaN(kg) && !Number.isNaN(reps)) volume += kg * reps;
+        }
+      }
+    }
+    return { doneSets: done, totalVolume: volume, totalSets: setsCount };
+  }, [workout?.exercises]);
+
+  // === Handlers (no hooks) ===
+  const toggleSetDone = (ei: number, si: number) => {
+    setWorkout((w) => {
+      if (!w) return w;
+      const exercises = w.exercises.map((ex, i) => {
+        if (i !== ei) return ex;
+        const sets = ex.sets.map((s, j) =>
+          j === si ? { ...s, done: !s.done, doneAt: !s.done ? new Date().toISOString() : s.doneAt } : s
+        );
+        return { ...ex, sets };
+      });
+      return { ...w, exercises };
+    });
+  };
+
+  const updateSetField = (ei: number, si: number, field: "kg" | "reps" | "rpe", value: string) => {
+    setWorkout((w) => {
+      if (!w) return w;
+      const exercises = w.exercises.map((ex, i) => {
+        if (i !== ei) return ex;
+        const sets = ex.sets.map((s, j) => (j === si ? { ...s, [field]: value } : s));
+        return { ...ex, sets };
+      });
+      return { ...w, exercises };
+    });
+  };
+
+  const addSet = (ei: number) => {
+    setWorkout((w) => {
+      if (!w) return w;
+      const exercises = w.exercises.map((ex, i) => {
+        if (i !== ei) return ex;
+        const nextIdx = (ex.sets[ex.sets.length - 1]?.idx ?? ex.sets.length) + 1;
+        return { ...ex, sets: [...ex.sets, { idx: nextIdx, kg: "", reps: "", rpe: "", done: false }] };
+      });
+      return { ...w, exercises };
+    });
+  };
+
+  const removeSet = (ei: number, si: number) => {
+    setWorkout((w) => {
+      if (!w) return w;
+      const exercises = w.exercises.map((ex, i) => {
+        if (i !== ei) return ex;
+        const remaining = ex.sets.filter((_, j) => j !== si);
+        const reindexed = remaining.map((s, idx) => ({ ...s, idx: idx + 1 }));
+        return { ...ex, sets: reindexed };
+      });
+      return { ...w, exercises };
+    });
+  };
+
+  const removeExercise = (ei: number) => {
+    setWorkout((w) => {
+      if (!w) return w;
+      const exercises = w.exercises.filter((_, i) => i !== ei);
+      return { ...w, exercises };
+    });
+  };
+
+  // === Render único (sin returns tempranos que cambien el orden de hooks) ===
+  function buildPayloadFromState() {
+    if (!workout) return null;
+
+    // tomamos SOLO sets con números válidos
+    const setsValidos = workout.exercises.flatMap(
+      (ex) =>
+        ex.sets
+          .map((s) => {
+            const kg = parseFloat(s.kg);
+            const reps = parseInt(s.reps, 10);
+            if (Number.isNaN(kg) || Number.isNaN(reps)) return null;
+            return {
+              id_ejercicio: ex.id_ejercicio,
+              idx: s.idx,
+              kg,
+              reps,
+              rpe: s.rpe || null,
+              done: !!s.done,
+              done_at: s.done ? s.doneAt ?? new Date().toISOString() : null,
+            };
+          })
+          .filter(Boolean) as any[]
+    );
+
+    // métricas: por consistencia, usa sets 'done' y válidos
+    const total_volumen = setsValidos.filter((s) => s.done).reduce((acc, s) => acc + s.kg * s.reps, 0);
+
+    const duracion_seg = Math.max(1, Math.round(elapsed / 1000));
+    const payload = {
+      id_rutina: workout.id_rutina,
+      started_at: workout.startedAt,
+      ended_at: new Date().toISOString(),
+      duracion_seg,
+      total_volumen,
+      sensacion_global: null,
+      notas: null,
+      sets: setsValidos,
+    };
+
+    return payload;
+  }
+
+  // handler del botón Finalizar
+  async function handleFinalizar() {
+    const payload = buildPayloadFromState();
+    if (!payload) return;
+
+    if (!payload.sets.length) {
+      toast.error("No hay sets válidos para guardar.");
+      return;
+    }
+
+    try {
+      const res = await createWorkout(payload).unwrap();
+      console.log("Sesión guardada:", res); // 👈 debería mostrar { id_sesion: 123 }
+      toast.success(`Sesión #${res.id_sesion} guardada`);
+      //   toast.success("Entrenamiento guardado");
+      // Puedes llevar al resumen de sesión cuando lo implementes
+      // navigate(`/dashboard/workouts/${res.id_sesion}/summary`);
+      navigate("/dashboard");
+    } catch (e: any) {
+      console.error(e);
+      toast.error("No se pudo guardar el entrenamiento");
+    }
+  }
+  return (
+    <div className="mx-auto max-w-3xl p-4 space-y-4">
+      {/* Header */}
+      <Card>
+        <CardHeader className="gap-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">
+              {workout?.nombre ?? (isLoading ? "Cargando..." : isError ? "Error" : "Entrenamiento")}
+            </CardTitle>
+            <div className="flex items-center gap-3 text-sm">
+              <Clock className="h-4 w-4" />
+              <span className="tabular-nums font-medium">{formatElapsed(elapsed)}</span>
+            </div>
+          </div>
+          {workout?.descripcion && <p className="text-sm text-muted-foreground">{workout.descripcion}</p>}
+        </CardHeader>
+      </Card>
+
+      {/* Resumen fijo arriba */}
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur border rounded-md p-3 flex items-center justify-between">
+        <div className="text-sm flex flex-wrap gap-4">
+          <span>
+            Sets hechos: <span className="font-medium">{doneSets}</span> / {totalSets}
+          </span>
+          <span>
+            Volumen: <span className="font-medium">{totalVolume.toLocaleString()} kg</span>
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" onClick={() => navigate(-1)}>
+            Salir (sin guardar)
+          </Button>
+        </div>
+      </div>
+
+      {/* Estados de carga / error */}
+      {isError && (
+        <div className="p-4">
+          <p>Ocurrió un error al cargar la rutina.</p>
+          <Button onClick={() => navigate(-1)} variant="secondary">
+            Volver
+          </Button>
+        </div>
+      )}
+
+      {isLoading && (
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          Cargando entrenamiento...
+        </div>
+      )}
+
+      {/* Lista de ejercicios (cuando hay datos) */}
+      {!isLoading &&
+        workout &&
+        workout.exercises.map((ex, ei) => (
+          <Card key={ex.id_ejercicio}>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  {ex.imagen ? (
+                    <img /* ...igual que antes... */ />
+                  ) : (
+                    <div className="h-10 w-10 grid place-items-center rounded-md border">
+                      <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                  )}
+                  <CardTitle className="text-base">{ex.nombre ?? `Ejercicio ${ei + 1}`}</CardTitle>
+                </div>
+
+                {/* Botón eliminar ejercicio */}
+                <Button variant="ghost" size="icon" onClick={() => removeExercise(ei)} title="Eliminar ejercicio">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+
+            <CardContent>
+              <div className="space-y-2">
+                {ex.sets.map((s, si) => (
+                  <div key={`${s.idx}-${si}`} className="grid grid-cols-12 items-center gap-2">
+                    <div className="col-span-2 text-xs text-muted-foreground">Set {s.idx}</div>
+
+                    <div className="col-span-3 flex items-center gap-2">
+                      <label className="text-xs w-10">KG</label>
+                      <Input
+                        inputMode="decimal"
+                        value={s.kg}
+                        onChange={(e) => updateSetField(ei, si, "kg", e.target.value)}
+                        placeholder="kg"
+                      />
+                    </div>
+
+                    <div className="col-span-3 flex items-center gap-2">
+                      <label className="text-xs w-10">Reps</label>
+                      <Input
+                        inputMode="numeric"
+                        value={s.reps}
+                        onChange={(e) => updateSetField(ei, si, "reps", e.target.value)}
+                        placeholder="reps"
+                      />
+                    </div>
+
+                    <div className="col-span-2 flex items-center gap-2">
+                      <label className="text-xs w-10">RPE</label>
+                      <select
+                        className="w-full h-9 rounded-md border bg-background px-2 text-sm"
+                        value={s.rpe}
+                        onChange={(e) => updateSetField(ei, si, "rpe", e.target.value)}
+                      >
+                        <option value="">--</option>
+                        {RPE_OPCIONES.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="col-span-2 flex items-center justify-end gap-2">
+                      <label className="text-xs">Hecho</label>
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4"
+                        checked={s.done}
+                        onChange={() => toggleSetDone(ei, si)}
+                      />
+                      <Button variant="ghost" size="icon" onClick={() => removeSet(ei, si)} title="Eliminar serie">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+
+                <Separator className="my-2" />
+
+                <div className="flex justify-end">
+                  <Button variant="outline" onClick={() => addSet(ei)}>
+                    <Plus className="h-4 w-4 mr-1" /> Añadir serie
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+
+      {/* Footer simulado */}
+      <div className="flex justify-end gap-2">
+        <Button variant="secondary" onClick={() => navigate(-1)}>
+          Cancelar
+        </Button>
+        <Button disabled={saving} onClick={handleFinalizar}>
+          {saving ? "Guardando..." : "Finalizar rutina"}
+        </Button>
+      </div>
+    </div>
+  );
+}

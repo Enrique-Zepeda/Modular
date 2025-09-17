@@ -2,6 +2,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "../features/auth/slices/authSlice";
 import themeReducer from "../features/theme/slices/themeSlice";
 import rutinasReducer from "../features/routines/slices/rutinasSlice";
+import { workoutsApi } from "@/features/workout/api/workoutsApi";
 
 // RTK Query APIs
 import { rutinasApi } from "../features/routines/api/rutinasApi";
@@ -18,8 +19,10 @@ export const store = configureStore({
     // RTK Query reducers
     [rutinasApi.reducerPath]: rutinasApi.reducer,
     [exercisesApi.reducerPath]: exercisesApi.reducer,
+    [workoutsApi.reducerPath]: workoutsApi.reducer,
   },
-  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(rutinasApi.middleware, exercisesApi.middleware),
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat(workoutsApi.middleware, rutinasApi.middleware, exercisesApi.middleware),
 });
 
 setupListeners(store.dispatch);
