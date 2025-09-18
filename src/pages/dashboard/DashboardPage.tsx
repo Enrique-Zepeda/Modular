@@ -1,3 +1,5 @@
+import { CompletedWorkoutsSection } from "@/features/dashboard/components/CompletedWorkoutsSection";
+
 export default function DashboardPage() {
   return (
     <div className="space-y-6">
@@ -42,6 +44,9 @@ export default function DashboardPage() {
             <p className="text-sm mt-1">Programa tu próxima sesión</p>
           </div>
         </div>
+      </div>
+      <div className="mt-8">
+        <CompletedWorkoutsSection />
       </div>
     </div>
   );
