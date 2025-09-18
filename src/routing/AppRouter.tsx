@@ -10,6 +10,7 @@ import { LoginPage, RegisterPage, ResetPasswordPage } from "../pages/auth";
 import AuthCallbackPage from "@/pages/auth/AuthCallbackPage";
 import SettingsPage from "@/pages/dashboard/settings/SettingsPage";
 import ExerciseListPage from "@/features/exercises/pages/ExerciseListPage";
+import RecomendacionPage from "@/pages/RecomendacionPage";
 
 export default function AppRouter() {
   return (
@@ -44,6 +45,16 @@ export default function AppRouter() {
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
       {/* Dashboard Routes with Persistent Layout */}
+      <Route
+        path="/recomendacion"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <RecomendacionPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/dashboard"
         element={
