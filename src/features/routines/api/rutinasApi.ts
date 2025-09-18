@@ -1,4 +1,5 @@
 import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react";
+import { dashboardApi } from "@/features/dashboard/api/dashboardApi";
 import { supabase } from "@/lib/supabase/client";
 
 /** Tipos básicos */
@@ -190,6 +191,14 @@ export const rutinasApi = createApi({
         }
       },
       invalidatesTags: [{ type: "Rutinas", id: "LIST" }],
+      async onQueryStarted(_args, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+        } finally {
+          // 👇 refrescar KPIs (rutinas creadas y potencialmente otras)
+          dispatch(dashboardApi.util.invalidateTags([{ type: "Kpis", id: "MONTH" }]));
+        }
+      },
     }),
 
     /** Actualizar rutina */
@@ -213,6 +222,14 @@ export const rutinasApi = createApi({
         { type: "Rutinas", id: "LIST" },
         { type: "RutinaDetalle", id: arg.id_rutina },
       ],
+      async onQueryStarted(_args, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+        } finally {
+          // 👇 por consistencia, refrescamos KPIs
+          dispatch(dashboardApi.util.invalidateTags([{ type: "Kpis", id: "MONTH" }]));
+        }
+      },
     }),
 
     /** Añadir ejercicio a la rutina (trigger pone orden al final si no se envía) */
@@ -362,6 +379,9 @@ export const rutinasApi = createApi({
         } catch {
           patchList.undo();
           patchDetail.undo();
+        } finally {
+          // 👇 refrescar KPIs (rutinas creadas)
+          dispatch(dashboardApi.util.invalidateTags([{ type: "Kpis", id: "MONTH" }]));
         }
       },
       invalidatesTags: (_r, _e, arg) => [

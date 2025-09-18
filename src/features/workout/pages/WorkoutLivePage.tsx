@@ -4,11 +4,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Plus, Clock, Trash2, Image as ImageIcon } from "lucide-react";
+import { Loader2, Plus, Clock, Trash2, Image as ImageIcon, X, Search } from "lucide-react";
 import { useGetRutinaByIdQuery } from "@/features/routines/api/rutinasApi";
-
 import { toast } from "react-hot-toast";
-import { useCreateWorkoutSessionMutation } from "../api/workoutsApi";
+import { useCreateWorkoutSessionMutation } from "@/features/workout/api/workoutsApi";
+
+// ✅ filtros que YA funcionan en tu app de ejercicios
+import { useExerciseFilters } from "@/features/exercises/hooks/useExerciseFilters";
+import {
+  useGetMuscleGroupsQuery,
+  useGetEquipmentTypesQuery,
+  useGetDifficultyLevelsQuery,
+  useGetExercisesQuery,
+} from "@/features/exercises/exercisesSlice";
+import { AdvancedFilters } from "@/features/exercises/components/AdvancedFilters";
 
 // Tipos locales
 type SetPlantilla = { idx: number; kg?: number | null; reps?: number | null };
@@ -62,22 +71,23 @@ function formatElapsed(ms: number) {
   const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;
   const pad = (n: number) => String(n).padStart(2, "0");
-  return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
 
 export function WorkoutLivePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const id_rutina = Number(id);
+
   const [createWorkout, { isLoading: saving }] = useCreateWorkoutSessionMutation();
 
-  // 1) Query (hook SIEMPRE llamada)
+  // 1) Query de rutina
   const { data, isLoading, isError } = useGetRutinaByIdQuery(id_rutina, { skip: !id_rutina });
 
-  // 2) Cronómetro (hook SIEMPRE llamada)
+  // 2) Cronómetro
   const elapsed = useAutoStopwatch();
 
-  // 3) Estado inicial desde la jerarquía real de tu API (hook SIEMPRE llamada)
+  // 3) Estado inicial desde la rutina
   const initialState = useMemo<WorkoutState | null>(() => {
     if (!data) return null;
 
@@ -118,13 +128,13 @@ export function WorkoutLivePage() {
     };
   }, [data]);
 
-  // 4) Estado local de la sesión (hooks SIEMPRE llamadas)
+  // 4) Estado local de la sesión
   const [workout, setWorkout] = useState<WorkoutState | null>(null);
   useEffect(() => {
     if (initialState) setWorkout(initialState);
   }, [initialState]);
 
-  // 5) Derivados SIEMPRE llamados (aunque workout sea null)
+  // 5) Derivados
   const { doneSets, totalVolume, totalSets } = useMemo(() => {
     const exs = workout?.exercises ?? [];
     let done = 0;
@@ -144,7 +154,7 @@ export function WorkoutLivePage() {
     return { doneSets: done, totalVolume: volume, totalSets: setsCount };
   }, [workout?.exercises]);
 
-  // === Handlers (no hooks) ===
+  // === Handlers sets/ejercicios ===
   const toggleSetDone = (ei: number, si: number) => {
     setWorkout((w) => {
       if (!w) return w;
@@ -204,11 +214,62 @@ export function WorkoutLivePage() {
     });
   };
 
-  // === Render único (sin returns tempranos que cambien el orden de hooks) ===
+  // === Panel de búsqueda de ejercicios extra (usando la misma lógica que tu Librería) ===
+  const [showFinder, setShowFinder] = useState(false);
+
+  // estado de filtros reutilizable y consistente
+  const filters = useExerciseFilters();
+  const { data: muscleGroupsResponse, isLoading: isLoadingMuscleGroups } = useGetMuscleGroupsQuery();
+  const { data: equipmentResponse, isLoading: isLoadingEquipment } = useGetEquipmentTypesQuery();
+  const { data: difficultyResponse, isLoading: isLoadingDifficulty } = useGetDifficultyLevelsQuery();
+
+  const muscleGroups = useMemo(() => muscleGroupsResponse?.data || [], [muscleGroupsResponse?.data]);
+  const equipmentTypes = useMemo(() => equipmentResponse?.data || [], [equipmentResponse?.data]);
+  const difficultyLevels = useMemo(() => {
+    const raw = difficultyResponse?.data || [];
+    const norm = raw
+      .map((d: string) => d?.toLowerCase?.())
+      .filter((d: string) => ["principiante", "intermedio", "avanzado"].includes(d));
+    return [...new Set(norm)];
+  }, [difficultyResponse?.data]);
+
+  // argumentos idénticos a ExerciseListPage
+  const args = useMemo(
+    () => ({
+      search: (filters.debouncedSearch || "").trim() || undefined,
+      grupo_muscular: filters.selectedMuscleGroup === "all" ? undefined : filters.selectedMuscleGroup,
+      dificultad: filters.selectedDifficulty === "all" ? undefined : filters.selectedDifficulty.toLowerCase(),
+      equipamento: filters.selectedEquipment === "all" ? undefined : filters.selectedEquipment.toLowerCase(),
+      limit: 25,
+      offset: 0,
+    }),
+    [filters.debouncedSearch, filters.selectedMuscleGroup, filters.selectedDifficulty, filters.selectedEquipment]
+  );
+
+  // consulta SOLO cuando el panel está visible
+  const { data: searchResp, isLoading: searching } = useGetExercisesQuery(args, { skip: !showFinder });
+  const results = searchResp?.data ?? [];
+
+  const addExtraExerciseFromCatalog = (e: any) => {
+    setWorkout((w) => {
+      if (!w) return w;
+      const nextOrden = Math.max(0, ...w.exercises.map((ex) => ex.orden ?? 0)) + 1;
+      const newEx: WorkoutExercise = {
+        id_ejercicio: Number(e.id),
+        nombre: e.nombre ?? `Ejercicio ${e.id}`,
+        imagen: e.ejemplo ?? null,
+        orden: nextOrden,
+        sets: [{ idx: 1, kg: "", reps: "", rpe: "", done: false }],
+      };
+      return { ...w, exercises: [...w.exercises, newEx] };
+    });
+    toast.success("Ejercicio agregado al final");
+  };
+
+  // === Guardado ===
   function buildPayloadFromState() {
     if (!workout) return null;
 
-    // tomamos SOLO sets con números válidos
     const setsValidos = workout.exercises.flatMap(
       (ex) =>
         ex.sets
@@ -229,11 +290,10 @@ export function WorkoutLivePage() {
           .filter(Boolean) as any[]
     );
 
-    // métricas: por consistencia, usa sets 'done' y válidos
     const total_volumen = setsValidos.filter((s) => s.done).reduce((acc, s) => acc + s.kg * s.reps, 0);
-
     const duracion_seg = Math.max(1, Math.round(elapsed / 1000));
-    const payload = {
+
+    return {
       id_rutina: workout.id_rutina,
       started_at: workout.startedAt,
       ended_at: new Date().toISOString(),
@@ -243,33 +303,26 @@ export function WorkoutLivePage() {
       notas: null,
       sets: setsValidos,
     };
-
-    return payload;
   }
 
-  // handler del botón Finalizar
   async function handleFinalizar() {
     const payload = buildPayloadFromState();
     if (!payload) return;
-
     if (!payload.sets.length) {
       toast.error("No hay sets válidos para guardar.");
       return;
     }
-
     try {
       const res = await createWorkout(payload).unwrap();
-      console.log("Sesión guardada:", res); // 👈 debería mostrar { id_sesion: 123 }
-      toast.success(`Sesión #${res.id_sesion} guardada`);
-      //   toast.success("Entrenamiento guardado");
-      // Puedes llevar al resumen de sesión cuando lo implementes
-      // navigate(`/dashboard/workouts/${res.id_sesion}/summary`);
+      toast.success(`Entrenamiento guardado #${res.id_sesion}`);
       navigate("/dashboard");
     } catch (e: any) {
       console.error(e);
       toast.error("No se pudo guardar el entrenamiento");
     }
   }
+
+  // === Render ===
   return (
     <div className="mx-auto max-w-3xl p-4 space-y-4">
       {/* Header */}
@@ -288,7 +341,7 @@ export function WorkoutLivePage() {
         </CardHeader>
       </Card>
 
-      {/* Resumen fijo arriba */}
+      {/* Resumen fijo */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur border rounded-md p-3 flex items-center justify-between">
         <div className="text-sm flex flex-wrap gap-4">
           <span>
@@ -322,16 +375,21 @@ export function WorkoutLivePage() {
         </div>
       )}
 
-      {/* Lista de ejercicios (cuando hay datos) */}
+      {/* Lista de ejercicios */}
       {!isLoading &&
         workout &&
         workout.exercises.map((ex, ei) => (
-          <Card key={ex.id_ejercicio}>
+          <Card key={`${ex.id_ejercicio}-${ei}`}>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   {ex.imagen ? (
-                    <img /* ...igual que antes... */ />
+                    <img
+                      src={ex.imagen}
+                      alt={ex.nombre ?? "Ejercicio"}
+                      className="h-10 w-10 rounded-md object-cover border"
+                      onError={(e) => ((e.currentTarget.src = ""), (e.currentTarget.alt = "Sin imagen"))}
+                    />
                   ) : (
                     <div className="h-10 w-10 grid place-items-center rounded-md border">
                       <ImageIcon className="h-5 w-5 text-muted-foreground" />
@@ -339,8 +397,6 @@ export function WorkoutLivePage() {
                   )}
                   <CardTitle className="text-base">{ex.nombre ?? `Ejercicio ${ei + 1}`}</CardTitle>
                 </div>
-
-                {/* Botón eliminar ejercicio */}
                 <Button variant="ghost" size="icon" onClick={() => removeExercise(ei)} title="Eliminar ejercicio">
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -416,7 +472,114 @@ export function WorkoutLivePage() {
           </Card>
         ))}
 
-      {/* Footer simulado */}
+      {/* --- Botón para abrir buscador de ejercicios extra --- */}
+      <div className="flex justify-end">
+        {!showFinder ? (
+          <Button variant="default" onClick={() => setShowFinder(true)}>
+            <Plus className="h-4 w-4 mr-1" />
+            Agregar ejercicios extra
+          </Button>
+        ) : null}
+      </div>
+
+      {/* --- Panel de búsqueda con filtros (mismos que la Librería) --- */}
+      {showFinder && (
+        <Card className="border-dashed">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Buscar ejercicio para agregar</CardTitle>
+              <Button variant="ghost" size="icon" onClick={() => setShowFinder(false)} title="Cerrar">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardHeader>
+
+          <CardContent className="space-y-4">
+            {/* Search */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Buscar ejercicios…</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={filters.searchTerm}
+                  onChange={(e) => filters.setSearchTerm(e.target.value)}
+                  placeholder="Nombre o descripción"
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            {/* Advanced filters reutilizados */}
+            <AdvancedFilters
+              expanded={true}
+              muscleGroups={muscleGroups}
+              difficultyLevels={difficultyLevels}
+              equipmentTypes={equipmentTypes}
+              values={{
+                selectedMuscleGroup: filters.selectedMuscleGroup,
+                selectedDifficulty: filters.selectedDifficulty,
+                selectedEquipment: filters.selectedEquipment,
+              }}
+              onChange={{
+                setSelectedMuscleGroup: filters.setSelectedMuscleGroup,
+                setSelectedDifficulty: filters.setSelectedDifficulty,
+                setSelectedEquipment: filters.setSelectedEquipment,
+              }}
+              loading={{
+                isLoadingMuscleGroups,
+                isLoadingDifficulty,
+                isLoadingEquipment,
+              }}
+            />
+
+            <Separator />
+
+            {/* Resultados */}
+            <div className="space-y-2">
+              {searching && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Buscando ejercicios…
+                </div>
+              )}
+
+              {!searching && results.length === 0 && (
+                <div className="text-sm text-muted-foreground">No se encontraron ejercicios.</div>
+              )}
+
+              {results.map((e: any) => (
+                <div key={e.id} className="flex items-center justify-between gap-3 rounded-md border p-2">
+                  <div className="flex items-center gap-3">
+                    {e.ejemplo ? (
+                      <img
+                        src={e.ejemplo}
+                        alt={e.nombre ?? "Ejercicio"}
+                        className="h-10 w-10 rounded-md object-cover border"
+                        onError={(ev) => ((ev.currentTarget.src = ""), (ev.currentTarget.alt = "Sin imagen"))}
+                      />
+                    ) : (
+                      <div className="h-10 w-10 grid place-items-center rounded-md border">
+                        <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="text-sm">
+                      <div className="font-medium">{e.nombre ?? `Ejercicio #${e.id}`}</div>
+                      <div className="text-muted-foreground">
+                        {(e.grupo_muscular || "—") + " · " + (e.dificultad || "—") + " · " + (e.equipamento || "—")}
+                      </div>
+                    </div>
+                  </div>
+                  <Button variant="outline" onClick={() => addExtraExerciseFromCatalog(e)}>
+                    <Plus className="h-4 w-4 mr-1" /> Agregar
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Footer */}
       <div className="flex justify-end gap-2">
         <Button variant="secondary" onClick={() => navigate(-1)}>
           Cancelar

@@ -1,20 +1,22 @@
 import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react";
 import { supabase } from "@/lib/supabase/client";
+import { dashboardApi } from "@/features/dashboard/api/dashboardApi"; // 👈 importar para invalidar KPIs
 
+/** ===== Tipos ===== **/
 export type WorkoutSetInput = {
   id_ejercicio: number;
   idx: number;
   kg: number;
   reps: number;
-  rpe?: string | null; // 'Fácil' | 'Moderado' | ...
+  rpe?: string | null;
   done?: boolean;
-  done_at?: string | null; // ISO
+  done_at?: string | null;
 };
 
 export type CreateWorkoutInput = {
   id_rutina: number;
-  started_at: string; // ISO
-  ended_at: string; // ISO
+  started_at: string;
+  ended_at: string;
   duracion_seg: number;
   total_volumen: number;
   sensacion_global?: string | null;
@@ -22,37 +24,35 @@ export type CreateWorkoutInput = {
   sets: WorkoutSetInput[];
 };
 
-export type WorkoutSetRow = {
-  id_ejercicio: number;
-  idx: number;
-  kg: number;
-  reps: number;
-  rpe?: string | null;
-  done: boolean;
-  Ejercicios?: { id: number; nombre: string | null } | null;
-};
+export type CreateWorkoutResult = { id_sesion: number };
 
-export type WorkoutSessionRow = {
+export type WorkoutListItem = {
   id_sesion: number;
-  id_rutina: number | null;
   started_at: string;
   ended_at: string | null;
   duracion_seg: number | null;
   total_volumen: number | null;
-  sensacion_global?: string | null;
+  sensacion_global: string | null;
+  notas: string | null;
   Rutinas?: { id_rutina: number; nombre: string | null } | null;
-  EntrenamientoSets?: WorkoutSetRow[];
+  sets?: Array<{
+    id_ejercicio: number;
+    idx: number;
+    kg: number;
+    reps: number;
+    rpe: string | null;
+    done: boolean;
+    Ejercicios?: { id: number; nombre: string | null; ejemplo: string | null } | null;
+  }>;
 };
-
-export type CreateWorkoutResult = { id_sesion: number };
 
 export const workoutsApi = createApi({
   reducerPath: "workoutsApi",
   baseQuery: fakeBaseQuery(),
+  tagTypes: ["Workouts"],
   endpoints: (builder) => ({
     createWorkoutSession: builder.mutation<CreateWorkoutResult, CreateWorkoutInput>({
       async queryFn(payload) {
-        // RPC transaccional
         const { data, error } = await supabase.rpc("create_workout_session", {
           p_id_rutina: payload.id_rutina,
           p_started_at: payload.started_at,
@@ -64,50 +64,76 @@ export const workoutsApi = createApi({
           p_sets: payload.sets as any,
         });
         if (error) return { error };
-
-        // RPC devuelve tabla (id_sesion); supabase-js la mapea a array o single
-        const id_sesion =
-          typeof data === "number" ? data : Array.isArray(data) ? data[0]?.id_sesion : (data as any)?.id_sesion;
-
-        if (!id_sesion) {
-          return { error: { status: 500, data: new Error("La RPC no devolvió id_sesion") } as any };
-        }
-
+        const id_sesion = Array.isArray(data) ? data[0]?.id_sesion : (data as any)?.id_sesion;
         return { data: { id_sesion } };
       },
+      invalidatesTags: [{ type: "Workouts", id: "LIST" }],
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+        } finally {
+          // 👇 refrescar KPIs del dashboard
+          dispatch(dashboardApi.util.invalidateTags([{ type: "Kpis", id: "MONTH" }]));
+        }
+      },
     }),
-    getMyWorkouts: builder.query<WorkoutSessionRow[], void>({
+
+    listUserWorkouts: builder.query<WorkoutListItem[], void>({
       async queryFn() {
         const { data, error } = await supabase
           .from("Entrenamientos")
           .select(
             `
-            id_sesion,
-            id_rutina,
-            started_at,
-            ended_at,
-            duracion_seg,
-            total_volumen,
-            sensacion_global,
-            Rutinas ( id_rutina, nombre ),
-            EntrenamientoSets (
+            id_sesion, started_at, ended_at, duracion_seg, total_volumen, sensacion_global, notas,
+            Rutinas: id_rutina ( id_rutina, nombre ),
+            sets: EntrenamientoSets (
               id_ejercicio, idx, kg, reps, rpe, done,
-              Ejercicios ( id, nombre )
+              Ejercicios ( id, nombre, ejemplo )
             )
           `
           )
           .not("ended_at", "is", null)
-          .order("started_at", { ascending: false }); // más reciente primero
+          .order("ended_at", { ascending: false });
 
         if (error) return { error };
-        return { data: (data ?? []) as WorkoutSessionRow[] };
+        return { data: (data ?? []) as WorkoutListItem[] };
       },
-      // Si luego agregas invalidations, puedes usar tagTypes para refrescar
+      providesTags: [{ type: "Workouts", id: "LIST" }],
+    }),
+
+    deleteWorkoutSession: builder.mutation<{ success: true }, { id_sesion: number }>({
+      async queryFn({ id_sesion }) {
+        const rpc = await supabase.rpc("delete_workout_session", { p_id_sesion: id_sesion });
+        if (!rpc.error) return { data: { success: true } };
+
+        const { error: sErr } = await supabase.from("EntrenamientoSets").delete().eq("id_sesion", id_sesion);
+        if (sErr) return { error: sErr };
+        const { error: eErr } = await supabase.from("Entrenamientos").delete().eq("id_sesion", id_sesion);
+        if (eErr) return { error: eErr };
+
+        return { data: { success: true } };
+      },
+      invalidatesTags: [{ type: "Workouts", id: "LIST" }],
+      async onQueryStarted({ id_sesion }, { dispatch, queryFulfilled }) {
+        // Optimista: quitar de la lista
+        const patch = dispatch(
+          workoutsApi.util.updateQueryData("listUserWorkouts", undefined, (draft) => {
+            const i = draft.findIndex((w) => w.id_sesion === id_sesion);
+            if (i >= 0) draft.splice(i, 1);
+          })
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        } finally {
+          // 👇 refrescar KPIs del dashboard
+          dispatch(dashboardApi.util.invalidateTags([{ type: "Kpis", id: "MONTH" }]));
+        }
+      },
     }),
   }),
 });
 
-export const {
-  useCreateWorkoutSessionMutation,
-  useGetMyWorkoutsQuery, // 👈 nuevo hook
-} = workoutsApi;
+export const { useCreateWorkoutSessionMutation, useListUserWorkoutsQuery, useDeleteWorkoutSessionMutation } =
+  workoutsApi;
