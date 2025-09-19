@@ -9,7 +9,11 @@ import { useGetRutinaByIdQuery } from "@/features/routines/api/rutinasApi";
 import { toast } from "react-hot-toast";
 import { useCreateWorkoutSessionMutation } from "@/features/workout/api/workoutsApi";
 
-// ✅ filtros que YA funcionan en tu app de ejercicios
+/* DnD */
+import { useDragAndDrop } from "@/hooks/useDragAndDrop";
+import { SortableItem } from "@/components/ui/sortable-item";
+
+/* Filtros */
 import { useExerciseFilters } from "@/features/exercises/hooks/useExerciseFilters";
 import {
   useGetMuscleGroupsQuery,
@@ -19,16 +23,9 @@ import {
 } from "@/features/exercises/exercisesSlice";
 import { AdvancedFilters } from "@/features/exercises/components/AdvancedFilters";
 
-// Tipos locales
+/* Tipos locales */
 type SetPlantilla = { idx: number; kg?: number | null; reps?: number | null };
-type WorkoutSet = {
-  idx: number;
-  kg: string;
-  reps: string;
-  rpe: string; // 'Fácil' | 'Moderado' | 'Difícil' | 'Muy difícil' | 'Al fallo' | ''
-  done: boolean;
-  doneAt?: string;
-};
+type WorkoutSet = { idx: number; kg: string; reps: string; rpe: string; done: boolean; doneAt?: string };
 type WorkoutExercise = {
   id_ejercicio: number;
   nombre?: string;
@@ -46,7 +43,7 @@ type WorkoutState = {
 
 const RPE_OPCIONES = ["Fácil", "Moderado", "Difícil", "Muy difícil", "Al fallo"] as const;
 
-// Cronómetro que inicia al montar (sin pausa/reinicio)
+/* Cronómetro */
 function useAutoStopwatch() {
   const [elapsed, setElapsed] = useState(0);
   const lastTickRef = useRef<number | null>(null);
@@ -64,7 +61,6 @@ function useAutoStopwatch() {
   }, []);
   return elapsed;
 }
-
 function formatElapsed(ms: number) {
   const totalSec = Math.floor(ms / 1000);
   const h = Math.floor(totalSec / 3600);
@@ -80,17 +76,12 @@ export function WorkoutLivePage() {
   const id_rutina = Number(id);
 
   const [createWorkout, { isLoading: saving }] = useCreateWorkoutSessionMutation();
-
-  // 1) Query de rutina
   const { data, isLoading, isError } = useGetRutinaByIdQuery(id_rutina, { skip: !id_rutina });
 
-  // 2) Cronómetro
   const elapsed = useAutoStopwatch();
 
-  // 3) Estado inicial desde la rutina
   const initialState = useMemo<WorkoutState | null>(() => {
     if (!data) return null;
-
     const ejercicios = data.EjerciciosRutinas ?? [];
     const exercises: WorkoutExercise[] = ejercicios
       .slice()
@@ -109,7 +100,6 @@ export function WorkoutLivePage() {
                 done: false,
               }))
             : [{ idx: 1, kg: "", reps: "", rpe: "", done: false }];
-
         return {
           id_ejercicio: ex.id_ejercicio,
           nombre: ex.Ejercicios?.nombre,
@@ -128,18 +118,16 @@ export function WorkoutLivePage() {
     };
   }, [data]);
 
-  // 4) Estado local de la sesión
   const [workout, setWorkout] = useState<WorkoutState | null>(null);
   useEffect(() => {
     if (initialState) setWorkout(initialState);
   }, [initialState]);
 
-  // 5) Derivados
   const { doneSets, totalVolume, totalSets } = useMemo(() => {
     const exs = workout?.exercises ?? [];
-    let done = 0;
-    let volume = 0;
-    let setsCount = 0;
+    let done = 0,
+      volume = 0,
+      setsCount = 0;
     for (const ex of exs) {
       setsCount += ex.sets.length;
       for (const s of ex.sets) {
@@ -154,7 +142,17 @@ export function WorkoutLivePage() {
     return { doneSets: done, totalVolume: volume, totalSets: setsCount };
   }, [workout?.exercises]);
 
-  // === Handlers sets/ejercicios ===
+  /* Drag & Drop */
+  const { sensors, handleDragEnd, DndContext, SortableContext, verticalListSortingStrategy, closestCenter } =
+    useDragAndDrop(workout?.exercises ?? [], (newExercises: WorkoutExercise[]) => {
+      setWorkout((w) => {
+        if (!w) return w;
+        const densified = newExercises.map((ex, i) => ({ ...ex, orden: i + 1 }));
+        return { ...w, exercises: densified };
+      });
+    });
+
+  /* Handlers */
   const toggleSetDone = (ei: number, si: number) => {
     setWorkout((w) => {
       if (!w) return w;
@@ -168,7 +166,6 @@ export function WorkoutLivePage() {
       return { ...w, exercises };
     });
   };
-
   const updateSetField = (ei: number, si: number, field: "kg" | "reps" | "rpe", value: string) => {
     setWorkout((w) => {
       if (!w) return w;
@@ -180,38 +177,21 @@ export function WorkoutLivePage() {
       return { ...w, exercises };
     });
   };
-
   const addSet = (ei: number) => {
     setWorkout((w) => {
       if (!w) return w;
-
       const exercises = w.exercises.map((ex, i) => {
         if (i !== ei) return ex;
-
         const last = ex.sets[ex.sets.length - 1];
-        const clonedKg = last ? last.kg : "";
-        const clonedReps = last ? last.reps : "";
-
         const nextIdx = (ex.sets[ex.sets.length - 1]?.idx ?? ex.sets.length) + 1;
-
         return {
           ...ex,
-          sets: [
-            ...ex.sets,
-            {
-              idx: nextIdx,
-              kg: clonedKg,
-              reps: clonedReps,
-              done: false,
-            },
-          ],
+          sets: [...ex.sets, { idx: nextIdx, kg: last?.kg ?? "", reps: last?.reps ?? "", rpe: "", done: false }],
         };
       });
-
       return { ...w, exercises };
     });
   };
-
   const removeSet = (ei: number, si: number) => {
     setWorkout((w) => {
       if (!w) return w;
@@ -224,35 +204,30 @@ export function WorkoutLivePage() {
       return { ...w, exercises };
     });
   };
-
   const removeExercise = (ei: number) => {
     setWorkout((w) => {
       if (!w) return w;
-      const exercises = w.exercises.filter((_, i) => i !== ei);
+      const exercises = w.exercises.filter((_, i) => i !== ei).map((ex, i) => ({ ...ex, orden: i + 1 }));
       return { ...w, exercises };
     });
   };
 
-  // === Panel de búsqueda de ejercicios extra (usando la misma lógica que tu Librería) ===
+  /* Buscador de ejercicios extra */
   const [showFinder, setShowFinder] = useState(false);
-
-  // estado de filtros reutilizable y consistente
   const filters = useExerciseFilters();
-  const { data: muscleGroupsResponse, isLoading: isLoadingMuscleGroups } = useGetMuscleGroupsQuery();
-  const { data: equipmentResponse, isLoading: isLoadingEquipment } = useGetEquipmentTypesQuery();
-  const { data: difficultyResponse, isLoading: isLoadingDifficulty } = useGetDifficultyLevelsQuery();
-
-  const muscleGroups = useMemo(() => muscleGroupsResponse?.data || [], [muscleGroupsResponse?.data]);
-  const equipmentTypes = useMemo(() => equipmentResponse?.data || [], [equipmentResponse?.data]);
+  const { data: mgResp, isLoading: isLoadingMG } = useGetMuscleGroupsQuery();
+  const { data: eqResp, isLoading: isLoadingEq } = useGetEquipmentTypesQuery();
+  const { data: difResp, isLoading: isLoadingDif } = useGetDifficultyLevelsQuery();
+  const muscleGroups = useMemo(() => mgResp?.data || [], [mgResp?.data]);
+  const equipmentTypes = useMemo(() => eqResp?.data || [], [eqResp?.data]);
   const difficultyLevels = useMemo(() => {
-    const raw = difficultyResponse?.data || [];
+    const raw = difResp?.data || [];
     const norm = raw
       .map((d: string) => d?.toLowerCase?.())
       .filter((d: string) => ["principiante", "intermedio", "avanzado"].includes(d));
     return [...new Set(norm)];
-  }, [difficultyResponse?.data]);
+  }, [difResp?.data]);
 
-  // argumentos idénticos a ExerciseListPage
   const args = useMemo(
     () => ({
       search: (filters.debouncedSearch || "").trim() || undefined,
@@ -264,8 +239,6 @@ export function WorkoutLivePage() {
     }),
     [filters.debouncedSearch, filters.selectedMuscleGroup, filters.selectedDifficulty, filters.selectedEquipment]
   );
-
-  // consulta SOLO cuando el panel está visible
   const { data: searchResp, isLoading: searching } = useGetExercisesQuery(args, { skip: !showFinder });
   const results = searchResp?.data ?? [];
 
@@ -285,10 +258,9 @@ export function WorkoutLivePage() {
     toast.success("Ejercicio agregado al final");
   };
 
-  // === Guardado ===
+  /* Guardado */
   function buildPayloadFromState() {
     if (!workout) return null;
-
     const setsValidos = workout.exercises.flatMap(
       (ex) =>
         ex.sets
@@ -308,10 +280,8 @@ export function WorkoutLivePage() {
           })
           .filter(Boolean) as any[]
     );
-
     const total_volumen = setsValidos.filter((s) => s.done).reduce((acc, s) => acc + s.kg * s.reps, 0);
     const duracion_seg = Math.max(1, Math.round(elapsed / 1000));
-
     return {
       id_rutina: workout.id_rutina,
       started_at: workout.startedAt,
@@ -323,7 +293,6 @@ export function WorkoutLivePage() {
       sets: setsValidos,
     };
   }
-
   async function handleFinalizar() {
     const payload = buildPayloadFromState();
     if (!payload) return;
@@ -341,7 +310,6 @@ export function WorkoutLivePage() {
     }
   }
 
-  // === Render ===
   return (
     <div className="mx-auto max-w-3xl p-4 space-y-4">
       {/* Header */}
@@ -360,7 +328,7 @@ export function WorkoutLivePage() {
         </CardHeader>
       </Card>
 
-      {/* Resumen fijo */}
+      {/* KPIs */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur border rounded-md p-3 flex items-center justify-between">
         <div className="text-sm flex flex-wrap gap-4">
           <span>
@@ -377,121 +345,128 @@ export function WorkoutLivePage() {
         </div>
       </div>
 
-      {/* Estados de carga / error */}
-      {isError && (
-        <div className="p-4">
-          <p>Ocurrió un error al cargar la rutina.</p>
-          <Button onClick={() => navigate(-1)} variant="secondary">
-            Volver
-          </Button>
-        </div>
-      )}
-
-      {isLoading && (
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          Cargando entrenamiento...
-        </div>
-      )}
-
-      {/* Lista de ejercicios */}
-      {!isLoading &&
-        workout &&
-        workout.exercises.map((ex, ei) => (
-          <Card key={`${ex.id_ejercicio}-${ei}`}>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  {ex.imagen ? (
-                    <img
-                      src={ex.imagen}
-                      alt={ex.nombre ?? "Ejercicio"}
-                      className="h-10 w-10 rounded-md object-cover border"
-                      onError={(e) => ((e.currentTarget.src = ""), (e.currentTarget.alt = "Sin imagen"))}
-                    />
-                  ) : (
-                    <div className="h-10 w-10 grid place-items-center rounded-md border">
-                      <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                  )}
-                  <CardTitle className="text-base">{ex.nombre ?? `Ejercicio ${ei + 1}`}</CardTitle>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => removeExercise(ei)} title="Eliminar ejercicio">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardHeader>
-
-            <CardContent>
-              <div className="space-y-2">
-                {ex.sets.map((s, si) => (
-                  <div key={`${s.idx}-${si}`} className="grid grid-cols-12 items-center gap-2">
-                    <div className="col-span-2 text-xs text-muted-foreground">Set {s.idx}</div>
-
-                    <div className="col-span-3 flex items-center gap-2">
-                      <label className="text-xs w-10">KG</label>
-                      <Input
-                        inputMode="decimal"
-                        value={s.kg}
-                        onChange={(e) => updateSetField(ei, si, "kg", e.target.value)}
-                        placeholder="kg"
-                      />
+      {/* Lista con DnD */}
+      {!isLoading && workout && (
+        <Card>
+          <CardContent className="space-y-4 p-4">
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext
+                items={workout.exercises.map((ex) => ex.id_ejercicio)}
+                strategy={verticalListSortingStrategy}
+              >
+                {workout.exercises.map((ex, ei) => (
+                  <SortableItem key={`wex-${ex.id_ejercicio}`} id={ex.id_ejercicio}>
+                    {/* SIN nuestro segundo handle: solo imagen */}
+                    <div className="flex-shrink-0 flex items-start gap-2">
+                      {ex.imagen ? (
+                        <img
+                          src={ex.imagen}
+                          alt={ex.nombre ?? "Ejercicio"}
+                          className="w-14 h-14 rounded-md object-cover border"
+                          onError={(e) => ((e.currentTarget.src = ""), (e.currentTarget.alt = "Sin imagen"))}
+                        />
+                      ) : (
+                        <div className="w-14 h-14 grid place-items-center rounded-md border">
+                          <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                      )}
                     </div>
 
-                    <div className="col-span-3 flex items-center gap-2">
-                      <label className="text-xs w-10">Reps</label>
-                      <Input
-                        inputMode="numeric"
-                        value={s.reps}
-                        onChange={(e) => updateSetField(ei, si, "reps", e.target.value)}
-                        placeholder="reps"
-                      />
-                    </div>
+                    {/* Info + sets */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between mb-3">
+                        <CardTitle className="text-base truncate">{ex.nombre ?? `Ejercicio ${ei + 1}`}</CardTitle>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeExercise(ei)}
+                          title="Eliminar ejercicio"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
 
-                    <div className="col-span-2 flex items-center gap-2">
-                      <label className="text-xs w-10">RPE</label>
-                      <select
-                        className="w-full h-9 rounded-md border bg-background px-2 text-sm"
-                        value={s.rpe}
-                        onChange={(e) => updateSetField(ei, si, "rpe", e.target.value)}
-                      >
-                        <option value="">--</option>
-                        {RPE_OPCIONES.map((opt) => (
-                          <option key={opt} value={opt}>
-                            {opt}
-                          </option>
+                      <div className="space-y-2">
+                        {ex.sets.map((s, si) => (
+                          <div key={`${s.idx}-${si}`} className="grid grid-cols-12 items-center gap-2">
+                            <div className="col-span-2 text-xs text-muted-foreground">Set {s.idx}</div>
+
+                            <div className="col-span-3 flex items-center gap-2">
+                              <label className="text-xs w-10">KG</label>
+                              <Input
+                                inputMode="decimal"
+                                value={s.kg}
+                                onChange={(e) => updateSetField(ei, si, "kg", e.target.value)}
+                                placeholder="kg"
+                                className="h-8"
+                              />
+                            </div>
+
+                            <div className="col-span-3 flex items-center gap-2">
+                              <label className="text-xs w-10">Reps</label>
+                              <Input
+                                inputMode="numeric"
+                                value={s.reps}
+                                onChange={(e) => updateSetField(ei, si, "reps", e.target.value)}
+                                placeholder="reps"
+                                className="h-8"
+                              />
+                            </div>
+
+                            <div className="col-span-2 flex items-center gap-2">
+                              <label className="text-xs w-10">RPE</label>
+                              <select
+                                className="w-full h-8 rounded-md border bg-background px-2 text-sm"
+                                value={s.rpe}
+                                onChange={(e) => updateSetField(ei, si, "rpe", e.target.value)}
+                              >
+                                <option value="">--</option>
+                                {RPE_OPCIONES.map((opt) => (
+                                  <option key={opt} value={opt}>
+                                    {opt}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div className="col-span-2 flex items-center justify-end gap-2">
+                              <label className="text-xs">Hecho</label>
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4"
+                                checked={s.done}
+                                onChange={() => toggleSetDone(ei, si)}
+                              />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeSet(ei, si)}
+                                title="Eliminar serie"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
                         ))}
-                      </select>
-                    </div>
 
-                    <div className="col-span-2 flex items-center justify-end gap-2">
-                      <label className="text-xs">Hecho</label>
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4"
-                        checked={s.done}
-                        onChange={() => toggleSetDone(ei, si)}
-                      />
-                      <Button variant="ghost" size="icon" onClick={() => removeSet(ei, si)} title="Eliminar serie">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                        <Separator className="my-2" />
+
+                        <div className="flex justify-end">
+                          <Button variant="outline" onClick={() => addSet(ei)}>
+                            <Plus className="h-4 w-4 mr-1" /> Añadir serie
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  </SortableItem>
                 ))}
+              </SortableContext>
+            </DndContext>
+          </CardContent>
+        </Card>
+      )}
 
-                <Separator className="my-2" />
-
-                <div className="flex justify-end">
-                  <Button variant="outline" onClick={() => addSet(ei)}>
-                    <Plus className="h-4 w-4 mr-1" /> Añadir serie
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-
-      {/* --- Botón para abrir buscador de ejercicios extra --- */}
+      {/* Botón abrir buscador */}
       <div className="flex justify-end">
         {!showFinder ? (
           <Button variant="default" onClick={() => setShowFinder(true)}>
@@ -501,7 +476,7 @@ export function WorkoutLivePage() {
         ) : null}
       </div>
 
-      {/* --- Panel de búsqueda con filtros (mismos que la Librería) --- */}
+      {/* Buscador */}
       {showFinder && (
         <Card className="border-dashed">
           <CardHeader className="pb-2">
@@ -514,7 +489,6 @@ export function WorkoutLivePage() {
           </CardHeader>
 
           <CardContent className="space-y-4">
-            {/* Search */}
             <div className="space-y-2">
               <label className="text-sm font-medium">Buscar ejercicios…</label>
               <div className="relative">
@@ -528,9 +502,8 @@ export function WorkoutLivePage() {
               </div>
             </div>
 
-            {/* Advanced filters reutilizados */}
             <AdvancedFilters
-              expanded={true}
+              expanded
               muscleGroups={muscleGroups}
               difficultyLevels={difficultyLevels}
               equipmentTypes={equipmentTypes}
@@ -545,15 +518,14 @@ export function WorkoutLivePage() {
                 setSelectedEquipment: filters.setSelectedEquipment,
               }}
               loading={{
-                isLoadingMuscleGroups,
-                isLoadingDifficulty,
-                isLoadingEquipment,
+                isLoadingMuscleGroups: isLoadingMG,
+                isLoadingDifficulty: isLoadingDif,
+                isLoadingEquipment: isLoadingEq,
               }}
             />
 
             <Separator />
 
-            {/* Resultados */}
             <div className="space-y-2">
               {searching && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -561,11 +533,9 @@ export function WorkoutLivePage() {
                   Buscando ejercicios…
                 </div>
               )}
-
               {!searching && results.length === 0 && (
                 <div className="text-sm text-muted-foreground">No se encontraron ejercicios.</div>
               )}
-
               {results.map((e: any) => (
                 <div key={e.id} className="flex items-center justify-between gap-3 rounded-md border p-2">
                   <div className="flex items-center gap-3">

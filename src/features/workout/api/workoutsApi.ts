@@ -1,6 +1,6 @@
 import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react";
 import { supabase } from "@/lib/supabase/client";
-import { dashboardApi } from "@/features/dashboard/api/dashboardApi"; // 👈 importar para invalidar KPIs
+import { dashboardApi } from "@/features/dashboard/api/dashboardApi";
 
 /** ===== Tipos ===== **/
 export type WorkoutSetInput = {
