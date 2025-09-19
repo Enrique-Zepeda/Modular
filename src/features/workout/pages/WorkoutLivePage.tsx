@@ -184,11 +184,30 @@ export function WorkoutLivePage() {
   const addSet = (ei: number) => {
     setWorkout((w) => {
       if (!w) return w;
+
       const exercises = w.exercises.map((ex, i) => {
         if (i !== ei) return ex;
+
+        const last = ex.sets[ex.sets.length - 1];
+        const clonedKg = last ? last.kg : "";
+        const clonedReps = last ? last.reps : "";
+
         const nextIdx = (ex.sets[ex.sets.length - 1]?.idx ?? ex.sets.length) + 1;
-        return { ...ex, sets: [...ex.sets, { idx: nextIdx, kg: "", reps: "", rpe: "", done: false }] };
+
+        return {
+          ...ex,
+          sets: [
+            ...ex.sets,
+            {
+              idx: nextIdx,
+              kg: clonedKg,
+              reps: clonedReps,
+              done: false,
+            },
+          ],
+        };
       });
+
       return { ...w, exercises };
     });
   };

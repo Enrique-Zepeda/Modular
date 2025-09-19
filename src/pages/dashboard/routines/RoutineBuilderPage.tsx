@@ -316,18 +316,26 @@ export default function RoutineBuilderPage() {
     setHasUnsavedChanges(true);
   };
 
+  // Dentro de RoutineBuilderPage.tsx
   const handleAddSet = async (id_ejercicio: number) => {
     if (isEditMode && routineId) {
-      // Persistir de inmediato en servidor clonando kg/reps del último set
+      // EDITAR: persiste en DB clonando el último set
       try {
         const er = exercises.find((e) => e.id_ejercicio === id_ejercicio);
         const current = (er?.sets ?? []).slice().sort((a, b) => a.idx - b.idx);
-        const last = current[current.length - 1] ?? { kg: er?.peso_sugerido ?? null, reps: er?.repeticiones ?? null };
-        const next: SetEntry = {
+
+        // Si no hay sets, usa repeticiones/peso_sugerido como base
+        const last = current[current.length - 1] ?? {
+          kg: er?.peso_sugerido ?? null,
+          reps: er?.repeticiones ?? null,
+        };
+
+        const next = {
           idx: (current[current.length - 1]?.idx ?? 0) + 1,
           kg: last.kg ?? null,
           reps: last.reps ?? null,
         };
+
         const newPayload = [...current, next];
 
         await replaceSets({ id_rutina: routineId, id_ejercicio, sets: newPayload }).unwrap();
@@ -342,12 +350,17 @@ export default function RoutineBuilderPage() {
       }
     }
 
-    // create mode: solo estado local (clona último)
+    // CREAR: solo estado local, clonando el último set
     setExercises((prev) =>
       prev.map((er) => {
         if (er.id_ejercicio !== id_ejercicio) return er;
         const sets = er.sets ?? [];
-        const last = sets[sets.length - 1] ?? { kg: er.peso_sugerido ?? null, reps: er.repeticiones ?? null };
+
+        const last = sets[sets.length - 1] ?? {
+          kg: er.peso_sugerido ?? null,
+          reps: er.repeticiones ?? null,
+        };
+
         const next = { idx: sets.length + 1, kg: last.kg ?? null, reps: last.reps ?? null };
         const newSets = [...sets, next];
         return { ...er, sets: newSets, series: newSets.length };

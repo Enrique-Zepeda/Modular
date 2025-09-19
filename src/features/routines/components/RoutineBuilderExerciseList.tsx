@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Trash2, Plus, GripVertical } from "lucide-react";
+import { Trash2, Plus } from "lucide-react";
 import { ExerciseImage } from "@/components/ui/exercise-image";
 import { SortableItem } from "@/components/ui/sortable-item";
 import { DeleteExerciseDialog } from "@/components/ui/delete-exercise-dialog";
@@ -64,23 +64,16 @@ export function RoutineBuilderExerciseList({
     setDeleteDialog({ open: false, exerciseId: 0, exerciseName: "" });
   };
 
-  // Handle set changes with proper typing
   const handleSetChange = (exerciseId: number, setIndex: number, field: "kg" | "reps", value: string) => {
-    if (onSetChange) {
-      onSetChange(exerciseId, setIndex, field, value);
-    }
+    onSetChange?.(exerciseId, setIndex, field, value);
   };
 
   const handleAddSet = (exerciseId: number) => {
-    if (onAddSet) {
-      onAddSet(exerciseId);
-    }
+    onAddSet?.(exerciseId);
   };
 
   const handleRemoveSet = (exerciseId: number, setIndex: number) => {
-    if (onRemoveSet) {
-      onRemoveSet(exerciseId, setIndex);
-    }
+    onRemoveSet?.(exerciseId, setIndex);
   };
 
   if (exercises.length === 0) {
@@ -113,18 +106,17 @@ export function RoutineBuilderExerciseList({
 
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={exercises.map((ex) => ex.id_ejercicio)} strategy={verticalListSortingStrategy}>
-              {exercises.map((exercise, index) => {
+              {exercises.map((exercise) => {
                 const { nombre, imagen, grupo_muscular } = normalizeExerciseData(exercise);
                 const sets = exercise.sets || [];
 
                 return (
                   <SortableItem key={`${exercise.id_rutina}-${exercise.id_ejercicio}`} id={exercise.id_ejercicio}>
-                    {/* Drag Handle */}
-                    <div className="flex-shrink-0 flex items-start gap-2">
-                      <div className="cursor-grab active:cursor-grabbing p-1 rounded-md hover:bg-muted mt-2">
-                        <GripVertical className="h-5 w-5 text-muted-foreground" />
-                      </div>
+                    {/* NOTA: SortableItem ya pinta su propio handle de arrastre.
+                             Por eso NO renderizamos aquí otro <GripVertical /> para evitar duplicado. */}
 
+                    {/* Imagen del ejercicio */}
+                    <div className="flex-shrink-0 flex items-start gap-2">
                       <ExerciseImage
                         src={imagen}
                         alt={nombre}
@@ -134,7 +126,7 @@ export function RoutineBuilderExerciseList({
                       />
                     </div>
 
-                    {/* Exercise Info */}
+                    {/* Info + series */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between mb-3">
                         <div>
@@ -152,7 +144,7 @@ export function RoutineBuilderExerciseList({
                       </div>
 
                       <div className="space-y-3">
-                        {/* Header de la tabla de series */}
+                        {/* Header de series */}
                         <div className="flex items-center justify-between">
                           <div className="text-xs font-medium text-muted-foreground">Series: {sets.length}</div>
                           <Button
@@ -166,7 +158,7 @@ export function RoutineBuilderExerciseList({
                           </Button>
                         </div>
 
-                        {/* Tabla de series editable con sets individuales */}
+                        {/* Tabla de series */}
                         <div className="bg-muted/30 rounded-lg p-3 space-y-2">
                           <div className="grid grid-cols-4 gap-2 text-xs font-medium text-muted-foreground">
                             <span>SET</span>
@@ -184,13 +176,12 @@ export function RoutineBuilderExerciseList({
                               <div key={setIndex} className="grid grid-cols-4 gap-2 items-center">
                                 <span className="text-xs font-medium">{setIndex + 1}</span>
 
-                                {/* Input para peso */}
                                 <Input
                                   type="number"
                                   min="0"
                                   max="1000"
                                   step="0.5"
-                                  value={set.kg || ""}
+                                  value={set.kg ?? ""}
                                   onChange={(e) =>
                                     handleSetChange(exercise.id_ejercicio, setIndex, "kg", e.target.value)
                                   }
@@ -198,12 +189,11 @@ export function RoutineBuilderExerciseList({
                                   placeholder="0"
                                 />
 
-                                {/* Input para repeticiones */}
                                 <Input
                                   type="number"
                                   min="1"
                                   max="100"
-                                  value={set.reps || ""}
+                                  value={set.reps ?? ""}
                                   onChange={(e) =>
                                     handleSetChange(exercise.id_ejercicio, setIndex, "reps", e.target.value)
                                   }
