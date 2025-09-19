@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+// src/features/workout/pages/WorkoutLivePage.tsx
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,10 @@ import {
   useGetExercisesQuery,
 } from "@/features/exercises/exercisesSlice";
 import { AdvancedFilters } from "@/features/exercises/components/AdvancedFilters";
+
+/* 🔁 Diálogos reutilizados */
+import { ExitConfirmationDialog } from "@/components/ui/exit-confirmation-dialog";
+import { DeleteExerciseDialog } from "@/components/ui/delete-exercise-dialog";
 
 /* Tipos locales */
 type SetPlantilla = { idx: number; kg?: number | null; reps?: number | null };
@@ -152,6 +157,35 @@ export function WorkoutLivePage() {
       });
     });
 
+  /* ======= Diálogos ======= */
+  const [exitOpen, setExitOpen] = useState(false);
+
+  const [deleteDlg, setDeleteDlg] = useState<{ open: boolean; idx: number; name: string }>({
+    open: false,
+    idx: -1,
+    name: "",
+  });
+
+  const routinePath = useMemo(
+    () => (Number.isFinite(id_rutina) && id_rutina > 0 ? `/dashboard/routines/${id_rutina}` : "/dashboard/routines"),
+    [id_rutina]
+  );
+
+  const handleExitNow = useCallback(() => {
+    // cierra el modal
+    setExitOpen(false);
+
+    // opcional: limpia estado pesado para evitar parpadeos
+    setWorkout(null);
+
+    // HARD REDIRECT: el usuario sale sí o sí de la pantalla
+    const url = routinePath;
+
+    setTimeout(() => {
+      window.location.replace(url);
+    }, 30);
+  }, [routinePath]);
+
   /* Handlers */
   const toggleSetDone = (ei: number, si: number) => {
     setWorkout((w) => {
@@ -204,12 +238,22 @@ export function WorkoutLivePage() {
       return { ...w, exercises };
     });
   };
-  const removeExercise = (ei: number) => {
+
+  // abrir confirmación de borrado
+  const askDeleteExercise = (ei: number, name?: string) => {
+    setDeleteDlg({ open: true, idx: ei, name: name || "este ejercicio" });
+  };
+  // confirmar borrado
+  const confirmDeleteExercise = () => {
+    const idx = deleteDlg.idx;
+    setDeleteDlg({ open: false, idx: -1, name: "" });
+    if (idx < 0) return;
     setWorkout((w) => {
       if (!w) return w;
-      const exercises = w.exercises.filter((_, i) => i !== ei).map((ex, i) => ({ ...ex, orden: i + 1 }));
+      const exercises = w.exercises.filter((_, i) => i !== idx).map((ex, i) => ({ ...ex, orden: i + 1 }));
       return { ...w, exercises };
     });
+    toast.success("Ejercicio eliminado");
   };
 
   /* Buscador de ejercicios extra */
@@ -339,13 +383,13 @@ export function WorkoutLivePage() {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={() => navigate(-1)}>
+          <Button variant="secondary" onClick={() => setExitOpen(true)}>
             Salir (sin guardar)
           </Button>
         </div>
       </div>
 
-      {/* Lista con DnD */}
+      {/* Lista con DnD (sin handle duplicado) */}
       {!isLoading && workout && (
         <Card>
           <CardContent className="space-y-4 p-4">
@@ -356,7 +400,7 @@ export function WorkoutLivePage() {
               >
                 {workout.exercises.map((ex, ei) => (
                   <SortableItem key={`wex-${ex.id_ejercicio}`} id={ex.id_ejercicio}>
-                    {/* SIN nuestro segundo handle: solo imagen */}
+                    {/* Solo la imagen (el SortableItem ya aporta el handle visual) */}
                     <div className="flex-shrink-0 flex items-start gap-2">
                       {ex.imagen ? (
                         <img
@@ -379,7 +423,7 @@ export function WorkoutLivePage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => removeExercise(ei)}
+                          onClick={() => askDeleteExercise(ei, ex.nombre)}
                           title="Eliminar ejercicio"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -533,6 +577,7 @@ export function WorkoutLivePage() {
                   Buscando ejercicios…
                 </div>
               )}
+
               {!searching && results.length === 0 && (
                 <div className="text-sm text-muted-foreground">No se encontraron ejercicios.</div>
               )}
@@ -570,13 +615,24 @@ export function WorkoutLivePage() {
 
       {/* Footer */}
       <div className="flex justify-end gap-2">
-        <Button variant="secondary" onClick={() => navigate(-1)}>
+        <Button variant="secondary" onClick={() => setExitOpen(true)}>
           Cancelar
         </Button>
         <Button disabled={saving} onClick={handleFinalizar}>
           {saving ? "Guardando..." : "Finalizar rutina"}
         </Button>
       </div>
+
+      {/* === Dialog: Salir sin guardar (redirige a /dashboard/routines/:id) === */}
+      <ExitConfirmationDialog open={exitOpen} onOpenChange={setExitOpen} onConfirm={handleExitNow} />
+
+      {/* === Dialog: Confirmar eliminación de ejercicio === */}
+      <DeleteExerciseDialog
+        open={deleteDlg.open}
+        onOpenChange={(open) => setDeleteDlg((d) => ({ ...d, open }))}
+        onConfirm={confirmDeleteExercise}
+        exerciseName={deleteDlg.name}
+      />
     </div>
   );
 }
