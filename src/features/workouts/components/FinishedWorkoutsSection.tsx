@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Loader2 } from "lucide-react";
 import { WorkoutCard } from "./WorkoutCard";
-import { useDeleteWorkoutSessionMutation, useListUserWorkoutsQuery } from "@/features/workout/api/workoutsApi";
+import { useDeleteWorkoutSessionMutation, useListUserWorkoutsQuery } from "../api/workoutsApi";
 
 /** Agrupa por fecha (YYYY-MM-DD) usando ended_at; si no hay, usa started_at */
 function groupByDay(items: ReturnType<typeof useListUserWorkoutsQuery>["data"] | undefined) {

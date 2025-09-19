@@ -17,7 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-export default function CreateRoutinePage() {
+export function CreateRoutinePage() {
   const navigate = useNavigate();
   const { isAuthenticated, loading: authLoading, requireAuth } = useAuth();
   const [createRutina, { isLoading }] = useCreateRutinaMutation();

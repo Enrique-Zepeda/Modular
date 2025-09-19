@@ -35,7 +35,7 @@ import type { AgregarEjercicioFormData } from "@/types/rutinas";
 // Extended type for exercises with sets
 type ExtendedEjercicioRutina = EjercicioRutina & { sets?: SetEntry[] };
 
-export default function RoutineBuilderPage() {
+export function RoutineBuilderPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { isAuthenticated, loading: authLoading, requireAuth } = useAuth();

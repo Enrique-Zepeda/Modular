@@ -8,7 +8,6 @@ import { Separator } from "@/components/ui/separator";
 import { Loader2, Plus, Clock, Trash2, Image as ImageIcon, X, Search } from "lucide-react";
 import { useGetRutinaByIdQuery } from "@/features/routines/api/rutinasApi";
 import { toast } from "react-hot-toast";
-import { useCreateWorkoutSessionMutation } from "@/features/workout/api/workoutsApi";
 
 /* DnD */
 import { useDragAndDrop } from "@/hooks/useDragAndDrop";
@@ -27,6 +26,7 @@ import { AdvancedFilters } from "@/features/exercises/components/AdvancedFilters
 /* 🔁 Diálogos reutilizados */
 import { ExitConfirmationDialog } from "@/components/ui/exit-confirmation-dialog";
 import { DeleteExerciseDialog } from "@/components/ui/delete-exercise-dialog";
+import { useCreateWorkoutSessionMutation } from "@/features/workouts/api/workoutsApi";
 
 /* Tipos locales */
 type SetPlantilla = { idx: number; kg?: number | null; reps?: number | null };

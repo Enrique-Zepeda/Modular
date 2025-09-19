@@ -4,7 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Moon, Sun } from "lucide-react";
 
-export default function AppearanceCard() {
+export function AppearanceCard() {
   const theme = useAppSelector((state) => state.theme);
   const dispatch = useAppDispatch();
 

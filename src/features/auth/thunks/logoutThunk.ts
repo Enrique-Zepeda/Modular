@@ -1,17 +1,25 @@
-// src/features/auth/thunks/logoutThunk.ts
 import type { AppDispatch } from "@/app/store";
 import { supabase } from "@/lib/supabase/client";
 import { clearUser } from "../slices/authSlice";
 import toast from "react-hot-toast";
+
+// Importa todas tus APIs de RTK Query
 import { rutinasApi } from "@/features/routines/api/rutinasApi";
+import { dashboardApi } from "@/features/dashboard/api/dashboardApi";
+import { workoutsApi } from "@/features/workouts/api/workoutsApi";
+import { exercisesApi } from "@/features/exercises/exercisesSlice";
 
 export const logoutUser = () => async (dispatch: AppDispatch) => {
   try {
     await supabase.auth.signOut();
 
-    // 🔥 limpia TODO el caché de RTK Query para evitar datos del usuario anterior
-    dispatch((rutinasApi as any).util.resetApiState());
+    // Limpia TODOS los caches de RTK Query (evita fugas entre usuarios)
+    dispatch(rutinasApi.util.resetApiState());
+    dispatch(dashboardApi.util.resetApiState());
+    dispatch(workoutsApi.util.resetApiState());
+    dispatch(exercisesApi.util.resetApiState());
 
+    // Limpia auth
     dispatch(clearUser());
     toast.success("Sesión cerrada");
   } catch (error) {

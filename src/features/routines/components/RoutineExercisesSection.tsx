@@ -8,13 +8,10 @@ import { RoutineExerciseCard } from "./RoutineExerciseCard";
 export function RoutineExercisesSection({
   count,
   items,
-  isSelectorOpen,
+
   setIsSelectorOpen,
-  ejerciciosExistentes,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onAdd,
+
   removing,
-  routineName,
 }: {
   count: number;
   items: Array<{

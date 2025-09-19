@@ -1,3 +1,5 @@
-export { default as RoutinesPage } from "./RoutinesPage";
-export { default as RoutineDetailPage } from "./RoutineDetailPage";
-export { default as CreateRoutinePage } from "./CreateRoutinePage";
+export { CreateRoutinePage } from "./CreateRoutinePage";
+export { LogWorkoutPage } from "./LogWorkoutPage";
+export { RoutineBuilderPage } from "./RoutineBuilderPage";
+export { RoutineDetailPage } from "./RoutineDetailPage";
+export { RoutinesPage } from "./RoutinesPage";

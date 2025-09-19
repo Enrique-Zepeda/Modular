@@ -12,7 +12,7 @@ import {
 } from "@/features/routines/components";
 import { DeleteRoutineDialog } from "@/components/ui/delete-routine-dialog";
 
-export default function RoutinesPage() {
+export function RoutinesPage() {
   const { loading: authLoading, isAuthenticated, requireAuth } = useAuth();
   const filters = useRoutinesFilters();
 

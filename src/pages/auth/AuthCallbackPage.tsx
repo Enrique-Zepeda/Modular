@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { CheckCircle, ArrowRight, Mail } from "lucide-react";
 import { useAppSelector } from "@/hooks/useStore";
 
-export default function AuthCallbackPage() {
+export function AuthCallbackPage() {
   const { isAuthenticated, loading } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
   const [countdown, setCountdown] = useState(5);

@@ -2,11 +2,12 @@ import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "../features/auth/slices/authSlice";
 import themeReducer from "../features/theme/slices/themeSlice";
 import rutinasReducer from "../features/routines/slices/rutinasSlice";
-import { workoutsApi } from "@/features/workout/api/workoutsApi";
+
 // RTK Query APIs
 import { rutinasApi } from "../features/routines/api/rutinasApi";
 import { exercisesApi } from "../features/exercises/exercisesSlice"; // <-- IMPORTANTE
 import { dashboardApi } from "@/features/dashboard/api/dashboardApi";
+import { workoutsApi } from "@/features/workouts/api/workoutsApi";
 
 import { setupListeners } from "@reduxjs/toolkit/query";
 

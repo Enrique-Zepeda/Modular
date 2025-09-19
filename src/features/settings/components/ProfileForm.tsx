@@ -2,7 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
-export default function ProfileFormUI() {
+export function ProfileFormUI() {
   return (
     <form className="space-y-6 max-w-md mx-auto">
       {/* Email */}

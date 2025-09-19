@@ -5,7 +5,7 @@ import { RoutineDetailHeader, RoutineExercisesSection, RoutineStats } from "@/fe
 import { useRoutineDetail } from "@/features/routines/hooks";
 import { useNavigate, useParams } from "react-router-dom";
 
-export default function RoutineDetailPage() {
+export function RoutineDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { isAuthenticated, loading: authLoading, requireAuth } = useAuth();

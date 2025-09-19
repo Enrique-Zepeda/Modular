@@ -5,7 +5,7 @@ import { Toaster } from "react-hot-toast";
 import { useRegisterForm } from "@/features/auth/hooks/useRegisterForm";
 import { FormPasswordStrengthIndicator } from "@/components/form/FormPasswordStrengthIndicator";
 
-export default function RegisterPage() {
+export function RegisterPage() {
   const { form, onSubmit } = useRegisterForm();
   const { loading } = useAppSelector((state) => state.auth);
   const {

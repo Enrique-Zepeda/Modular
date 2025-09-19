@@ -1,17 +1,13 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoutes/ProtectedRoute";
 import { PublicRoute } from "./PublicRoutes/PublicRoute";
-import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import { AuthCallbackPage, LoginPage, RegisterPage, ResetPasswordPage } from "../pages/auth";
+import { DashboardLayout } from "@/components/dashboard";
 import DashboardPage from "@/pages/dashboard/DashboardPage";
-import RoutinesPage from "@/pages/dashboard/routines/RoutinesPage";
-import RoutineDetailPage from "@/pages/dashboard/routines/RoutineDetailPage";
-import RoutineBuilderPage from "@/pages/dashboard/routines/RoutineBuilderPage";
-import { LoginPage, RegisterPage, ResetPasswordPage } from "../pages/auth";
-import AuthCallbackPage from "@/pages/auth/AuthCallbackPage";
+import { RoutineBuilderPage, RoutineDetailPage, RoutinesPage } from "@/pages/dashboard/routines";
+import { WorkoutLivePage } from "@/pages/dashboard/workouts/WorkoutLivePage";
+import { ExerciseListPage } from "@/features/exercises";
 import SettingsPage from "@/pages/dashboard/settings/SettingsPage";
-
-import ExerciseListPage from "@/features/exercises/pages/ExerciseListPage";
-import { WorkoutLivePage } from "@/features/workout/pages/WorkoutLivePage";
 
 export default function AppRouter() {
   return (

@@ -1,3 +1,5 @@
+export { RoutineBuilderExerciseList } from "./RoutineBuilderExerciseList";
+export { RoutineBuilderLibrary } from "./RoutineBuilderLibrary";
 export { RoutineCard } from "./RoutineCard";
 export { RoutineDetailHeader } from "./RoutineDetailHeader";
 export { RoutineExerciseCard } from "./RoutineExerciseCard";

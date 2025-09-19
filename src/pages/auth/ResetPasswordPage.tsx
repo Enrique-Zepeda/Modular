@@ -12,7 +12,7 @@ import { FormField } from "@/components/form/FormField";
 import { FormPasswordStrengthIndicator } from "@/components/form/FormPasswordStrengthIndicator";
 import { Toaster, toast } from "react-hot-toast";
 
-export default function ResetPasswordPage() {
+export function ResetPasswordPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { loading } = useAppSelector((s) => s.auth);

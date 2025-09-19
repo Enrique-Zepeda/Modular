@@ -4,7 +4,7 @@ import { AuthFormLayout, ForgotPasswordModal, GoogleAuthButton } from "@/feature
 import { Toaster } from "react-hot-toast";
 import { useLoginForm } from "@/features/auth/hooks/useLoginForm";
 
-export default function LoginPage() {
+export function LoginPage() {
   const {
     form: {
       register,

@@ -1,8 +1,7 @@
 import { useMemo } from "react";
-
 import { Loader2 } from "lucide-react";
-import { useGetMyWorkoutsQuery } from "@/features/workout/api/workoutsApi";
-import { WorkoutCard } from "@/features/workout/components/WorkoutCard";
+import { useListUserWorkoutsQuery } from "@/features/workouts/api/workoutsApi";
+import { WorkoutCard } from "@/features/workouts/components";
 
 function toLocalDayKey(iso: string) {
   const d = new Date(iso);
@@ -19,7 +18,7 @@ function formatDayHeader(key: string) {
 }
 
 export function CompletedWorkoutsSection() {
-  const { data, isLoading, isError } = useGetMyWorkoutsQuery();
+  const { data, isLoading, isError } = useListUserWorkoutsQuery();
 
   const grouped = useMemo(() => {
     const g = new Map<string, any[]>();

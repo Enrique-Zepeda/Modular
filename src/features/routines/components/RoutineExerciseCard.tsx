@@ -1,7 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
 import { ExerciseImage } from "@/components/ui/exercise-image";
 
 export function RoutineExerciseCard({
@@ -12,8 +10,6 @@ export function RoutineExerciseCard({
   reps,
   weight,
   image,
-  onRemove,
-  removing,
 }: {
   title?: string | null;
   group?: string | null;
@@ -30,9 +26,6 @@ export function RoutineExerciseCard({
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
           <CardTitle className="text-lg line-clamp-2">{title ?? "Sin nombre"}</CardTitle>
-          <Button size="sm" variant="ghost" onClick={onRemove} disabled={removing}>
-            <Trash2 className="h-4 w-4 text-destructive" />
-          </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">

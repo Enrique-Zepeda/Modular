@@ -10,15 +10,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAppDispatch } from "@/hooks/useStore";
+
+import { SetRow } from "./SetRow";
 import {
   addSet,
   duplicateSet,
   removeSet,
   updateExerciseNotes,
   updateRestTimer,
-} from "@/features/workout/store/workoutLogSlice";
-import type { WorkoutExercise } from "@/features/workout/store/workoutLogSlice";
-import { SetRow } from "./SetRow";
+  type WorkoutExercise,
+} from "../store/workoutLogSlice";
 
 interface ExerciseLogCardProps {
   exercise: WorkoutExercise;

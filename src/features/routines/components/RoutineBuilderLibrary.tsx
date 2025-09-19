@@ -34,7 +34,7 @@ const buildExerciseDetailsForBuilder = (ex: any) => {
   return {
     id: ex.id, // <- ID real del ejercicio
     nombre: nombre ?? ex.nombre ?? null, // <- nombre visible
-    ejemplo: imagen ?? ex.ejemplo ?? ex.gif_url ?? ex.imagen_url ?? null, // <- imagen que consume el builder
+    ejemplo: imagen ?? ex.ejemplo ?? ex.gif_url ?? ex.imagen_url ?? null,
     grupo_muscular: grupo_muscular ?? ex.grupo_muscular ?? null,
   };
 };
@@ -47,15 +47,10 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState<Ejercicio | null>(null);
 
-  // Debounce para el buscador
   const debouncedSearch = useDebounce(searchTerm, 300);
 
-  // 1) Consulta base (sin filtros) para listas de opciones estables
   const { data: baseExercises = [] } = useGetEjerciciosQuery({});
 
-  // 2) Consulta con filtros compatibles con tu endpoint
-  //    - Mantén 'equipamento' (portugués) en la query
-  //    - dificultad la filtramos en cliente (por si el endpoint no la soporta)
   const { data: exercises = [], isLoading } = useGetEjerciciosQuery({
     search: debouncedSearch || undefined,
     grupo_muscular: selectedMuscleGroup === "all" ? undefined : selectedMuscleGroup,
@@ -138,7 +133,7 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
 
     onAddExercise({
       ...data,
-      exerciseDetails: details, // <- ahora llega {id, nombre, ejemplo, grupo_muscular}
+      exerciseDetails: details,
     });
 
     setIsConfigDialogOpen(false);

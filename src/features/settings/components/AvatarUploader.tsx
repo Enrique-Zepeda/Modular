@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Upload, User, X } from "lucide-react";
 
-export default function AvatarUploader() {
+export function AvatarUploader() {
   // Mock data para mostrar la UI
   const avatarUrl = null; // Cambiar a string para mostrar avatar
   const isUploading = false;

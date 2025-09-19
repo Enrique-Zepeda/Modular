@@ -14,9 +14,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useAppDispatch } from "@/hooks/useStore";
-import { updateSetValue, toggleSetCompleted } from "@/features/workout/store/workoutLogSlice";
-import type { WorkoutSet } from "@/features/workout/store/workoutLogSlice";
+
 import { cn } from "@/lib/utils";
+import { toggleSetCompleted, updateSetValue, type WorkoutSet } from "../store/workoutLogSlice";
 
 interface SetRowProps {
   set: WorkoutSet;

@@ -1,4 +1,4 @@
-export { default as LoginPage } from "./LoginPage";
-export { default as RegisterPage } from "./RegisterPage";
-export { default as AuthCallbackPage } from "./AuthCallbackPage";
-export { default as ResetPasswordPage } from "./ResetPasswordPage";
+export { LoginPage } from "./LoginPage";
+export { RegisterPage } from "./RegisterPage";
+export { AuthCallbackPage } from "./AuthCallbackPage";
+export { ResetPasswordPage } from "./ResetPasswordPage";

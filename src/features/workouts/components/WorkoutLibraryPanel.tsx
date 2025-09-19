@@ -9,7 +9,7 @@ import {
   useGetEquipmentTypesQuery,
 } from "@/features/exercises/exercisesSlice";
 import { useAppDispatch } from "@/hooks/useStore";
-import { addExerciseToSession } from "@/features/workout/store/workoutLogSlice";
+import { addExerciseToSession } from "../store/workoutLogSlice";
 
 interface WorkoutLibraryPanelProps {
   onClose: () => void;

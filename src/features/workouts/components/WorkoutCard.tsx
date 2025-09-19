@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Trash2, Image as ImageIcon } from "lucide-react";
 import { toast } from "react-hot-toast";
-import type { WorkoutListItem } from "@/features/workout/api/workoutsApi";
 
 // ⬇️ shadcn AlertDialog (reutilizado de tu proyecto)
 import {
@@ -18,6 +17,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import type { WorkoutListItem } from "../api/workoutsApi";
 
 type Props = {
   workout: WorkoutListItem;

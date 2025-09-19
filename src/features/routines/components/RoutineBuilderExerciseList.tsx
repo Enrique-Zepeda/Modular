@@ -31,11 +31,9 @@ export function RoutineBuilderExerciseList({
   exercises,
   onRemoveExercise,
   onReorderExercises,
-  onUpdateExercise,
   onSetChange,
   onAddSet,
   onRemoveSet,
-  isEditMode,
   isLoading,
 }: RoutineBuilderExerciseListProps) {
   const { sensors, handleDragEnd, DndContext, SortableContext, verticalListSortingStrategy, closestCenter } =

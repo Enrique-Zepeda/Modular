@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CompletedWorkoutsSection } from "@/features/dashboard/components/CompletedWorkoutsSection";
-import { DashboardKpis } from "@/features/dashboard/components/DashboardKpis";
-import { FinishedWorkoutsSection } from "@/features/workout/components/FinishedWorkoutsSection";
+import { DashboardKpis } from "@/features/dashboard/components";
+import { FinishedWorkoutsSection } from "@/features/workouts/components";
 
 export default function DashboardPage() {
   return (

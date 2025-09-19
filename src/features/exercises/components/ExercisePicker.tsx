@@ -1,9 +1,8 @@
 import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Search, Filter, Plus, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, Filter, Plus, Check, Badge } from "lucide-react";
 import { ExerciseImage } from "@/components/ui/exercise-image";
 
 interface Exercise {

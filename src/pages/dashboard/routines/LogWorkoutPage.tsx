@@ -3,17 +3,16 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useGetRutinaByIdQuery } from "@/features/routines/api/rutinasApi";
 import { useAppDispatch, useAppSelector } from "@/hooks/useStore";
+
+import { cn } from "@/lib/utils";
 import {
+  finishWorkoutSession,
   startWorkoutSession,
   updateSessionDuration,
-  finishWorkoutSession,
-} from "@/features/workout/store/workoutLogSlice";
-import { WorkoutHeader } from "@/features/workout/components/WorkoutHeader";
-import { ExerciseLogCard } from "@/features/workout/components/ExerciseLogCard";
-import { WorkoutLibraryPanel } from "@/features/workout/components/WorkoutLibraryPanel";
-import { cn } from "@/lib/utils";
+} from "@/features/workouts/store/workoutLogSlice";
+import { ExerciseLogCard, WorkoutHeader, WorkoutLibraryPanel } from "@/features/workouts/components";
 
-export default function LogWorkoutPage() {
+export function LogWorkoutPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -56,12 +55,6 @@ export default function LogWorkoutPage() {
 
   const handleBack = () => {
     navigate(`/dashboard/routines/${id}`);
-  };
-
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   if (isLoading) {
