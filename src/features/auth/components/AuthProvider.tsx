@@ -1,4 +1,3 @@
-// src/features/auth/components/AuthProvider.tsx
 import { useEffect } from "react";
 import type { ReactElement } from "react";
 import { useAppDispatch } from "@/hooks";

@@ -1,5 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-import { difficultyColor, difficultyIcon } from "../utils/difficulty";
+import { difficultyColor, difficultyIcon } from "@/lib/difficulty";
 
 export function DifficultyBadge({ value }: { value?: string | null }) {
   if (!value) return null;

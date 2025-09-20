@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Exercise } from "@/types/exercises";
-import { ITEMS_PER_PAGE } from "../constants";
-import { useLazyGetExercisesQuery } from "../exercisesSlice"; // o exercisesApi
+import { ITEMS_PER_PAGE } from "../utils/constants";
+import { useLazyGetExercisesQuery } from "../slices/exercisesSlice"; // o exercisesApi
 
 export function usePaginatedExercises(argsBuilder: (page: number) => any) {
   const [exercises, setExercises] = useState<Exercise[]>([]);

@@ -4,11 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Dumbbell } from "lucide-react";
 import { motion } from "framer-motion";
 
-import { useExerciseFilters } from "../hooks/useExerciseFilters";
-import { usePaginatedExercises } from "../hooks/usePaginatedExercises";
-import { ITEMS_PER_PAGE } from "../constants";
+import { usePaginatedExercises } from "../../features/exercises/hooks/usePaginatedExercises";
+import { ITEMS_PER_PAGE } from "../../features/exercises/utils/constants";
 
-import { useGetMuscleGroupsQuery, useGetEquipmentTypesQuery, useGetDifficultyLevelsQuery } from "../exercisesSlice"; // o api
+import {
+  useGetMuscleGroupsQuery,
+  useGetEquipmentTypesQuery,
+  useGetDifficultyLevelsQuery,
+} from "../../features/exercises/slices/exercisesSlice"; // o api
 import {
   ExercisesHeader,
   AdvancedFilters,
@@ -18,10 +21,11 @@ import {
   FiltersToggle,
   LoadMore,
   SearchBar,
-} from "../components";
+} from "../../features/exercises/components";
+import { useExercisesCatalogFilters } from "../../features/exercises/hooks";
 
 export default function ExerciseListPage() {
-  const filters = useExerciseFilters();
+  const filters = useExercisesCatalogFilters();
   const { data: muscleGroupsResponse, isLoading: isLoadingMuscleGroups } = useGetMuscleGroupsQuery();
   const { data: equipmentResponse, isLoading: isLoadingEquipment } = useGetEquipmentTypesQuery();
   const { data: difficultyResponse, isLoading: isLoadingDifficulty } = useGetDifficultyLevelsQuery();

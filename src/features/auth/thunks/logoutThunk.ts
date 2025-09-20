@@ -7,7 +7,7 @@ import toast from "react-hot-toast";
 import { rutinasApi } from "@/features/routines/api/rutinasApi";
 import { dashboardApi } from "@/features/dashboard/api/dashboardApi";
 import { workoutsApi } from "@/features/workouts/api/workoutsApi";
-import { exercisesApi } from "@/features/exercises/exercisesSlice";
+import { exercisesApi } from "@/features/exercises/slices/exercisesSlice";
 
 export const logoutUser = () => async (dispatch: AppDispatch) => {
   try {

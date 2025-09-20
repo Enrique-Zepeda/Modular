@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { X, Search, Filter } from "lucide-react";
-import { useGetMuscleGroupsQuery } from "../exercisesSlice";
+import { useGetMuscleGroupsQuery } from "../slices/exercisesSlice";
 import type { ExerciseFilters as ExerciseFiltersType } from "@/types/exercises";
 
 const filterSchema = z.object({

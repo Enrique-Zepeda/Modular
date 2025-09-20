@@ -5,7 +5,7 @@ import rutinasReducer from "../features/routines/slices/rutinasSlice";
 
 // RTK Query APIs
 import { rutinasApi } from "../features/routines/api/rutinasApi";
-import { exercisesApi } from "../features/exercises/exercisesSlice"; // <-- IMPORTANTE
+import { exercisesApi } from "../features/exercises/slices/exercisesSlice"; // <-- IMPORTANTE
 import { dashboardApi } from "@/features/dashboard/api/dashboardApi";
 import { workoutsApi } from "@/features/workouts/api/workoutsApi";
 

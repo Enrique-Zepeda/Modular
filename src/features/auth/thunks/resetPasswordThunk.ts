@@ -1,4 +1,3 @@
-// src/features/auth/thunks/resetPasswordThunk.ts
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { supabase } from "@/lib/supabase/client";
 import { setRecoveryMode } from "../slices/authSlice";

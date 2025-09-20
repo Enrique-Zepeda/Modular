@@ -1,14 +1,15 @@
+// src/features/exercises/hooks/useExercisesCatalogFilters.ts
 import { useMemo, useState } from "react";
-import { useDebounce } from "@/hooks/useDebounce";
+import { useSearchFilters } from "@/hooks/useSearchFilters";
 
-export function useExerciseFilters() {
-  const [searchTerm, setSearchTerm] = useState("");
+export function useExercisesCatalogFilters() {
+  const { searchTerm, setSearchTerm, debouncedSearch, clearSearch } = useSearchFilters("", 300);
+
+  // filtros propios del catálogo
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState("all");
   const [selectedEquipment, setSelectedEquipment] = useState("all");
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
-
-  const debouncedSearch = useDebounce(searchTerm, 300);
 
   const hasActiveFilters = Boolean(
     searchTerm.trim() || selectedMuscleGroup !== "all" || selectedDifficulty !== "all" || selectedEquipment !== "all"
@@ -26,15 +27,19 @@ export function useExerciseFilters() {
   );
 
   const clearFilters = () => {
-    setSearchTerm("");
+    clearSearch();
     setSelectedMuscleGroup("all");
     setSelectedDifficulty("all");
     setSelectedEquipment("all");
   };
 
   return {
+    // búsqueda
     searchTerm,
     setSearchTerm,
+    debouncedSearch,
+
+    // filtros de catálogo
     selectedMuscleGroup,
     setSelectedMuscleGroup,
     selectedDifficulty,
@@ -43,9 +48,12 @@ export function useExerciseFilters() {
     setSelectedEquipment,
     isFiltersExpanded,
     setIsFiltersExpanded,
-    debouncedSearch,
+
+    // estado derivado
     hasActiveFilters,
     activeFiltersCount,
+
+    // acciones
     clearFilters,
   };
 }

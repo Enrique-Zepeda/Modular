@@ -14,19 +14,20 @@ import { useDragAndDrop } from "@/hooks/useDragAndDrop";
 import { SortableItem } from "@/components/ui/sortable-item";
 
 /* Filtros */
-import { useExerciseFilters } from "@/features/exercises/hooks/useExerciseFilters";
+
 import {
   useGetMuscleGroupsQuery,
   useGetEquipmentTypesQuery,
   useGetDifficultyLevelsQuery,
   useGetExercisesQuery,
-} from "@/features/exercises/exercisesSlice";
+} from "@/features/exercises/slices/exercisesSlice";
 import { AdvancedFilters } from "@/features/exercises/components/AdvancedFilters";
 
 /* 🔁 Diálogos reutilizados */
 import { ExitConfirmationDialog } from "@/components/ui/exit-confirmation-dialog";
 import { DeleteExerciseDialog } from "@/components/ui/delete-exercise-dialog";
 import { useCreateWorkoutSessionMutation } from "@/features/workouts/api/workoutsApi";
+import { useExercisesCatalogFilters } from "@/features/exercises/hooks";
 
 /* Tipos locales */
 type SetPlantilla = { idx: number; kg?: number | null; reps?: number | null };
@@ -258,7 +259,7 @@ export function WorkoutLivePage() {
 
   /* Buscador de ejercicios extra */
   const [showFinder, setShowFinder] = useState(false);
-  const filters = useExerciseFilters();
+  const filters = useExercisesCatalogFilters();
   const { data: mgResp, isLoading: isLoadingMG } = useGetMuscleGroupsQuery();
   const { data: eqResp, isLoading: isLoadingEq } = useGetEquipmentTypesQuery();
   const { data: difResp, isLoading: isLoadingDif } = useGetDifficultyLevelsQuery();
