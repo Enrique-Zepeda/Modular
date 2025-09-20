@@ -20,11 +20,11 @@ const filterSchema = z.object({
 
 type FilterSchema = z.infer<typeof filterSchema>;
 
-interface ExerciseFiltersProps {
+interface ExercisesListFiltersProps {
   onFiltersChange: (filters: ExerciseFiltersType) => void;
 }
 
-export function ExerciseFilters({ onFiltersChange }: ExerciseFiltersProps) {
+export function ExercisesListFilters({ onFiltersChange }: ExercisesListFiltersProps) {
   const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<string[]>([]);
   const { data: muscleGroupsResponse, isLoading: isLoadingMuscleGroups } = useGetMuscleGroupsQuery();
   const muscleGroups = muscleGroupsResponse?.data || [];

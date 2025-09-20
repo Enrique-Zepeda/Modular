@@ -4,7 +4,7 @@ import { ExerciseImage } from "@/components/ui/exercise-image";
 import type { Exercise } from "@/types/exercises";
 import { DifficultyBadge } from "./DifficultyBadge";
 
-export function ExerciseCard({ exercise }: { exercise: Exercise }) {
+export function ExercisesListCard({ exercise }: { exercise: Exercise }) {
   return (
     <Card className="border-0 shadow-md hover:shadow-xl transition-all duration-300 bg-card/80 backdrop-blur-sm overflow-hidden">
       <CardHeader className="pb-3">
@@ -15,6 +15,7 @@ export function ExerciseCard({ exercise }: { exercise: Exercise }) {
           <DifficultyBadge value={exercise.dificultad} />
         </div>
       </CardHeader>
+
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-2">
           {exercise.grupo_muscular && (
@@ -28,14 +29,17 @@ export function ExerciseCard({ exercise }: { exercise: Exercise }) {
             </Badge>
           )}
         </div>
+
         {exercise.descripcion && (
           <CardDescription className="text-sm line-clamp-2 leading-relaxed">{exercise.descripcion}</CardDescription>
         )}
+
         {exercise.musculos_involucrados && (
           <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-2">
             <span className="font-medium">Músculos:</span> {exercise.musculos_involucrados}
           </div>
         )}
+
         {exercise.ejemplo && (
           <div className="mt-4">
             <div className="aspect-video w-full overflow-hidden rounded-lg">

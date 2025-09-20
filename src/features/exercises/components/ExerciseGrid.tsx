@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import type { Exercise } from "@/types/exercises";
-import { ExerciseCard } from "./ExerciseCard";
+import { ExercisesListCard } from "./ExercisesListCard";
 
 export function ExerciseGrid({ items }: { items: Exercise[] }) {
   return (
@@ -21,7 +21,7 @@ export function ExerciseGrid({ items }: { items: Exercise[] }) {
             whileHover={{ y: -4 }}
             className="group"
           >
-            <ExerciseCard exercise={exercise} />
+            <ExercisesListCard exercise={exercise} />
           </motion.div>
         ))}
       </AnimatePresence>

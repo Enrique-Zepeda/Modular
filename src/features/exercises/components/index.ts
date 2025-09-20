@@ -1,11 +1,14 @@
 export { AdvancedFilters } from "./AdvancedFilters";
 export { DifficultyBadge } from "./DifficultyBadge";
 export { EmptyState } from "./EmptyState";
-export { ExerciseCard } from "./ExerciseCard";
-export { ExerciseFilters } from "./ExerciseFilters";
 export { ExerciseGrid } from "./ExerciseGrid";
+export { ExercisePicker } from "./ExercisePicker";
+export { ExercisePickerCard } from "./ExercisePickerCard";
+export { ExercisePickerFilters } from "./ExercisePickerFilters";
 export { ExercisesHeader } from "./ExercisesHeader";
 export { ExerciseSkeletonCard } from "./ExerciseSkeletonCard";
+export { ExercisesListCard } from "./ExercisesListCard";
+export { ExercisesListFilters } from "./ExercisesListFilters";
 export { FiltersToggle } from "./FiltersToggle";
 export { LoadMore } from "./LoadMore";
 export { SearchBar } from "./SearchBar";
