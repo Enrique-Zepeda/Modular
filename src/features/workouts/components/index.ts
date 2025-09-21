@@ -1,5 +1,6 @@
 export { ExerciseFinder } from "./ExerciseFinder";
 export { ExerciseLogCard } from "./ExerciseLogCard";
+export { ExerciseQuickConfigDialog } from "./ExerciseQuickConfigDialog";
 export { FinishedWorkoutsSection } from "./FinishedWorkoutsSection";
 export { WorkoutCard } from "./WorkoutCard";
 export { WorkoutExerciseItem } from "./WorkoutExerciseItem";

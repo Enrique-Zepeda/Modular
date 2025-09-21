@@ -61,15 +61,29 @@ export function WorkoutCard({ workout, onDelete }: Props) {
       });
 
     const arr = Array.from(map.values());
-    arr.sort((a, b) => {
-      const an = (a.nombre || "").toLowerCase();
-      const bn = (b.nombre || "").toLowerCase();
-      if (an && bn && an !== bn) return an < bn ? -1 : 1;
-      return a.id - b.id;
+
+    // 1) Si la sesión trae un exercise_order (opcional), úsalo:
+    const exerciseOrder = (workout as any).exercise_order as { id_ejercicio: number; orden: number }[] | undefined;
+
+    const orderMap = new Map((exerciseOrder ?? []).map((o) => [o.id_ejercicio, o.orden]));
+
+    // 2) Si no hay exercise_order, usa el orden de PRIMERA APARICIÓN en los sets
+    const firstIdx = new Map<number, number>();
+    (workout.sets ?? []).forEach((s: any, i: number) => {
+      if (!firstIdx.has(s.id_ejercicio)) firstIdx.set(s.id_ejercicio, i);
     });
+
+    // 3) Orden final de ejercicios en la tarjeta
+    arr.sort((a, b) => {
+      const ao = orderMap.size ? orderMap.get(a.id) ?? 999999 : firstIdx.get(a.id) ?? 999999;
+      const bo = orderMap.size ? orderMap.get(b.id) ?? 999999 : firstIdx.get(b.id) ?? 999999;
+      return ao - bo || a.id - b.id; // tie-breaker estable
+    });
+
+    // 4) Dentro de cada ejercicio, ordena las series por idx
     arr.forEach((g) => g.sets.sort((s1, s2) => s1.idx - s2.idx));
     return arr;
-  }, [workout.sets]);
+  }, [workout]);
 
   // Estado del diálogo y loading del borrado
   const [confirmOpen, setConfirmOpen] = useState(false);
