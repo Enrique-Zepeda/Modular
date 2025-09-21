@@ -1,3 +1,5 @@
+import type React from "react";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { SortableItem } from "@/components/ui/sortable-item";
 import { useDragAndDrop } from "@/hooks/useDragAndDrop";
@@ -21,8 +23,8 @@ export function WorkoutExerciseList({
     });
 
   return (
-    <Card>
-      <CardContent className="space-y-4 p-4">
+    <Card className="rounded-2xl shadow-sm border">
+      <CardContent className="space-y-4 p-6">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={exercises.map(dndIdKey)} strategy={verticalListSortingStrategy}>
             {exercises.map((ex, ei) => (

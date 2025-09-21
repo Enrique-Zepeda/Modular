@@ -64,9 +64,10 @@ export default function WorkoutLivePage() {
     navigate(routinePath, { replace: true });
   }, [navigate, routinePath]);
 
-  // buscador + configuración rápida
-  const [showFinder, setShowFinder] = useState(false);
-  const [configDlg, setConfigDlg] = useState<{ open: boolean; exercise: any | null }>({ open: false, exercise: null });
+  const [configDlg, setConfigDlg] = useState<{ open: boolean; exercise: any | null }>({
+    open: false,
+    exercise: null,
+  });
 
   // Guardado
   const [createError, setCreateError] = useState<string | null>(null);
@@ -89,7 +90,7 @@ export default function WorkoutLivePage() {
   }, [workout, createWorkout, navigate]);
 
   return (
-    <div className="mx-auto max-w-3xl p-4 space-y-4">
+    <div className="mx-auto max-w-7xl p-4 space-y-6">
       <WorkoutHeader
         title={workout?.nombre ?? (isLoading ? "Cargando..." : isError ? "Error" : "Entrenamiento")}
         description={workout?.descripcion}
@@ -101,58 +102,41 @@ export default function WorkoutLivePage() {
         totalSets={totalSets}
         totalVolume={totalVolume}
         onExit={() => setExitOpen(true)}
+        onFinish={handleFinalizar}
+        saving={saving}
       />
 
-      {!isLoading && workout && (
-        <WorkoutExerciseList
-          exercises={workout.exercises}
-          onReorder={(items: WorkoutExercise[]) => handleReorder(items)}
-          renderItem={(ex, ei) => (
-            <WorkoutExerciseItem
-              ex={ex}
-              ei={ei}
-              onAskDelete={askDeleteExercise}
-              onAddSet={addSet}
-              onUpdateSet={updateSetField}
-              onToggleSet={toggleSetDone}
-              onRemoveSet={removeSet}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left side - Workout Exercises */}
+        <div className="lg:col-span-2">
+          {!isLoading && workout && (
+            <WorkoutExerciseList
+              exercises={workout.exercises}
+              onReorder={(items: WorkoutExercise[]) => handleReorder(items)}
+              renderItem={(ex, ei) => (
+                <WorkoutExerciseItem
+                  ex={ex}
+                  ei={ei}
+                  onAskDelete={askDeleteExercise}
+                  onAddSet={addSet}
+                  onUpdateSet={updateSetField}
+                  onToggleSet={toggleSetDone}
+                  onRemoveSet={removeSet}
+                />
+              )}
             />
           )}
-        />
-      )}
+        </div>
 
-      <div className="flex justify-end">
-        {!showFinder ? (
-          <button
-            className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm"
-            onClick={() => setShowFinder(true)}
-          >
-            <span className="inline-flex items-center">
-              <span className="i-lucide-plus mr-2" />
-              Agregar ejercicios extra
-            </span>
-          </button>
-        ) : null}
-      </div>
-
-      <ExerciseFinder
-        existingIds={existingIds}
-        open={showFinder}
-        onClose={() => setShowFinder(false)}
-        onAdd={(e) => setConfigDlg({ open: true, exercise: e })}
-      />
-
-      <div className="flex justify-end gap-2">
-        <button className="rounded-md border px-3 py-2 text-sm" onClick={() => setExitOpen(true)}>
-          Cancelar
-        </button>
-        <button
-          className="rounded-md bg-primary px-3 py-2 text-sm text-primary-foreground disabled:opacity-50"
-          disabled={saving}
-          onClick={handleFinalizar}
-        >
-          {saving ? "Guardando..." : "Finalizar rutina"}
-        </button>
+        {/* Right side - Exercise Finder */}
+        <div className="lg:col-span-1 space-y-4">
+          <ExerciseFinder
+            existingIds={existingIds}
+            open={true}
+            onClose={() => {}}
+            onAdd={(e) => setConfigDlg({ open: true, exercise: e })}
+          />
+        </div>
       </div>
 
       <ExitConfirmationDialog open={exitOpen} onOpenChange={setExitOpen} onConfirm={handleExitNow} />
@@ -162,7 +146,11 @@ export default function WorkoutLivePage() {
         onConfirm={confirmDeleteExercise}
         exerciseName={deleteDlg.name}
       />
-      {createError && <p className="text-xs text-destructive">{createError}</p>}
+      {createError && (
+        <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+          <p className="text-sm text-destructive">{createError}</p>
+        </div>
+      )}
 
       <ExerciseQuickConfigDialog
         open={configDlg.open}

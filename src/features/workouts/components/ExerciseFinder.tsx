@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Image as ImageIcon, Loader2, Plus, Search, X } from "lucide-react";
+import { ImageIcon, Loader2, Plus, Search } from "lucide-react";
 import { AdvancedFilters } from "@/features/exercises/components/AdvancedFilters";
 import { useExercisesCatalogFilters } from "@/features/exercises/hooks";
 import {
@@ -44,7 +44,7 @@ export function ExerciseFinder({
       search: (filters.debouncedSearch || "").trim() || undefined,
       grupo_muscular: filters.selectedMuscleGroup === "all" ? undefined : filters.selectedMuscleGroup,
       dificultad: filters.selectedDifficulty === "all" ? undefined : filters.selectedDifficulty.toLowerCase(),
-      equipamento: filters.selectedEquipment === "all" ? undefined : filters.selectedEquipment.toLowerCase(), // ⚠️ asegúrate que tu API acepte esta prop
+      equipamento: filters.selectedEquipment === "all" ? undefined : filters.selectedEquipment.toLowerCase(),
       limit: 25,
       offset: 0,
     }),
@@ -64,26 +64,23 @@ export function ExerciseFinder({
   if (!open) return null;
 
   return (
-    <Card className="border-dashed">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base">Buscar ejercicio para agregar</CardTitle>
-          <Button variant="ghost" size="icon" onClick={onClose} title="Cerrar">
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+    <Card className="border-2 border-primary/20 rounded-2xl shadow-xl bg-gradient-to-br from-card/90 to-card/60 backdrop-blur-sm">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+          Buscar Ejercicios
+        </CardTitle>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Buscar ejercicios…</label>
+      <CardContent className="space-y-6">
+        <div className="space-y-3">
+          <label className="text-sm font-bold text-foreground">Buscar ejercicios</label>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-primary/60" />
             <Input
               value={filters.searchTerm}
               onChange={(e) => filters.setSearchTerm(e.target.value)}
-              placeholder="Nombre o descripción"
-              className="pl-10"
+              placeholder="Nombre o descripción del ejercicio"
+              className="pl-12 h-12 rounded-xl border-2 border-primary/20 focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary/40 font-medium"
             />
           </div>
         </div>
@@ -110,49 +107,61 @@ export function ExerciseFinder({
           }}
         />
 
-        <Separator />
+        <Separator className="bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
 
-        <div className="space-y-2">
+        <div className="space-y-3 max-h-96 overflow-y-auto">
           {searching && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
+            <div className="flex items-center gap-3 text-sm text-muted-foreground p-4 rounded-xl bg-gradient-to-r from-muted/40 to-muted/20">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
               Buscando ejercicios…
             </div>
           )}
 
           {!searching && results.length === 0 && (
-            <div className="text-sm text-muted-foreground">No se encontraron ejercicios.</div>
+            <div className="text-sm text-muted-foreground p-4 text-center rounded-xl bg-gradient-to-r from-muted/40 to-muted/20">
+              No se encontraron ejercicios con los filtros aplicados.
+            </div>
           )}
 
           {!searching && results.length > 0 && filteredResults.length === 0 && (
-            <div className="text-sm text-muted-foreground">Todos los resultados ya están en la rutina.</div>
+            <div className="text-sm text-muted-foreground p-4 text-center rounded-xl bg-gradient-to-r from-muted/40 to-muted/20">
+              Todos los resultados ya están en la rutina.
+            </div>
           )}
 
           {filteredResults.map((e: any) => (
-            <div key={e.id} className="flex items-center justify-between gap-3 rounded-md border p-2">
-              <div className="flex items-center gap-3">
+            <div
+              key={e.id}
+              className="flex items-center justify-between gap-4 rounded-xl border-2 border-border/60 p-4 bg-gradient-to-r from-background/80 to-muted/20 hover:from-primary/5 hover:to-primary/10 hover:border-primary/30 transition-all duration-300"
+            >
+              <div className="flex items-center gap-4">
                 {e.ejemplo ? (
                   <img
-                    src={e.ejemplo}
+                    src={e.ejemplo || "/placeholder.svg"}
                     alt={e.nombre ?? "Ejercicio"}
-                    className="h-10 w-10 rounded-md object-cover border"
+                    className="h-14 w-14 rounded-xl object-cover border-2 border-primary/20 shadow-md"
                     onError={(ev) => ((ev.currentTarget.src = ""), (ev.currentTarget.alt = "Sin imagen"))}
                   />
                 ) : (
-                  <div className="h-10 w-10 grid place-items-center rounded-md border">
-                    <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                  <div className="h-14 w-14 grid place-items-center rounded-xl border-2 border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5">
+                    <ImageIcon className="h-6 w-6 text-primary/60" />
                   </div>
                 )}
-                <div className="text-sm">
-                  <div className="font-medium">{e.nombre ?? `Ejercicio #${e.id}`}</div>
-                  <div className="text-muted-foreground">
-                    {(e.grupo_muscular || "—") + " · " + (e.dificultad || "—") + " · " + (e.equipamento || "—")}
+                <div className="space-y-1">
+                  <div className="font-bold text-sm text-foreground">{e.nombre ?? `Ejercicio #${e.id}`}</div>
+                  <div className="text-xs text-muted-foreground font-medium">
+                    {e.grupo_muscular || "—"} · {e.dificultad || "—"} · {e.equipamento || "—"}
                   </div>
                 </div>
               </div>
 
-              <Button variant="outline" onClick={() => onAdd(e)}>
-                <Plus className="h-4 w-4 mr-1" /> Agregar
+              <Button
+                variant="outline"
+                onClick={() => onAdd(e)}
+                className="gap-2 rounded-xl border-primary/30 hover:bg-primary hover:text-primary-foreground hover:border-primary focus-visible:ring-2 focus-visible:ring-primary font-semibold"
+              >
+                <Plus className="h-4 w-4" />
+                Agregar
               </Button>
             </div>
           ))}
