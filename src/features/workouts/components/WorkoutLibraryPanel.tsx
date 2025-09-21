@@ -7,7 +7,7 @@ import {
   useGetExercisesQuery,
   useGetMuscleGroupsQuery,
   useGetEquipmentTypesQuery,
-} from "@/features/exercises/slices/exercisesSlice";
+} from "@/features/exercises/api/exercisesApi";
 import { useAppDispatch } from "@/hooks/useStore";
 import { addExerciseToSession } from "../store/workoutLogSlice";
 

@@ -11,7 +11,7 @@ import {
   useGetMuscleGroupsQuery,
   useGetEquipmentTypesQuery,
   useGetDifficultyLevelsQuery,
-} from "../../features/exercises/slices/exercisesSlice"; // o api
+} from "../../features/exercises/api/exercisesApi"; // o api
 import {
   ExercisesHeader,
   AdvancedFilters,

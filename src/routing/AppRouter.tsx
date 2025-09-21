@@ -5,10 +5,10 @@ import { AuthCallbackPage, LoginPage, RegisterPage, ResetPasswordPage } from "..
 import { DashboardLayout } from "@/components/dashboard";
 import DashboardPage from "@/pages/dashboard/DashboardPage";
 import { RoutineBuilderPage, RoutineDetailPage, RoutinesPage } from "@/pages/dashboard/routines";
-import { WorkoutLivePage } from "@/pages/dashboard/workouts/WorkoutLivePage";
 
 import SettingsPage from "@/pages/dashboard/settings/SettingsPage";
 import { ExerciseListPage } from "@/features/exercises";
+import WorkoutLivePage from "@/pages/dashboard/workouts/WorkoutLivePage";
 
 export default function AppRouter() {
   return (

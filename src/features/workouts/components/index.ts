@@ -1,6 +1,10 @@
+export { ExerciseFinder } from "./ExerciseFinder";
 export { ExerciseLogCard } from "./ExerciseLogCard";
 export { FinishedWorkoutsSection } from "./FinishedWorkoutsSection";
-export { SetRow } from "./SetRow";
 export { WorkoutCard } from "./WorkoutCard";
+export { WorkoutExerciseItem } from "./WorkoutExerciseItem";
+export { WorkoutExerciseList } from "./WorkoutExerciseList";
 export { WorkoutHeader } from "./WorkoutHeader";
+export { WorkoutKpisBar } from "./WorkoutKpisBar";
 export { WorkoutLibraryPanel } from "./WorkoutLibraryPanel";
+export { WorkoutSetRow } from "./WorkoutSetRow";

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAppDispatch } from "@/hooks/useStore";
 
-import { SetRow } from "./SetRow";
+import { WorkoutSetRow } from "./WorkoutSetRow";
 import {
   addSet,
   duplicateSet,
@@ -124,7 +124,7 @@ export function ExerciseLogCard({ exercise }: ExerciseLogCardProps) {
 
         {/* Sets */}
         {exercise.sets.map((set, index) => (
-          <SetRow
+          <WorkoutSetRow
             key={set.id}
             set={set}
             setNumber={index + 1}

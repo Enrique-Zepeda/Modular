@@ -54,10 +54,30 @@ export type UpsertRutinaInput = {
   duracion_estimada?: number | null;
 };
 
+// --------------------------------------
+// Helpers
+// --------------------------------------
+const SELECT_RUTINA_FIELDS = `
+  id_rutina, nombre, descripcion, nivel_recomendado, objetivo, duracion_estimada, owner_uid
+` as const;
+
+const sortByOrdenThenId = (
+  a: Pick<EjercicioRutina, "orden" | "id_ejercicio">,
+  b: Pick<EjercicioRutina, "orden" | "id_ejercicio">
+) => {
+  const ao = (a.orden ?? 999_999) - (b.orden ?? 999_999);
+  return ao !== 0 ? ao : a.id_ejercicio - b.id_ejercicio;
+};
+
+const sortSets = (sets?: SetEntry[]) => (sets ?? []).slice().sort((a, b) => a.idx - b.idx);
+
 export const rutinasApi = createApi({
   reducerPath: "rutinasApi",
   baseQuery: fakeBaseQuery(),
-  tagTypes: ["Rutinas", "RutinaDetalle", "EjerciciosRutinas", "Ejercicios"],
+  keepUnusedDataFor: 60, // reduce churn al navegar
+  refetchOnFocus: false,
+  refetchOnReconnect: false,
+  tagTypes: ["Rutinas", "RutinaDetalle", "Ejercicios"],
   endpoints: (builder) => ({
     /** Lista de rutinas del usuario autenticado (cache key = ownerUid) */
     getRutinas: builder.query<Rutina[], string | undefined>({
@@ -68,12 +88,12 @@ export const rutinasApi = createApi({
             .from("Rutinas")
             .select(
               `
-              id_rutina, 
-              nombre, 
-              descripcion, 
-              nivel_recomendado, 
-              objetivo, 
-              duracion_estimada, 
+              id_rutina,
+              nombre,
+              descripcion,
+              nivel_recomendado,
+              objetivo,
+              duracion_estimada,
               owner_uid,
               ejercicios_count:EjerciciosRutinas(count)
             `
@@ -83,7 +103,7 @@ export const rutinasApi = createApi({
 
           if (error) throw error;
 
-          const rutinasWithCount = (data ?? []).map((rutina) => ({
+          const rutinasWithCount = (data ?? []).map((rutina: any) => ({
             ...rutina,
             ejercicios_count: rutina.ejercicios_count?.[0]?.count || 0,
           }));
@@ -123,8 +143,10 @@ export const rutinasApi = createApi({
           query = query.eq("dificultad", dificultad);
         }
 
-        if (typeof limit === "number") query = query.limit(limit);
-        if (typeof offset === "number") query = query.range(offset, offset + (limit ?? 50) - 1);
+        // Paginación: usar sólo range para evitar conflictos con limit
+        const from = typeof offset === "number" ? offset : 0;
+        const size = typeof limit === "number" ? limit : 50;
+        query = query.range(from, from + size - 1);
 
         const { data, error } = await query;
         if (error) return { error };
@@ -153,15 +175,9 @@ export const rutinasApi = createApi({
 
         if (error) return { error };
 
-        // Ordena ejercicios por 'orden' y tie-breaker id_ejercicio
-        const ejercicios = (data?.EjerciciosRutinas ?? []).slice().sort((a: any, b: any) => {
-          const ao = (a.orden ?? 999999) - (b.orden ?? 999999);
-          return ao !== 0 ? ao : a.id_ejercicio - b.id_ejercicio;
-        });
-
-        // Ordena sets por idx
+        const ejercicios = (data?.EjerciciosRutinas ?? []).slice().sort(sortByOrdenThenId);
         ejercicios.forEach((er: EjercicioRutina & { sets?: SetEntry[] }) => {
-          er.sets = (er.sets ?? []).slice().sort((a, b) => a.idx - b.idx);
+          er.sets = sortSets(er.sets);
         });
 
         return {
@@ -181,7 +197,7 @@ export const rutinasApi = createApi({
           const { data, error } = await supabase
             .from("Rutinas")
             .insert([rutinaData])
-            .select("id_rutina, nombre, descripcion, nivel_recomendado, objetivo, duracion_estimada, owner_uid")
+            .select(SELECT_RUTINA_FIELDS)
             .single();
 
           if (error) throw error;
@@ -209,7 +225,7 @@ export const rutinasApi = createApi({
             .from("Rutinas")
             .update(rutinaData)
             .eq("id_rutina", id_rutina)
-            .select("id_rutina, nombre, descripcion, nivel_recomendado, objetivo, duracion_estimada, owner_uid")
+            .select(SELECT_RUTINA_FIELDS)
             .single();
 
           if (error) throw error;
@@ -296,15 +312,12 @@ export const rutinasApi = createApi({
         const patch = dispatch(
           rutinasApi.util.updateQueryData("getRutinaById", id_rutina, (draft) => {
             if (!draft) return;
-            const mapOrden = new Map(items.map((i) => [i.id_ejercicio, i.orden]));
+            const mapOrden = new Map(items.map((i) => [i.id_ejercicio, i.orden] as const));
             draft.EjerciciosRutinas.forEach((er) => {
               const nuevo = mapOrden.get(er.id_ejercicio);
               if (typeof nuevo === "number") er.orden = nuevo;
             });
-            draft.EjerciciosRutinas.sort((a, b) => {
-              const ao = (a.orden ?? 999999) - (b.orden ?? 999999);
-              return ao !== 0 ? ao : a.id_ejercicio - b.id_ejercicio;
-            });
+            draft.EjerciciosRutinas.sort(sortByOrdenThenId);
           })
         );
         try {
@@ -337,7 +350,7 @@ export const rutinasApi = createApi({
             if (!draft) return;
             const er = draft.EjerciciosRutinas.find((x) => x.id_ejercicio === id_ejercicio);
             if (er) {
-              er.sets = sets.slice().sort((a, b) => a.idx - b.idx);
+              er.sets = sortSets(sets);
               er.series = sets.length;
             }
           })
@@ -403,10 +416,10 @@ export const {
   useDeleteRutinaMutation,
   useGetEjerciciosQuery,
   useReorderEjerciciosMutation,
-  useReplaceExerciseSetsMutation, // 👈 NUEVO
+  useReplaceExerciseSetsMutation,
 } = rutinasApi;
 
-// Aliases
+// Aliases (mantener por compatibilidad; idealmente remover en limpieza futura)
 export const useCrearRutinaMutation = useCreateRutinaMutation;
 export const useActualizarRutinaMutation = useUpdateRutinaMutation;
 export const useEliminarRutinaMutation = useDeleteRutinaMutation;
