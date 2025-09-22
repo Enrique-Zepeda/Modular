@@ -2,6 +2,7 @@ export { ExerciseFinder } from "./ExerciseFinder";
 export { ExerciseLogCard } from "./ExerciseLogCard";
 export { ExerciseQuickConfigDialog } from "./ExerciseQuickConfigDialog";
 export { FinishedWorkoutsSection } from "./FinishedWorkoutsSection";
+export { KpiProgress } from "./KpiProgress";
 export { WorkoutCard } from "./WorkoutCard";
 export { WorkoutExerciseItem } from "./WorkoutExerciseItem";
 export { WorkoutExerciseList } from "./WorkoutExerciseList";

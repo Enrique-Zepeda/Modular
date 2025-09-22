@@ -2,8 +2,7 @@ import { memo } from "react";
 import { Button } from "@/components/ui/button";
 import { CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { Trash2, ImageIcon, CheckCircle2, Circle } from "lucide-react";
+import { Trash2, ImageIcon, CheckCircle2, Circle, Plus } from "lucide-react";
 import type { WorkoutExercise } from "@/features/workouts/types";
 
 import {
@@ -29,63 +28,66 @@ type Props = {
 
 export function WorkoutExerciseItem({ ex, ei, onAskDelete, onAddSet, onUpdateSet, onToggleSet, onRemoveSet }: Props) {
   return (
-    <div className="flex gap-3 p-4 rounded-xl border bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-sm hover:from-card/90 hover:to-card/60 transition-all duration-300 shadow-md">
-      <div className="flex-shrink-0 flex items-start">
-        {ex.imagen ? (
-          <img
-            src={ex.imagen || "/placeholder.svg"}
-            alt={ex.nombre ?? "Ejercicio"}
-            className="w-16 h-16 rounded-xl object-cover border-2 border-primary/20 shadow-sm"
-            onError={(e) => ((e.currentTarget.src = ""), (e.currentTarget.alt = "Sin imagen"))}
-          />
-        ) : (
-          <div className="w-16 h-16 grid place-items-center rounded-xl border-2 border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5">
-            <ImageIcon className="h-6 w-6 text-primary/60" />
-          </div>
-        )}
-      </div>
+    <div className="group relative bg-card/30 backdrop-blur-sm rounded-2xl p-4 border border-border/40 hover:border-border/60 hover:bg-card/50 transition-all duration-300 shadow-sm hover:shadow-lg">
+      <div className="flex items-start gap-3 mb-4">
+        <div className="flex-shrink-0">
+          {ex.imagen ? (
+            <img
+              src={ex.imagen || "/placeholder.svg"}
+              alt={ex.nombre ?? "Ejercicio"}
+              className="w-12 h-12 rounded-xl object-cover border-2 border-border/20 shadow-sm"
+              onError={(e) => ((e.currentTarget.src = ""), (e.currentTarget.alt = "Sin imagen"))}
+            />
+          ) : (
+            <div className="w-12 h-12 grid place-items-center rounded-xl border-2 border-dashed border-border/30 bg-muted/20">
+              <ImageIcon className="h-5 w-5 text-muted-foreground/60" />
+            </div>
+          )}
+        </div>
 
-      <div className="flex-1 min-w-0 space-y-3">
-        <div className="flex items-start justify-between">
-          <CardTitle className="text-lg font-bold truncate text-balance bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
+        <div className="flex-1 min-w-0">
+          <CardTitle className="text-lg font-bold text-foreground mb-1 text-balance leading-tight">
             {ex.nombre ?? `Ejercicio ${ei + 1}`}
           </CardTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onAskDelete(ei, ex.nombre)}
-            title="Eliminar ejercicio"
-            className="hover:bg-destructive/20 hover:text-destructive text-destructive/60 focus-visible:ring-2 focus-visible:ring-destructive rounded-lg h-8 w-8"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <p className="text-xs text-muted-foreground">
+            {ex.sets.length} {ex.sets.length === 1 ? "serie" : "series"}
+          </p>
         </div>
 
-        <div className="space-y-3">
-          {ex.sets.map((s, si) => (
-            <SetRow
-              key={`${s.idx}-${si}`}
-              setIndexLabel={s.idx}
-              values={{ ...s }}
-              onChange={(field, val) => onUpdateSet(ei, si, field, val)}
-              onToggleDone={() => onToggleSet(ei, si)}
-              onRemove={() => onRemoveSet(ei, si)}
-            />
-          ))}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onAskDelete(ei, ex.nombre)}
+          title="Eliminar ejercicio"
+          className="opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-destructive rounded-xl h-8 w-8 transition-all duration-300"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
 
-          <Separator className="my-3 bg-gradient-to-r from-transparent via-border to-transparent" />
+      <div className="space-y-2">
+        {ex.sets.map((s, si) => (
+          <SetRow
+            key={`${s.idx}-${si}`}
+            setIndexLabel={s.idx}
+            values={{ ...s }}
+            onChange={(field, val) => onUpdateSet(ei, si, field, val)}
+            onToggleDone={() => onToggleSet(ei, si)}
+            onRemove={() => onRemoveSet(ei, si)}
+          />
+        ))}
+      </div>
 
-          <div className="flex justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onAddSet(ei)}
-              className="gap-2 rounded-lg border-primary/30 hover:bg-primary/10 hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              Añadir serie
-            </Button>
-          </div>
-        </div>
+      <div className="mt-4 pt-3 border-t border-border/20">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onAddSet(ei)}
+          className="w-full gap-2 rounded-xl hover:bg-primary/5 hover:text-primary border border-dashed border-border/30 hover:border-primary/30 focus-visible:ring-2 focus-visible:ring-primary transition-all duration-300 h-9 text-xs font-medium"
+        >
+          <Plus className="h-3 w-3" />
+          Añadir serie
+        </Button>
       </div>
     </div>
   );
@@ -103,75 +105,80 @@ type RowProps = {
 const SetRow = memo(function SetRow({ setIndexLabel, values, onChange, onToggleDone, onRemove }: RowProps) {
   return (
     <div
-      className={`grid grid-cols-12 items-center gap-3 p-3 rounded-lg border-2 transition-all duration-300 ${
+      className={`group/set flex items-center gap-3 p-3 rounded-xl transition-all duration-300 ${
         values.done
-          ? "bg-gradient-to-r from-emerald-50/80 to-green-50/60 border-emerald-200/60 dark:from-emerald-950/40 dark:to-green-950/20 dark:border-emerald-800/40"
-          : "bg-gradient-to-r from-background/80 to-muted/20 border-border/60 hover:from-muted/40 hover:to-muted/20 hover:border-primary/30"
+          ? "bg-emerald-50/80 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/30"
+          : "bg-background/60 hover:bg-muted/30 border border-transparent hover:border-border/30"
       }`}
     >
-      <div className="col-span-2 text-xs font-bold text-primary">Set {setIndexLabel}</div>
-
-      <div className="col-span-3 space-y-1">
-        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">KG</label>
-        <Input
-          inputMode="decimal"
-          value={values.kg}
-          onChange={(e) => onChange("kg", sanitizeDecimal(e.target.value))}
-          onKeyDown={onDecimalKeyDown}
-          onPaste={(e) => handlePasteDecimal(e, (v) => onChange("kg", v))}
-          placeholder="0"
-          className="h-8 tabular-nums focus-visible:ring-2 focus-visible:ring-primary rounded-md border-2 font-semibold text-sm"
-        />
+      <div className="flex-shrink-0 w-12">
+        <span className="text-xs font-bold text-primary tabular-nums">Set {setIndexLabel}</span>
       </div>
 
-      <div className="col-span-3 space-y-1">
-        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">REPS</label>
-        <Input
-          inputMode="numeric"
-          value={values.reps}
-          onChange={(e) => onChange("reps", sanitizeInteger(e.target.value))}
-          onKeyDown={onIntegerKeyDown}
-          onPaste={(e) => handlePasteInteger(e, (v) => onChange("reps", v))}
-          placeholder="0"
-          className="h-8 tabular-nums focus-visible:ring-2 focus-visible:ring-primary rounded-md border-2 font-semibold text-sm"
-        />
+      <div className="flex-1 grid grid-cols-3 gap-2">
+        <div className="space-y-1">
+          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">KG</label>
+          <Input
+            inputMode="decimal"
+            value={values.kg}
+            onChange={(e) => onChange("kg", sanitizeDecimal(e.target.value))}
+            onKeyDown={onDecimalKeyDown}
+            onPaste={(e) => handlePasteDecimal(e, (v) => onChange("kg", v))}
+            placeholder="0"
+            className="h-8 tabular-nums focus-visible:ring-2 focus-visible:ring-primary rounded-lg font-semibold text-sm border-border/30 bg-background/80"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">REPS</label>
+          <Input
+            inputMode="numeric"
+            value={values.reps}
+            onChange={(e) => onChange("reps", sanitizeInteger(e.target.value))}
+            onKeyDown={onIntegerKeyDown}
+            onPaste={(e) => handlePasteInteger(e, (v) => onChange("reps", v))}
+            placeholder="0"
+            className="h-8 tabular-nums focus-visible:ring-2 focus-visible:ring-primary rounded-lg font-semibold text-sm border-border/30 bg-background/80"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">RPE</label>
+          <select
+            className="w-full h-8 rounded-lg border border-border/30 bg-background/80 px-2 text-xs font-semibold focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+            value={values.rpe}
+            onChange={(e) => onChange("rpe", e.target.value)}
+          >
+            <option value="">--</option>
+            {RPE_OPTIONS.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      <div className="col-span-2 space-y-1">
-        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">RPE</label>
-        <select
-          className="w-full h-8 rounded-md border-2 bg-background px-2 text-xs font-semibold focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
-          value={values.rpe}
-          onChange={(e) => onChange("rpe", e.target.value)}
-        >
-          <option value="">--</option>
-          {RPE_OPTIONS.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="col-span-2 flex items-center justify-end gap-2">
+      <div className="flex-shrink-0 flex items-center gap-1">
         <button
           type="button"
           onClick={onToggleDone}
-          className={`p-1 rounded-full transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary ${
+          className={`p-2 rounded-xl transition-all duration-300 focus-visible:ring-2 focus-visible:ring-emerald-500 ${
             values.done
-              ? "text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
-              : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+              ? "text-emerald-600 bg-emerald-100/80 hover:bg-emerald-200/80 dark:text-emerald-400 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60"
+              : "text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:text-emerald-400 dark:hover:bg-emerald-950/30"
           }`}
           title={values.done ? "Marcar como no completado" : "Marcar como completado"}
         >
-          {values.done ? <CheckCircle2 className="h-5 w-5" /> : <Circle className="h-5 w-5" />}
+          {values.done ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
         </button>
+
         <Button
           variant="ghost"
           size="icon"
           onClick={onRemove}
           title="Eliminar serie"
-          className="hover:bg-destructive/20 hover:text-destructive text-destructive/60 focus-visible:ring-2 focus-visible:ring-destructive rounded-md h-7 w-7"
+          className="opacity-0 group-hover/set:opacity-100 hover:bg-destructive/10 hover:text-destructive text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-destructive rounded-xl h-8 w-8 transition-all duration-300"
         >
           <Trash2 className="h-3 w-3" />
         </Button>

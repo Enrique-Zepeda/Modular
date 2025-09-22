@@ -1,14 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { KpiProgress } from "./KpiProgress";
 
 type Props = {
   doneSets: number;
   totalSets: number;
   totalVolume: number;
   onExit: () => void;
-  /** Nuevo: handler para finalizar desde la barra */
   onFinish: () => void;
-  /** Nuevo: estado de guardado para deshabilitar y mostrar loader */
   saving?: boolean;
 };
 
@@ -26,8 +25,8 @@ export function WorkoutKpisBar({ doneSets, totalSets, totalVolume, onExit, onFin
             <span className="text-muted-foreground">Volumen total:</span>
             <span className="font-semibold tabular-nums">{totalVolume.toLocaleString()} kg</span>
           </div>
+          <KpiProgress done={doneSets} total={totalSets} />
         </div>
-
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={onExit} className="gap-2">
             Salir (sin guardar)

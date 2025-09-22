@@ -1,6 +1,5 @@
 import type React from "react";
 
-import { Card, CardContent } from "@/components/ui/card";
 import { SortableItem } from "@/components/ui/sortable-item";
 import { useDragAndDrop } from "@/hooks/useDragAndDrop";
 import type { WorkoutExercise } from "../types";
@@ -23,18 +22,21 @@ export function WorkoutExerciseList({
     });
 
   return (
-    <Card className="rounded-2xl shadow-sm border">
-      <CardContent className="space-y-4 p-6">
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={exercises.map(dndIdKey)} strategy={verticalListSortingStrategy}>
+    <div className="space-y-8">
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={exercises.map(dndIdKey)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-8">
             {exercises.map((ex, ei) => (
-              <SortableItem key={`wex-${dndIdKey(ex)}`} id={dndIdKey(ex)}>
-                {renderItem(ex, ei)}
-              </SortableItem>
+              <div
+                key={`wex-${dndIdKey(ex)}`}
+                className="hover:bg-muted/10 transition-all duration-200 rounded-2xl -m-2 p-2 hover:shadow-lg hover:scale-[1.005] focus-within:ring-2 focus-within:ring-primary/20"
+              >
+                <SortableItem id={dndIdKey(ex)}>{renderItem(ex, ei)}</SortableItem>
+              </div>
             ))}
-          </SortableContext>
-        </DndContext>
-      </CardContent>
-    </Card>
+          </div>
+        </SortableContext>
+      </DndContext>
+    </div>
   );
 }

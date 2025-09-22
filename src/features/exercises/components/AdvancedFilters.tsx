@@ -1,102 +1,171 @@
-import { AnimatePresence, motion } from "framer-motion";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Target, Activity, Dumbbell } from "lucide-react";
+import type React from "react";
+
+import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Dumbbell, Activity, Wrench, ChevronDown, Search, X } from "lucide-react";
+
+type Props = {
+  expanded?: boolean;
+  muscleGroups: string[];
+  difficultyLevels: string[];
+  equipmentTypes: string[];
+  values: {
+    selectedMuscleGroup: string;
+    selectedDifficulty: string;
+    selectedEquipment: string;
+  };
+  onChange: {
+    setSelectedMuscleGroup: (v: string) => void;
+    setSelectedDifficulty: (v: string) => void;
+    setSelectedEquipment: (v: string) => void;
+  };
+  loading?: {
+    isLoadingMuscleGroups?: boolean;
+    isLoadingDifficulty?: boolean;
+    isLoadingEquipment?: boolean;
+  };
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+};
+
+function FilterBlock({
+  icon,
+  label,
+  control,
+  loading,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  control: React.ReactNode;
+  loading?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <span className="flex h-4 w-4 items-center justify-center text-muted-foreground">{icon}</span>
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</span>
+      </div>
+
+      {loading ? (
+        <Skeleton className="h-8 w-full rounded-lg" />
+      ) : (
+        <div className="relative">
+          {control}
+          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function AdvancedFilters({
-  expanded,
   muscleGroups,
   difficultyLevels,
   equipmentTypes,
-  values: { selectedMuscleGroup, selectedDifficulty, selectedEquipment },
-  onChange: { setSelectedMuscleGroup, setSelectedDifficulty, setSelectedEquipment },
-  loading: { isLoadingMuscleGroups, isLoadingDifficulty, isLoadingEquipment },
-}: any) {
+  values,
+  onChange,
+  loading,
+  searchValue,
+  onSearchChange,
+}: Props) {
+  const isLoadingMG = !!loading?.isLoadingMuscleGroups;
+  const isLoadingDif = !!loading?.isLoadingDifficulty;
+  const isLoadingEq = !!loading?.isLoadingEquipment;
+
   return (
-    <AnimatePresence>
-      {expanded && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          exit={{ opacity: 0, height: 0 }}
-          transition={{ duration: 0.2 }}
-          className="overflow-hidden"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <Target className="h-4 w-4" /> Grupo Muscular
-              </label>
-              <Select value={selectedMuscleGroup} onValueChange={setSelectedMuscleGroup}>
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Seleccionar grupo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los grupos</SelectItem>
-                  {isLoadingMuscleGroups ? (
-                    <SelectItem value="loading" disabled>
-                      Cargando...
-                    </SelectItem>
-                  ) : (
-                    muscleGroups.map((g: string) => (
-                      <SelectItem key={g} value={g}>
-                        {g}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <Activity className="h-4 w-4" /> Dificultad
-              </label>
-              <Select value={selectedDifficulty} onValueChange={setSelectedDifficulty}>
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Seleccionar dificultad" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas las dificultades</SelectItem>
-                  {isLoadingDifficulty ? (
-                    <SelectItem value="loading" disabled>
-                      Cargando...
-                    </SelectItem>
-                  ) : (
-                    difficultyLevels.map((d: string) => (
-                      <SelectItem key={d} value={d}>
-                        {d.charAt(0).toUpperCase() + d.slice(1)}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-2">
-                <Dumbbell className="h-4 w-4" /> Equipamiento
-              </label>
-              <Select value={selectedEquipment} onValueChange={setSelectedEquipment}>
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Seleccionar equipamiento" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todo el equipamiento</SelectItem>
-                  {isLoadingEquipment ? (
-                    <SelectItem value="loading" disabled>
-                      Cargando...
-                    </SelectItem>
-                  ) : (
-                    equipmentTypes.map((e: string) => (
-                      <SelectItem key={e} value={e}>
-                        {e}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+    <div className="p-3 rounded-xl bg-card border border-border/50">
+      {onSearchChange && (
+        <div className="mb-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+            <Input
+              value={searchValue || ""}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Buscar ejercicios..."
+              className="h-8 pl-9 pr-8 text-xs rounded-lg border-border/50 focus:border-primary/50"
+            />
+            {searchValue && (
+              <button
+                type="button"
+                onClick={() => onSearchChange("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-muted transition-colors"
+              >
+                <X className="h-3 w-3 text-muted-foreground" />
+              </button>
+            )}
           </div>
-        </motion.div>
+        </div>
       )}
-    </AnimatePresence>
+
+      <div className="grid grid-cols-3 gap-3">
+        <FilterBlock
+          icon={<Dumbbell className="h-3 w-3" />}
+          label="Músculo"
+          loading={isLoadingMG}
+          control={
+            <select
+              className="h-8 w-full bg-background border border-border rounded-lg px-3 pr-8 text-xs text-foreground appearance-none hover:border-border/80 focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-colors"
+              value={values.selectedMuscleGroup}
+              onChange={(e) => onChange.setSelectedMuscleGroup(e.target.value)}
+            >
+              <option value="all" className="bg-background text-foreground">
+                Todos
+              </option>
+              {muscleGroups.map((g) => (
+                <option key={g} value={g} className="bg-background text-foreground">
+                  {g}
+                </option>
+              ))}
+            </select>
+          }
+        />
+
+        <FilterBlock
+          icon={<Activity className="h-3 w-3" />}
+          label="Dificultad"
+          loading={isLoadingDif}
+          control={
+            <select
+              className="h-8 w-full bg-background border border-border rounded-lg px-3 pr-8 text-xs text-foreground appearance-none hover:border-border/80 focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-colors"
+              value={values.selectedDifficulty}
+              onChange={(e) => onChange.setSelectedDifficulty(e.target.value)}
+            >
+              <option value="all" className="bg-background text-foreground">
+                Todas
+              </option>
+              {difficultyLevels.map((d) => (
+                <option key={d} value={d} className="bg-background text-foreground">
+                  {d}
+                </option>
+              ))}
+            </select>
+          }
+        />
+
+        <FilterBlock
+          icon={<Wrench className="h-3 w-3" />}
+          label="Equipo"
+          loading={isLoadingEq}
+          control={
+            <select
+              className="h-8 w-full bg-background border border-border rounded-lg px-3 pr-8 text-xs text-foreground appearance-none hover:border-border/80 focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-colors"
+              value={values.selectedEquipment}
+              onChange={(e) => onChange.setSelectedEquipment(e.target.value)}
+            >
+              <option value="all" className="bg-background text-foreground">
+                Todo
+              </option>
+              {equipmentTypes.map((t) => (
+                <option key={t} value={t} className="bg-background text-foreground">
+                  {t}
+                </option>
+              ))}
+            </select>
+          }
+        />
+      </div>
+    </div>
   );
 }
+
+export default AdvancedFilters;

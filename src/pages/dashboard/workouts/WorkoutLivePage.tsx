@@ -133,7 +133,6 @@ export default function WorkoutLivePage() {
           <ExerciseFinder
             existingIds={existingIds}
             open={true}
-            onClose={() => {}}
             onAdd={(e) => setConfigDlg({ open: true, exercise: e })}
           />
         </div>

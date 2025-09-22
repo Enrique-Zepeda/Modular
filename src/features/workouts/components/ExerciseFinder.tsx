@@ -1,9 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { ImageIcon, Loader2, Plus, Search } from "lucide-react";
+import { ImageIcon, Loader2, Plus, Search, RotateCcw, X } from "lucide-react";
 import { AdvancedFilters } from "@/features/exercises/components/AdvancedFilters";
 import { useExercisesCatalogFilters } from "@/features/exercises/hooks";
 import {
@@ -16,15 +16,15 @@ import {
 export function ExerciseFinder({
   existingIds,
   open,
-  onClose,
   onAdd,
 }: {
   existingIds: number[];
   open: boolean;
-  onClose: () => void;
   onAdd: (exercise: any) => void;
 }) {
   const filters = useExercisesCatalogFilters();
+  const searchRef = useRef<HTMLInputElement>(null);
+
   const { data: mgResp, isLoading: isLoadingMG } = useGetMuscleGroupsQuery();
   const { data: eqResp, isLoading: isLoadingEq } = useGetEquipmentTypesQuery();
   const { data: difResp, isLoading: isLoadingDif } = useGetDifficultyLevelsQuery();
@@ -61,14 +61,64 @@ export function ExerciseFinder({
     [results, selectedIds]
   );
 
+  // ¿Hay filtros/búsqueda activos?
+  const hasActiveFilters = useMemo(() => {
+    return (
+      (filters.searchTerm?.trim()?.length ?? 0) > 0 ||
+      filters.selectedMuscleGroup !== "all" ||
+      filters.selectedDifficulty !== "all" ||
+      filters.selectedEquipment !== "all"
+    );
+  }, [filters.searchTerm, filters.selectedMuscleGroup, filters.selectedDifficulty, filters.selectedEquipment]);
+
+  // Limpiar todo (búsqueda + filtros)
+  const clearFilters = useCallback(() => {
+    filters.setSearchTerm("");
+    filters.setSelectedMuscleGroup("all");
+    filters.setSelectedDifficulty("all");
+    filters.setSelectedEquipment("all");
+    setTimeout(() => searchRef.current?.focus(), 0);
+  }, [
+    filters.setSearchTerm,
+    filters.setSelectedMuscleGroup,
+    filters.setSelectedDifficulty,
+    filters.setSelectedEquipment,
+  ]);
+
   if (!open) return null;
 
   return (
     <Card className="border-2 border-primary/20 rounded-2xl shadow-xl bg-gradient-to-br from-card/90 to-card/60 backdrop-blur-sm">
       <CardHeader className="pb-4">
-        <CardTitle className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-          Buscar Ejercicios
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+            Agregar Ejercicios
+          </CardTitle>
+
+          <div className="flex items-center gap-2">
+            {/* Contador de resultados (tras excluir existingIds) */}
+            <span className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs text-foreground/70">
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 6h18M3 12h18M3 18h18" />
+              </svg>
+              {filteredResults.length} encontrados
+            </span>
+
+            {/* Limpiar filtros si hay algo activo */}
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="h-8 gap-1"
+                title="Limpiar búsqueda y filtros"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Limpiar
+              </Button>
+            )}
+          </div>
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-6">
@@ -77,11 +127,25 @@ export function ExerciseFinder({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-primary/60" />
             <Input
+              ref={searchRef}
               value={filters.searchTerm}
               onChange={(e) => filters.setSearchTerm(e.target.value)}
               placeholder="Nombre o descripción del ejercicio"
-              className="pl-12 h-12 rounded-xl border-2 border-primary/20 focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary/40 font-medium"
+              className="pl-12 pr-10 h-12 rounded-xl border-2 border-primary/20 focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary/40 font-medium"
             />
+            {!!filters.searchTerm && (
+              <button
+                type="button"
+                onClick={() => {
+                  filters.setSearchTerm("");
+                  searchRef.current?.focus();
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/60 hover:text-primary"
+                title="Limpiar búsqueda"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
 
