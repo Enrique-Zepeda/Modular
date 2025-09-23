@@ -1,24 +1,62 @@
-import type { ReactElement } from "react";
-import { Navigate } from "react-router-dom";
+import type { ReactNode } from "react";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAppSelector } from "@/hooks";
 
-export const PublicRoute = ({ children }: { children: ReactElement }) => {
-  const { isAuthenticated, loading, isRecoveryMode } = useAppSelector((s) => s.auth);
+type Props = { children: ReactNode };
 
-  if (loading) return null;
+function isPostReset(location: ReturnType<typeof useLocation>): boolean {
+  const state = location.state as any;
+  if (state?.passwordReset) return true;
 
-  // Bypass si la URL trae el flujo de recuperación aunque Redux aún no lo marque
-  const hash = typeof window !== "undefined" ? window.location.hash : "";
-  const search = typeof window !== "undefined" ? window.location.search : "";
-  const isRecoveryInURL =
-    hash.includes("type=recovery") ||
-    search.includes("type=recovery") ||
-    hash.includes("access_token=") ||
-    search.includes("access_token=");
+  // Soporte opcional para ?reset=1
+  const sp = new URLSearchParams(location.search);
+  if (sp.get("reset") === "1") return true;
 
-  if (isAuthenticated && !isRecoveryMode && !isRecoveryInURL) {
-    return <Navigate to="/dashboard" />;
+  // Fallback robusto si se pierde el state del router
+  try {
+    if (typeof window !== "undefined" && sessionStorage.getItem("justResetPwd") === "1") {
+      return true;
+    }
+  } catch (error) {
+    console.log(error);
+  }
+  return false;
+}
+
+export function PublicRoute({ children }: Props) {
+  const { isAuthenticated, loading } = useAppSelector((s) => s.auth);
+  const location = useLocation();
+
+  const postReset = isPostReset(location);
+
+  // Limpia el flag/URL una vez ya estamos en la página pública
+  if (postReset) {
+    try {
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("justResetPwd");
+      }
+      // Quita query/state del history (si existieran)
+      const cleanUrl = location.pathname;
+      if (window.location.pathname + window.location.search !== cleanUrl) {
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
+    } catch (error) {
+      console.log(error);
+    }
   }
 
-  return children;
-};
+  // Mientras se resuelve auth, renderiza sin redirigir (evita parpadeos)
+  if (loading) return <>{children}</>;
+
+  // ⛑️ Si venimos de reset, NO redirigir al dashboard aunque isAuthenticated parpadee en true
+  if (postReset) return <>{children}</>;
+
+  // Resto de páginas públicas: si hay sesión, ir a dashboard
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+export default PublicRoute;

@@ -1,39 +1,66 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, ArrowRight, Mail } from "lucide-react";
-import { useAppSelector } from "@/hooks/useStore";
+import { CheckCircle, ArrowRight, Mail, Loader2 } from "lucide-react";
 
 export function AuthCallbackPage() {
-  const { isAuthenticated, loading } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
+  const location = useLocation();
   const [countdown, setCountdown] = useState(5);
   const [progress, setProgress] = useState(100);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCountdown((prev) => prev - 1);
-      setProgress((prev) => prev - 20);
-    }, 1000);
+    (async () => {
+      try {
+        // 1) OAuth PKCE → ?code=...
+        const qs = new URLSearchParams(location.search);
+        const code = qs.get("code");
+        if (code) {
+          await supabase.auth.exchangeCodeForSession(code);
+        }
 
-    const timeout = setTimeout(() => {
-      navigate("/login");
-    }, 5000);
+        // 2) Email link / verificación → #access_token=...
+        const hasAccessTokenHash = typeof window !== "undefined" && window.location.hash.includes("access_token");
 
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
-    };
-  }, [navigate]);
+        // 3) Cerrar sesión SIEMPRE para forzar login manual
+        await supabase.auth.signOut();
 
-  useEffect(() => {
-    if (!loading && isAuthenticated) {
-      navigate("/dashboard");
-    }
-  }, [loading, isAuthenticated, navigate]);
+        // 4) Limpiar URL para que no se reprocese el token
+        try {
+          window.history.replaceState({}, "", "/auth/callback");
+        } catch {
+          /* no-op */
+        }
+
+        // 5) Redirigir a /login (con estado "verified" para mostrar un toast)
+        const nextState = hasAccessTokenHash || code ? { verified: true } : undefined;
+
+        const iv = setInterval(() => {
+          setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+          setProgress((prev) => (prev > 0 ? prev - 20 : 0));
+        }, 1000);
+
+        const to = setTimeout(() => {
+          navigate("/login", { replace: true, state: nextState });
+        }, 5000);
+
+        return () => {
+          clearInterval(iv);
+          clearTimeout(to);
+        };
+      } catch (e) {
+        console.error("[AuthCallback] error:", e);
+        await supabase.auth.signOut();
+        navigate("/login", { replace: true });
+      }
+    })();
+    // solo al montar
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
@@ -49,7 +76,7 @@ export function AuthCallbackPage() {
         <CardContent className="space-y-6">
           <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground">
             <Mail className="h-4 w-4" />
-            <span>Ahora puedes iniciar sesión con tu cuenta</span>
+            <span>Ahora inicia sesión con tu cuenta</span>
           </div>
 
           <div className="space-y-3">
@@ -63,13 +90,23 @@ export function AuthCallbackPage() {
           </div>
 
           <div className="space-y-3">
-            <Button onClick={() => navigate("/login")} className="w-full" size="lg">
+            <Button
+              onClick={() => navigate("/login", { replace: true, state: { verified: true } })}
+              className="w-full"
+              size="lg"
+            >
               Ir al inicio de sesión
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
+            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>Procesando…</span>
+            </div>
           </div>
         </CardContent>
       </Card>
     </div>
   );
 }
+
+export default AuthCallbackPage;

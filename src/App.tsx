@@ -1,8 +1,9 @@
 import { BrowserRouter } from "react-router-dom";
 import { Provider } from "react-redux";
 import { store } from "./app/store";
-import AuthProvider from "./features/auth/components/AuthProvider";
+import "@/lib/supabase/RecoveryBlocker";
 import AppRouter from "./routing/AppRouter";
+import { AuthProvider } from "./features/auth/components";
 
 function App() {
   return (

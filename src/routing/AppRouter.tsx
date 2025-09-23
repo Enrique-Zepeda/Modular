@@ -4,7 +4,6 @@ import { AuthCallbackPage, LoginPage, RegisterPage, ResetPasswordPage } from "..
 import { DashboardLayout } from "@/components/dashboard";
 import DashboardPage from "@/pages/dashboard/DashboardPage";
 import { RoutineBuilderPage, RoutineDetailPage, RoutinesPage } from "@/pages/dashboard/routines";
-
 import SettingsPage from "@/pages/dashboard/settings/SettingsPage";
 import { ExerciseListPage } from "@/features/exercises";
 import WorkoutLivePage from "@/pages/dashboard/workouts/WorkoutLivePage";
@@ -33,17 +32,13 @@ export default function AppRouter() {
           </PublicRoute>
         }
       />
-      <Route
-        path="/auth/reset-password"
-        element={
-          <PublicRoute>
-            <ResetPasswordPage />
-          </PublicRoute>
-        }
-      />
+
+      {/* ⚠️ SIN GUARDIAS */}
+      <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
-      {/* 👇 NUEVA RUTA: Onboarding (requiere sesión, permite perfil incompleto) */}
+      {/* Onboarding (requiere sesión, permite perfil incompleto) */}
       <Route
         path="/onboarding"
         element={
@@ -53,7 +48,7 @@ export default function AppRouter() {
         }
       />
 
-      {/* Dashboard Routes with Persistent Layout */}
+      {/* Dashboard con layout persistente */}
       <Route
         path="/dashboard"
         element={
@@ -74,7 +69,6 @@ export default function AppRouter() {
           </ProtectedRoute>
         }
       />
-      {/* Added unified builder routes for create and edit */}
       <Route
         path="/dashboard/routines/new"
         element={
@@ -136,10 +130,9 @@ export default function AppRouter() {
         }
       />
 
-      {/* Legacy routes for compatibility */}
+      {/* Legacy redirects */}
       <Route path="/rutinas" element={<Navigate to="/dashboard/routines" />} />
       <Route path="/rutinas/crear" element={<Navigate to="/dashboard/routines/new" />} />
-      {/* Updated legacy route to use new builder */}
       <Route path="/rutinas/:id" element={<Navigate to="/dashboard/routines/:id" />} />
       <Route path="/rutinas/:id/editar" element={<Navigate to="/dashboard/routines/:id/edit" />} />
     </Routes>

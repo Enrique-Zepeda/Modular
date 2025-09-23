@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FormField } from "@/components/form/FormField";
 import { AuthFormLayout, ForgotPasswordModal, GoogleAuthButton } from "@/features/auth/components";
 import { Toaster } from "react-hot-toast";
 import { useLoginForm } from "@/features/auth/hooks/useLoginForm";
+import { disableRecoveryBlocker } from "@/lib/supabase/RecoveryBlocker";
 
 export function LoginPage() {
   const {
@@ -18,6 +19,16 @@ export function LoginPage() {
   } = useLoginForm();
 
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+
+  useEffect(() => {
+    // por si acaso, asegúrate de que el blocker esté fuera de juego aquí
+    disableRecoveryBlocker();
+    try {
+      sessionStorage.removeItem("justResetPwd");
+    } catch (error) {
+      console.log(error);
+    }
+  }, []);
 
   return (
     <>
@@ -55,7 +66,6 @@ export function LoginPage() {
           registration={register("email")}
           error={errors.email}
         />
-
         <FormField
           label="Contraseña"
           placeholder="Ingresa tu contraseña"
