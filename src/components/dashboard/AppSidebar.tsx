@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Home, Calendar, Dumbbell, User, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppDispatch } from "@/hooks/useStore";
 import { logoutUser } from "@/features/auth/thunks";
 import { cn } from "@/lib/utils";
+import LogoutConfirmDialog from "../ui/logout-confirm-dialog";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
@@ -16,6 +18,7 @@ const navigation = [
 export default function AppSidebar() {
   const location = useLocation();
   const dispatch = useAppDispatch();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const handleLogout = () => {
     dispatch(logoutUser());
@@ -58,13 +61,14 @@ export default function AppSidebar() {
       <div className="p-4 border-t">
         <Button
           variant="ghost"
-          onClick={handleLogout}
+          onClick={() => setConfirmOpen(true)}
           className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
         >
           <LogOut className="h-4 w-4 mr-2" />
           Cerrar Sesión
         </Button>
       </div>
+      <LogoutConfirmDialog open={confirmOpen} onOpenChange={setConfirmOpen} onConfirm={handleLogout} />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { logoutUser } from "@/features/auth/thunks";
 import { useAppDispatch } from "@/hooks/useStore";
 import { Home, Calendar, Dumbbell, Settings, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import LogoutConfirmDialog from "../ui/logout-confirm-dialog";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
@@ -17,6 +18,7 @@ export default function Sidebar() {
   const location = useLocation();
   const dispatch = useAppDispatch();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const handleLogout = () => {
     dispatch(logoutUser());
@@ -78,7 +80,7 @@ export default function Sidebar() {
       <div className="p-2 border-t">
         <Button
           variant="ghost"
-          onClick={handleLogout}
+          onClick={() => setConfirmOpen(true)}
           className={cn(
             "w-full justify-start gap-3 h-10 text-muted-foreground hover:text-destructive hover:bg-destructive/10",
             isCollapsed && "justify-center px-2"
@@ -88,6 +90,7 @@ export default function Sidebar() {
           {!isCollapsed && "Cerrar Sesión"}
         </Button>
       </div>
+      <LogoutConfirmDialog open={confirmOpen} onOpenChange={setConfirmOpen} onConfirm={handleLogout} />
     </div>
   );
 }
