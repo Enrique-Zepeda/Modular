@@ -1,145 +1,152 @@
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useGetCurrentUserProfileQuery } from "@/features/settings/api/profileApi";
-import { z } from "zod";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-// usa tu schema real si ya existe; si no, uno mínimo local:
-const PerfilSchema = z.object({
-  nombre: z.string().optional(),
-  username: z.string().optional(),
-  correo: z.string().email().optional(),
-  edad: z.number().int().positive().optional().or(z.string().optional()),
-  peso: z.number().positive().optional().or(z.string().optional()),
-  altura: z.number().positive().optional().or(z.string().optional()),
-  objetivo: z.string().optional(),
-  nivel_experiencia: z.string().optional(),
-  sexo: z.string().optional(),
-});
 
-type PerfilForm = z.infer<typeof PerfilSchema>;
+import toast from "react-hot-toast";
+import { AvatarUploader } from "./AvatarUploader";
+
+/**
+ * Vista de Información Personal unificada con Avatar.
+ * - Lee perfil del usuario actual desde public."Usuarios" por auth.uid().
+ * - Muestra campos básicos con correo deshabilitado.
+ * - Incluye uploader de avatar (guarda URL en Usuarios.url_avatar).
+ *
+ * Nota:
+ * Si ya tenías esta vista con React Hook Form, puedes mantenerla.
+ * Aquí uso estado local mínimo para no romper tu wiring actual.
+ */
 
 export function Perfil() {
-  const { data: perfil, isLoading, isError, error } = useGetCurrentUserProfileQuery();
-
-  const { register, reset } = useForm<PerfilForm>({
-    resolver: zodResolver(PerfilSchema),
-    defaultValues: {
-      nombre: "",
-      username: "",
-      correo: "",
-      edad: "",
-      peso: "",
-      altura: "",
-      objetivo: "",
-      nivel_experiencia: "",
-      sexo: "",
-    },
+  const [loading, setLoading] = useState(true);
+  const [perfil, setPerfil] = useState({
+    nombre: "",
+    username: "",
+    correo: "",
+    edad: "",
+    peso: "",
+    altura: "",
+    objetivo: "",
+    nivel_experiencia: "",
+    sexo: "",
+    url_avatar: "",
   });
 
-  // Cuando llegan los datos, poblar el form
-  useEffect(() => {
-    if (perfil) {
-      reset({
-        nombre: perfil.nombre ?? "",
-        username: perfil.username ?? "",
-        correo: perfil.correo ?? "",
-        edad: perfil.edad ?? "",
-        peso: perfil.peso ?? "",
-        altura: perfil.altura ?? "",
-        objetivo: perfil.objetivo ?? "",
-        nivel_experiencia: perfil.nivel_experiencia ?? "",
-        sexo: perfil.sexo ?? "",
+  const loadProfile = async () => {
+    try {
+      setLoading(true);
+      const { data: authData, error: authErr } = await supabase.auth.getUser();
+      if (authErr) throw authErr;
+      const user = authData?.user;
+      if (!user) {
+        setLoading(false);
+        toast.error("No hay sesión activa.");
+        return;
+      }
+
+      const { data, error } = await supabase.from("Usuarios").select("*").eq("auth_uid", user.id).single();
+
+      if (error) throw error;
+
+      setPerfil({
+        nombre: data?.nombre ?? "",
+        username: data?.username ?? "",
+        correo: data?.correo ?? "",
+        edad: data?.edad ?? "",
+        peso: data?.peso ?? "",
+        altura: data?.altura ?? "",
+        objetivo: data?.objetivo ?? "",
+        nivel_experiencia: data?.nivel_experiencia ?? "",
+        sexo: data?.sexo ?? "",
+        url_avatar: data?.url_avatar ?? "",
       });
+    } catch (err) {
+      console.error(err);
+      toast.error(err?.message ?? "No se pudo cargar tu perfil.");
+    } finally {
+      setLoading(false);
     }
-  }, [perfil, reset]);
+  };
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Perfil</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* Puedes usar Skeletons de tu lib de UI */}
-          <div className="space-y-4 animate-pulse">
-            <div className="h-10 bg-muted rounded" />
-            <div className="h-10 bg-muted rounded" />
-            <div className="h-10 bg-muted rounded" />
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (isError) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Perfil</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-destructive">
-            No se pudo cargar tu perfil{(error as any)?.message ? `: ${(error as any).message}` : ""}.
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
+  useEffect(() => {
+    loadProfile();
+  }, []);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Perfil</CardTitle>
-      </CardHeader>
-      <CardContent className="grid gap-6 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="nombre">Nombre</Label>
-          <Input id="nombre" {...register("nombre")} />
-        </div>
+    <div className="grid gap-6">
+      {/* Avatar unificado */}
+      <AvatarUploader
+        url={perfil.url_avatar || ""}
+        onUpdated={(newUrl) => setPerfil((p) => ({ ...p, url_avatar: newUrl }))}
+      />
 
-        <div className="space-y-2">
-          <Label htmlFor="username">Username</Label>
-          <Input id="username" {...register("username")} />
-        </div>
+      {/* Información personal */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Información personal</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-6 md:grid-cols-2">
+          {loading ? (
+            <>
+              <div className="h-10 bg-muted rounded animate-pulse md:col-span-2" />
+              <div className="h-10 bg-muted rounded animate-pulse" />
+              <div className="h-10 bg-muted rounded animate-pulse" />
+              <div className="h-10 bg-muted rounded animate-pulse" />
+              <div className="h-10 bg-muted rounded animate-pulse" />
+              <div className="h-10 bg-muted rounded animate-pulse" />
+              <div className="h-10 bg-muted rounded animate-pulse" />
+            </>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="nombre">Nombre</Label>
+                <Input id="nombre" value={perfil.nombre} readOnly />
+              </div>
 
-        <div className="space-y-2 md:col-span-2">
-          <Label htmlFor="correo">Correo</Label>
-          <Input id="correo" {...register("correo")} disabled />
-        </div>
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input id="username" value={perfil.username} readOnly />
+              </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="edad">Edad</Label>
-          <Input id="edad" type="number" {...register("edad")} />
-        </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="correo">Correo</Label>
+                <Input id="correo" value={perfil.correo} disabled />
+              </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="peso">Peso (kg)</Label>
-          <Input id="peso" type="number" step="0.1" {...register("peso")} />
-        </div>
+              <div className="space-y-2">
+                <Label htmlFor="edad">Edad</Label>
+                <Input id="edad" value={perfil.edad} readOnly />
+              </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="altura">Altura (cm)</Label>
-          <Input id="altura" type="number" step="0.1" {...register("altura")} />
-        </div>
+              <div className="space-y-2">
+                <Label htmlFor="peso">Peso (kg)</Label>
+                <Input id="peso" value={perfil.peso} readOnly />
+              </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="objetivo">Objetivo</Label>
-          <Input id="objetivo" {...register("objetivo")} />
-        </div>
+              <div className="space-y-2">
+                <Label htmlFor="altura">Altura (cm)</Label>
+                <Input id="altura" value={perfil.altura} readOnly />
+              </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="nivel_experiencia">Nivel</Label>
-          <Input id="nivel_experiencia" {...register("nivel_experiencia")} />
-        </div>
+              <div className="space-y-2">
+                <Label htmlFor="objetivo">Objetivo</Label>
+                <Input id="objetivo" value={perfil.objetivo} readOnly />
+              </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="sexo">Sexo</Label>
-          <Input id="sexo" {...register("sexo")} />
-        </div>
-      </CardContent>
-    </Card>
+              <div className="space-y-2">
+                <Label htmlFor="nivel_experiencia">Nivel</Label>
+                <Input id="nivel_experiencia" value={perfil.nivel_experiencia} readOnly />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="sexo">Sexo</Label>
+                <Input id="sexo" value={perfil.sexo} readOnly />
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
