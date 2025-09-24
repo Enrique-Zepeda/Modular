@@ -5,9 +5,10 @@ import rutinasReducer from "../features/routines/slices/rutinasSlice";
 
 // RTK Query APIs
 import { rutinasApi } from "../features/routines/api/rutinasApi";
-import { exercisesApi } from "../features/exercises/api/exercisesApi"; // <-- IMPORTANTE
+import { exercisesApi } from "../features/exercises/api/exercisesApi";
 import { dashboardApi } from "@/features/dashboard/api/dashboardApi";
 import { workoutsApi } from "@/features/workouts/api/workoutsApi";
+import { profileApi } from "@/features/settings/api/profileApi";
 
 import { setupListeners } from "@reduxjs/toolkit/query";
 
@@ -22,13 +23,15 @@ export const store = configureStore({
     [rutinasApi.reducerPath]: rutinasApi.reducer,
     [exercisesApi.reducerPath]: exercisesApi.reducer,
     [workoutsApi.reducerPath]: workoutsApi.reducer,
+    [profileApi.reducerPath]: profileApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
       dashboardApi.middleware,
       workoutsApi.middleware,
       rutinasApi.middleware,
-      exercisesApi.middleware
+      exercisesApi.middleware,
+      profileApi.middleware
     ),
 });
 

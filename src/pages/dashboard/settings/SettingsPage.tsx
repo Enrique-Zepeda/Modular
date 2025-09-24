@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { User, Image, Palette, Shield } from "lucide-react";
-import { AppearanceCard, AvatarUploader, ChangePasswordForm, ProfileFormUI } from "@/features/settings/components";
+import { AppearanceCard, AvatarUploader, ChangePasswordForm, Perfil } from "@/features/settings/components";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("profile");
@@ -44,7 +44,7 @@ export default function SettingsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ProfileFormUI />
+                <Perfil />
               </CardContent>
             </Card>
           </TabsContent>
