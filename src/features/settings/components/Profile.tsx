@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Check, Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
+
+import { canChangeUsername } from "@/features/settings/utils/checkUsername";
 import { AvatarUploader } from "./AvatarUploader";
 
 /* -------------------- Opciones en línea para los selects -------------------- */
@@ -51,7 +52,9 @@ const PerfilSchema = z.object({
 export function Perfil() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [justSaved, setJustSaved] = useState(false); // <-- NUEVO
+  const [justSaved, setJustSaved] = useState(false);
+  const [checkingUser, setCheckingUser] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState(null);
   const initialUsernameRef = useRef("");
 
   const {
@@ -59,7 +62,7 @@ export function Perfil() {
     handleSubmit,
     setValue,
     reset,
-    formState: { errors, isDirty },
+    formState: { errors },
     watch,
   } = useForm({
     resolver: zodResolver(PerfilSchema),
@@ -123,24 +126,42 @@ export function Perfil() {
     loadProfile();
   }, []);
 
-  /* ---------- Chequeo de disponibilidad de username (RPC existente) --------- */
-  const checkUsernameAvailability = async (candidate) => {
-    const current = (candidate ?? "").trim().toLowerCase();
-    const initial = (initialUsernameRef.current ?? "").trim().toLowerCase();
-    if (!current || current === initial) return { available: true };
+  /* --------- Botón/función para comprobar si se puede cambiar username ------- */
+  const handleCheckUsername = async () => {
+    try {
+      setCheckingUser(true);
+      setUsernameStatus(null);
+      const res = await canChangeUsername(initialUsernameRef.current, usernameWatch);
 
-    const { data, error } = await supabase.rpc("username_is_available", { p_username: current });
-    if (error) {
-      console.error(error);
-      toast.error("No se pudo verificar el username.");
-      return { available: false, reason: "rpc_error" };
+      if (res.reason === "empty") {
+        setUsernameStatus("empty");
+        toast.error("Escribe un username.");
+        return;
+      }
+
+      if (res.reason === "unchanged") {
+        setUsernameStatus("unchanged");
+        toast("Tu username actual ya es ese.");
+        return;
+      }
+
+      if (res.available) {
+        setUsernameStatus("available");
+        toast.success("Username disponible ✅");
+      } else if (res.reason === "rpc_error") {
+        setUsernameStatus("error");
+        toast.error("No se pudo verificar el username.");
+      } else {
+        setUsernameStatus("taken");
+        toast.error("Ese username ya está en uso.");
+      }
+    } catch (e) {
+      console.error(e);
+      setUsernameStatus("error");
+      toast.error("Error al comprobar el username.");
+    } finally {
+      setCheckingUser(false);
     }
-    return { available: !!data };
-  };
-
-  const onUsernameBlur = async () => {
-    const { available } = await checkUsernameAvailability(usernameWatch);
-    if (!available) toast.error("Ese username ya está en uso.");
   };
 
   /* ------------------------------ Guardar datos ----------------------------- */
@@ -148,9 +169,13 @@ export function Perfil() {
     try {
       setSaving(true);
 
-      // Validar username si cambió
-      const { available } = await checkUsernameAvailability(values.username);
-      if (!available) {
+      // Vuelve a validar antes de guardar
+      const res = await canChangeUsername(initialUsernameRef.current, values.username);
+      if (!res.canChange) {
+        if (res.reason === "taken") toast.error("Ese username ya está en uso.");
+        else if (res.reason === "empty") toast.error("Escribe un username válido.");
+        else toast.error("No se pudo verificar el username.");
+        setUsernameStatus(res.reason === "available" ? "available" : res.reason || "error");
         setSaving(false);
         return;
       }
@@ -183,13 +208,14 @@ export function Perfil() {
       if (error) {
         if (error.code === "23505") {
           toast.error("El username ya está en uso.");
+          setUsernameStatus("taken");
         } else {
           toast.error(error.message ?? "No se pudo guardar.");
         }
         return;
       }
 
-      // Sincroniza el form y muestra confirmaciones
+      // Sincroniza y feedback
       reset({
         nombre: data?.nombre ?? "",
         username: data?.username ?? "",
@@ -203,10 +229,11 @@ export function Perfil() {
         url_avatar: data?.url_avatar ?? "",
       });
       initialUsernameRef.current = data?.username ?? initialUsernameRef.current;
+      setUsernameStatus("available");
 
-      toast.success("Cambios guardados correctamente."); // toast visible
-      setJustSaved(true); // banner + botón “Guardado”
-      setTimeout(() => setJustSaved(false), 3000); // se oculta en 3s
+      toast.success("Cambios guardados correctamente.");
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 3000);
     } catch (err) {
       console.error(err);
       toast.error("Error al guardar los cambios.");
@@ -219,113 +246,193 @@ export function Perfil() {
     errors?.[field]?.message ? <p className="text-sm text-destructive mt-1">{String(errors[field].message)}</p> : null;
 
   return (
-    <div className="grid gap-6">
-      {/* Región aria-live para lectores de pantalla */}
+    <div className="grid gap-12">
+      {/* Región aria-live */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {justSaved ? "Cambios guardados correctamente." : ""}
       </div>
 
-      {/* Avatar unificado */}
-      <AvatarUploader
-        url={watch("url_avatar") || ""}
-        onUpdated={(newUrl) => setValue("url_avatar", newUrl, { shouldDirty: true })}
-      />
+      <div className="animate-slide-in">
+        <AvatarUploader
+          url={watch("url_avatar") || ""}
+          onUpdated={(newUrl) => setValue("url_avatar", newUrl, { shouldDirty: true })}
+        />
+      </div>
 
-      {/* Información personal */}
-      <Card>
-        <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-1">
-            <CardTitle>Información personal</CardTitle>
+      <Card className="glass-card border-0 premium-hover">
+        <CardHeader className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between pb-8">
+          <div className="space-y-3">
+            <CardTitle className="text-2xl font-bold">Información personal</CardTitle>
+            <p className="text-muted-foreground text-lg leading-relaxed">
+              Actualiza tu información personal y preferencias de entrenamiento
+            </p>
             {justSaved && (
-              <Alert className="mt-1 border-green-500/50">
-                <AlertTitle className="text-green-600">¡Guardado!</AlertTitle>
-                <AlertDescription>Los cambios se guardaron correctamente.</AlertDescription>
-              </Alert>
+              <div className="flex items-center gap-3 p-4 rounded-xl glass-effect border border-green-500/20 animate-scale-in">
+                <div className="status-dot status-available"></div>
+                <span className="text-base font-semibold text-green-400">¡Cambios guardados correctamente!</span>
+              </div>
             )}
           </div>
 
-          <Button onClick={handleSubmit(onSubmit)} disabled={saving || loading || (!isDirty && !justSaved)}>
+          <Button
+            onClick={handleSubmit(onSubmit)}
+            disabled={saving || loading}
+            className="premium-button min-w-40 h-12 bg-primary hover:bg-primary/90 text-primary-foreground shadow-xl text-base font-semibold px-8"
+          >
             {saving ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Guardando…
-              </>
-            ) : justSaved ? (
-              <>
-                <Check className="mr-2 h-4 w-4" /> Guardado
+                <Loader2 className="mr-3 h-5 w-5 animate-spin" /> Guardando…
               </>
             ) : (
-              "Guardar"
+              "Guardar cambios"
             )}
           </Button>
         </CardHeader>
 
-        <CardContent className="grid gap-6 md:grid-cols-2">
+        <CardContent className="grid gap-8 md:grid-cols-2 pt-0">
           {loading ? (
             <>
-              <div className="h-10 bg-muted rounded animate-pulse md:col-span-2" />
-              <div className="h-10 bg-muted rounded animate-pulse" />
-              <div className="h-10 bg-muted rounded animate-pulse" />
-              <div className="h-10 bg-muted rounded animate-pulse" />
-              <div className="h-10 bg-muted rounded animate-pulse" />
-              <div className="h-10 bg-muted rounded animate-pulse" />
-              <div className="h-10 bg-muted rounded animate-pulse" />
+              <div className="h-16 glass-effect rounded-xl animate-shimmer md:col-span-2" />
+              <div className="h-16 glass-effect rounded-xl animate-shimmer" />
+              <div className="h-16 glass-effect rounded-xl animate-shimmer" />
+              <div className="h-16 glass-effect rounded-xl animate-shimmer" />
+              <div className="h-16 glass-effect rounded-xl animate-shimmer" />
+              <div className="h-16 glass-effect rounded-xl animate-shimmer" />
+              <div className="h-16 glass-effect rounded-xl animate-shimmer" />
             </>
           ) : (
             <>
-              {/* Nombre */}
-              <div className="space-y-2">
-                <Label htmlFor="nombre">Nombre</Label>
-                <Input id="nombre" {...register("nombre")} />
+              <div className="space-y-4">
+                <Label htmlFor="nombre" className="text-base font-semibold">
+                  Nombre completo
+                </Label>
+                <Input
+                  id="nombre"
+                  {...register("nombre")}
+                  className="h-14 glass-input border-0 bg-transparent text-base placeholder:text-muted-foreground/60"
+                  placeholder="Ingresa tu nombre completo"
+                />
                 {renderError("nombre")}
               </div>
 
-              {/* Username */}
-              <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <Input id="username" {...register("username")} onBlur={onUsernameBlur} />
+              <div className="space-y-4">
+                <Label htmlFor="username" className="text-base font-semibold">
+                  Nombre de usuario
+                </Label>
+                <div className="flex gap-4">
+                  <Input
+                    id="username"
+                    {...register("username")}
+                    className="h-14 glass-input border-0 bg-transparent text-base placeholder:text-muted-foreground/60"
+                    placeholder="tu_username"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCheckUsername}
+                    disabled={checkingUser}
+                    className="h-14 px-6 glass-effect border-0 hover:glass-card premium-hover bg-transparent"
+                  >
+                    {checkingUser ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
+                  </Button>
+                </div>
+                {usernameStatus === "available" && (
+                  <div className="flex items-center gap-3 text-base text-green-400">
+                    <div className="status-dot status-available"></div>
+                    Disponible ✅
+                  </div>
+                )}
+                {usernameStatus === "taken" && (
+                  <div className="flex items-center gap-3 text-base text-destructive">
+                    <div className="status-dot status-error"></div>
+                    No disponible. Elige otro.
+                  </div>
+                )}
+                {usernameStatus === "unchanged" && (
+                  <div className="flex items-center gap-3 text-base text-muted-foreground">
+                    <div className="status-dot status-warning"></div>
+                    Es tu username actual.
+                  </div>
+                )}
                 {renderError("username")}
               </div>
 
-              {/* Correo (no editable) */}
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="correo">Correo</Label>
-                <Input id="correo" {...register("correo")} disabled />
+              <div className="space-y-4 md:col-span-2">
+                <Label htmlFor="correo" className="text-base font-semibold">
+                  Correo electrónico
+                </Label>
+                <Input
+                  id="correo"
+                  {...register("correo")}
+                  disabled
+                  className="h-14 glass-effect border-0 bg-transparent text-muted-foreground cursor-not-allowed opacity-60"
+                />
+                <p className="text-sm text-muted-foreground/80">
+                  El correo electrónico no se puede modificar por seguridad
+                </p>
               </div>
 
-              {/* Edad */}
-              <div className="space-y-2">
-                <Label htmlFor="edad">Edad</Label>
-                <Input id="edad" type="number" step="1" {...register("edad")} />
+              <div className="space-y-4">
+                <Label htmlFor="edad" className="text-base font-semibold">
+                  Edad
+                </Label>
+                <Input
+                  id="edad"
+                  type="number"
+                  step="1"
+                  {...register("edad")}
+                  className="h-14 glass-input border-0 bg-transparent text-base placeholder:text-muted-foreground/60"
+                  placeholder="25"
+                />
                 {renderError("edad")}
               </div>
 
-              {/* Peso */}
-              <div className="space-y-2">
-                <Label htmlFor="peso">Peso (kg)</Label>
-                <Input id="peso" type="number" step="0.1" {...register("peso")} />
+              <div className="space-y-4">
+                <Label htmlFor="peso" className="text-base font-semibold">
+                  Peso (kg)
+                </Label>
+                <Input
+                  id="peso"
+                  type="number"
+                  step="0.1"
+                  {...register("peso")}
+                  className="h-14 glass-input border-0 bg-transparent text-base placeholder:text-muted-foreground/60"
+                  placeholder="70.5"
+                />
                 {renderError("peso")}
               </div>
 
-              {/* Altura */}
-              <div className="space-y-2">
-                <Label htmlFor="altura">Altura (cm)</Label>
-                <Input id="altura" type="number" step="0.1" {...register("altura")} />
+              <div className="space-y-4">
+                <Label htmlFor="altura" className="text-base font-semibold">
+                  Altura (cm)
+                </Label>
+                <Input
+                  id="altura"
+                  type="number"
+                  step="0.1"
+                  {...register("altura")}
+                  className="h-14 glass-input border-0 bg-transparent text-base placeholder:text-muted-foreground/60"
+                  placeholder="175"
+                />
                 {renderError("altura")}
               </div>
 
-              {/* Objetivo */}
-              <div className="space-y-2">
-                <Label>Objetivo</Label>
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">Objetivo de entrenamiento</Label>
                 <Select
                   value={watch("objetivo") ?? ""}
                   onValueChange={(v) => setValue("objetivo", v, { shouldDirty: true })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger
+                    className="h-14 glass-input text-base bg-muted/20 hover:bg-muted/20
+             focus:bg-muted/20 border border-border/60
+             data-[placeholder]:text-muted-foreground"
+                  >
                     <SelectValue placeholder="Selecciona tu objetivo" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="glass-card border">
                     {OBJETIVO_OPTIONS.map((opt) => (
-                      <SelectItem key={opt} value={opt}>
+                      <SelectItem key={opt} value={opt} className="capitalize premium-hover text-base py-3">
                         {opt}
                       </SelectItem>
                     ))}
@@ -334,19 +441,22 @@ export function Perfil() {
                 {renderError("objetivo")}
               </div>
 
-              {/* Nivel de experiencia */}
-              <div className="space-y-2">
-                <Label>Nivel</Label>
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">Nivel de experiencia</Label>
                 <Select
                   value={watch("nivel_experiencia") ?? ""}
                   onValueChange={(v) => setValue("nivel_experiencia", v, { shouldDirty: true })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger
+                    className="h-14 glass-input text-base bg-muted/20 hover:bg-muted/20
+             focus:bg-muted/20 border border-border/60
+             data-[placeholder]:text-muted-foreground"
+                  >
                     <SelectValue placeholder="Selecciona tu nivel" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="glass-card border">
                     {NIVEL_OPTIONS.map((opt) => (
-                      <SelectItem key={opt} value={opt}>
+                      <SelectItem key={opt} value={opt} className="capitalize premium-hover text-base py-3">
                         {opt}
                       </SelectItem>
                     ))}
@@ -355,16 +465,19 @@ export function Perfil() {
                 {renderError("nivel_experiencia")}
               </div>
 
-              {/* Sexo */}
-              <div className="space-y-2">
-                <Label>Sexo</Label>
+              <div className="space-y-4">
+                <Label className="text-base font-semibold">Sexo</Label>
                 <Select value={watch("sexo") ?? ""} onValueChange={(v) => setValue("sexo", v, { shouldDirty: true })}>
-                  <SelectTrigger>
+                  <SelectTrigger
+                    className="h-14 glass-input text-base bg-muted/20 hover:bg-muted/20
+             focus:bg-muted/20 border border-border/60
+             data-[placeholder]:text-muted-foreground"
+                  >
                     <SelectValue placeholder="Selecciona tu sexo" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="glass-card border">
                     {SEX_OPTIONS.map((opt) => (
-                      <SelectItem key={opt} value={opt}>
+                      <SelectItem key={opt} value={opt} className="capitalize premium-hover text-base py-3">
                         {opt}
                       </SelectItem>
                     ))}

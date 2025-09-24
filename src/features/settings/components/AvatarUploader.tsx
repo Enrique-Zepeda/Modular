@@ -104,16 +104,28 @@ export function AvatarUploader({ url, onUpdated }) {
   );
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Foto de perfil</CardTitle>
+    <Card className="border border-border/50 bg-gradient-to-r from-card/50 to-card/30 backdrop-blur-sm">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg font-semibold">Foto de perfil</CardTitle>
+        <p className="text-sm text-muted-foreground">Sube una imagen para personalizar tu perfil</p>
       </CardHeader>
-      <CardContent className="flex items-center gap-6">
-        <Avatar className="h-20 w-20">
-          {url ? <AvatarImage src={url} alt="Avatar" loading="lazy" /> : <AvatarFallback>{fallback}</AvatarFallback>}
-        </Avatar>
+      <CardContent className="flex items-center gap-8 pt-0">
+        <div className="relative">
+          <Avatar className="h-24 w-24 border-4 border-primary/20 shadow-lg">
+            {url ? (
+              <AvatarImage src={url || "/placeholder.svg"} alt="Avatar" loading="lazy" className="object-cover" />
+            ) : (
+              <AvatarFallback className="bg-primary/10 text-primary text-xl font-semibold">{fallback}</AvatarFallback>
+            )}
+          </Avatar>
+          {url && (
+            <div className="absolute -bottom-1 -right-1 h-6 w-6 bg-green-500 border-2 border-background rounded-full flex items-center justify-center">
+              <div className="h-2 w-2 bg-white rounded-full"></div>
+            </div>
+          )}
+        </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-4">
           <Label htmlFor="avatar-file" className="sr-only">
             Subir avatar
           </Label>
@@ -125,11 +137,34 @@ export function AvatarUploader({ url, onUpdated }) {
             className="hidden"
             onChange={onFileChange}
           />
-          <Button type="button" onClick={handleSelectClick} disabled={uploading} className="w-fit">
-            {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-            {uploading ? "Subiendo..." : "Cambiar foto"}
+
+          <Button
+            type="button"
+            onClick={handleSelectClick}
+            disabled={uploading}
+            className="h-12 px-6 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg transition-all duration-200 min-w-40"
+          >
+            {uploading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Subiendo...
+              </>
+            ) : (
+              <>
+                <Upload className="mr-2 h-4 w-4" />
+                Cambiar foto
+              </>
+            )}
           </Button>
-          <p className="text-xs text-muted-foreground">Formatos: JPG, PNG o WEBP. Máx. 5MB.</p>
+
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">
+              <strong>Formatos permitidos:</strong> JPG, PNG o WEBP
+            </p>
+            <p className="text-xs text-muted-foreground">
+              <strong>Tamaño máximo:</strong> 5MB
+            </p>
+          </div>
         </div>
       </CardContent>
     </Card>

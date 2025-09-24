@@ -7,8 +7,7 @@ import { z } from "zod";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, LogOut } from "lucide-react";
+import { Shield, LogOut, Loader2 } from "lucide-react";
 import { passwordSchema } from "@/lib/validations/schemas/passwordSchema";
 import { supabase } from "@/lib/supabase/client";
 import { useAppDispatch } from "@/hooks/useStore";
@@ -83,62 +82,97 @@ export function ChangePasswordForm() {
   };
 
   return (
-    <div className="space-y-6">
-      <Alert>
-        <Shield className="h-4 w-4" />
-        <AlertDescription>
-          Por seguridad, cerraremos tu sesión después de cambiar la contraseña. Tendrás que iniciar sesión nuevamente.
-        </AlertDescription>
-      </Alert>
+    <div className="space-y-8">
+      <div className="flex items-start gap-4 p-4 rounded-xl bg-blue-500/5 border border-blue-500/20 backdrop-blur-sm">
+        <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 mt-0.5">
+          <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+        </div>
+        <div className="space-y-1">
+          <h4 className="font-semibold text-blue-900 dark:text-blue-100">Información de seguridad</h4>
+          <p className="text-sm text-blue-800 dark:text-blue-200">
+            Por seguridad, cerraremos tu sesión después de cambiar la contraseña. Tendrás que iniciar sesión nuevamente.
+          </p>
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="currentPassword">Contraseña actual</Label>
+        <div className="space-y-3">
+          <Label htmlFor="currentPassword" className="text-sm font-medium">
+            Contraseña actual
+          </Label>
           <Input
             id="currentPassword"
             type="password"
             placeholder="Ingresa tu contraseña actual"
             {...register("currentPassword")}
-            className={errors.currentPassword ? "border-destructive" : ""}
+            className={`h-12 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all duration-200 ${
+              errors.currentPassword ? "border-destructive/50 focus:border-destructive" : ""
+            }`}
           />
           {errors.currentPassword && (
-            <p className="text-xs text-destructive font-medium">{errors.currentPassword.message}</p>
+            <p className="text-xs text-destructive font-medium flex items-center gap-2">
+              <div className="h-1 w-1 rounded-full bg-destructive"></div>
+              {errors.currentPassword.message}
+            </p>
           )}
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="password">Nueva contraseña</Label>
+        <div className="space-y-3">
+          <Label htmlFor="password" className="text-sm font-medium">
+            Nueva contraseña
+          </Label>
           <Input
             id="password"
             type="password"
             placeholder="Ingresa tu nueva contraseña"
             {...register("password")}
-            className={errors.password ? "border-destructive" : ""}
+            className={`h-12 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all duration-200 ${
+              errors.password ? "border-destructive/50 focus:border-destructive" : ""
+            }`}
           />
-          {errors.password && <p className="text-xs text-destructive font-medium">{errors.password.message}</p>}
+          {errors.password && (
+            <p className="text-xs text-destructive font-medium flex items-center gap-2">
+              <div className="h-1 w-1 rounded-full bg-destructive"></div>
+              {errors.password.message}
+            </p>
+          )}
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Confirmar nueva contraseña</Label>
+        <div className="space-y-3">
+          <Label htmlFor="confirmPassword" className="text-sm font-medium">
+            Confirmar nueva contraseña
+          </Label>
           <Input
             id="confirmPassword"
             type="password"
             placeholder="Confirma tu nueva contraseña"
             {...register("confirmPassword")}
-            className={errors.confirmPassword ? "border-destructive" : ""}
+            className={`h-12 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 transition-all duration-200 ${
+              errors.confirmPassword ? "border-destructive/50 focus:border-destructive" : ""
+            }`}
           />
           {errors.confirmPassword && (
-            <p className="text-xs text-destructive font-medium">{errors.confirmPassword.message}</p>
+            <p className="text-xs text-destructive font-medium flex items-center gap-2">
+              <div className="h-1 w-1 rounded-full bg-destructive"></div>
+              {errors.confirmPassword.message}
+            </p>
           )}
         </div>
 
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isSubmitting} className="flex items-center gap-2 min-w-32">
+        <div className="flex justify-end pt-4">
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="h-12 px-8 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg transition-all duration-200 min-w-48"
+          >
             {isSubmitting ? (
-              "Cambiando..."
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Cambiando contraseña...
+              </>
             ) : (
               <>
-                <LogOut className="h-4 w-4" />
+                <LogOut className="mr-2 h-4 w-4" />
                 Cambiar contraseña
               </>
             )}
