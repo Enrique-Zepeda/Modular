@@ -1,11 +1,8 @@
-import { useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Trash2, Image as ImageIcon } from "lucide-react";
-import { toast } from "react-hot-toast";
-
-// ⬇️ shadcn AlertDialog (reutilizado de tu proyecto)
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,185 +12,201 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import type { WorkoutListItem } from "../api/workoutsApi";
+import { cn } from "@/lib/utils";
+import { CalendarDays, Trash2 } from "lucide-react";
+import { useDeleteWorkoutSessionMutation } from "@/features/workouts/api/workoutsApi";
+import toast from "react-hot-toast";
 
-type Props = {
-  workout: WorkoutListItem;
-  onDelete?: (id_sesion: number) => Promise<void> | void;
+type ExerciseItem = {
+  id?: number | string | null;
+  nombre?: string | null;
+  grupo_muscular?: string | null;
+  equipamento?: string | null;
+  ejemplo?: string | null; // URL de imagen
+  sets_done?: number | null;
+  volume?: number | string | null;
 };
 
-function fmtDate(dt: string | null | undefined) {
-  if (!dt) return "—";
-  const d = new Date(dt);
-  return d.toLocaleString();
-}
+type Props = {
+  idSesion: number;
+  titulo: string;
+  startedAt: string;
+  endedAt: string;
+  totalSets: number;
+  totalVolume: number;
+  username?: string;
+  avatarUrl?: string;
+  ejercicios?: ExerciseItem[];
+  className?: string;
+};
 
-export function WorkoutCard({ workout, onDelete }: Props) {
-  const totalSets = workout.sets?.length ?? 0;
-  const doneSets = workout.sets?.filter((s) => s.done).length ?? 0;
+/** Formatea "YYYY-MM-DD ..." a "DD/MM/YYYY" sin parsers ni cambios de zona */
+const formatAsDMY = (ts?: string) => {
+  if (!ts) return "";
+  const m = ts.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return ts;
+  const [, y, mo, d] = m;
+  return `${d}/${mo}/${y}`;
+};
 
-  // Agrupar sets HECHOS por ejercicio (para imagen única + series en vertical)
-  const groups = useMemo(() => {
-    const map = new Map<
-      number,
-      {
-        id: number;
-        nombre: string | null | undefined;
-        imagen: string | null | undefined;
-        sets: { idx: number; kg: number; reps: number }[];
-      }
-    >();
+/** Extrae HH:MM del string y lo muestra en 12h con AM/PM, sin conversión de zona */
+const formatHourAmPm = (ts?: string) => {
+  if (!ts) return "";
+  const m = ts.match(/^[\d-]+[ T](\d{2}):(\d{2})/);
+  if (!m) return "";
+  const hh = parseInt(m[1], 10);
+  const mm = m[2];
+  const suffix = hh >= 12 ? "PM" : "AM";
+  const h12 = ((hh + 11) % 12) + 1;
+  return `${h12}:${mm} ${suffix}`;
+};
 
-    (workout.sets ?? [])
-      .filter((s) => s.done)
-      .forEach((s) => {
-        const exId = s.id_ejercicio;
-        const g = map.get(exId) ?? {
-          id: exId,
-          nombre: s.Ejercicios?.nombre,
-          imagen: s.Ejercicios?.ejemplo,
-          sets: [],
-        };
-        g.sets.push({ idx: s.idx, kg: s.kg, reps: s.reps });
-        map.set(exId, g);
-      });
+export function WorkoutCard({
+  idSesion,
+  titulo,
+  startedAt,
+  endedAt,
+  totalSets,
+  totalVolume,
+  username = "Usuario",
+  avatarUrl,
+  ejercicios = [],
+  className,
+}: Props) {
+  const endTs = endedAt || startedAt;
+  const dateLabel = formatAsDMY(endTs);
+  const timeLabel = formatHourAmPm(endTs);
 
-    const arr = Array.from(map.values());
+  const initials = (username || "U")
+    .split(" ")
+    .map((s) => s[0]?.toUpperCase())
+    .slice(0, 2)
+    .join("");
 
-    // 1) Si la sesión trae un exercise_order (opcional), úsalo:
-    const exerciseOrder = (workout as any).exercise_order as { id_ejercicio: number; orden: number }[] | undefined;
+  const [openConfirm, setOpenConfirm] = useState(false);
+  const [deleteWorkout, { isLoading: deleting }] = useDeleteWorkoutSessionMutation();
 
-    const orderMap = new Map((exerciseOrder ?? []).map((o) => [o.id_ejercicio, o.orden]));
-
-    // 2) Si no hay exercise_order, usa el orden de PRIMERA APARICIÓN en los sets
-    const firstIdx = new Map<number, number>();
-    (workout.sets ?? []).forEach((s: any, i: number) => {
-      if (!firstIdx.has(s.id_ejercicio)) firstIdx.set(s.id_ejercicio, i);
-    });
-
-    // 3) Orden final de ejercicios en la tarjeta
-    arr.sort((a, b) => {
-      const ao = orderMap.size ? orderMap.get(a.id) ?? 999999 : firstIdx.get(a.id) ?? 999999;
-      const bo = orderMap.size ? orderMap.get(b.id) ?? 999999 : firstIdx.get(b.id) ?? 999999;
-      return ao - bo || a.id - b.id; // tie-breaker estable
-    });
-
-    // 4) Dentro de cada ejercicio, ordena las series por idx
-    arr.forEach((g) => g.sets.sort((s1, s2) => s1.idx - s2.idx));
-    return arr;
-  }, [workout]);
-
-  // Estado del diálogo y loading del borrado
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  async function confirmDelete() {
-    if (!onDelete) return;
+  const handleDelete = async () => {
     try {
-      setDeleting(true);
-      await onDelete(workout.id_sesion);
-      setConfirmOpen(false);
+      await deleteWorkout({ id_sesion: idSesion }).unwrap();
       toast.success("Entrenamiento eliminado");
-    } catch (e) {
-      console.error(e);
-      toast.error("No se pudo eliminar el entrenamiento");
+    } catch (e: any) {
+      toast.error(e?.message ?? "No se pudo eliminar");
     } finally {
-      setDeleting(false);
+      setOpenConfirm(false);
     }
-  }
+  };
 
   return (
-    <Card>
-      <CardHeader className="flex-row items-center justify-between gap-4">
-        <div>
-          <CardTitle className="text-base">{workout.Rutinas?.nombre ?? "Entrenamiento"}</CardTitle>
-          <div className="text-xs text-muted-foreground">
-            {fmtDate(workout.ended_at)} • {Math.max(0, workout.duracion_seg ?? 0)} s
+    <Card
+      className={cn(
+        "bg-card text-card-foreground rounded-2xl border border-border shadow-sm transition-shadow hover:shadow-lg",
+        className
+      )}
+    >
+      <CardHeader className="pb-0">
+        <div className="flex items-center justify-between">
+          {/* Usuario + fecha */}
+          <div className="flex items-center gap-3">
+            <Avatar className="h-9 w-9 ring-1 ring-border">
+              {avatarUrl ? <AvatarImage src={avatarUrl} alt={username} /> : <AvatarFallback>{initials}</AvatarFallback>}
+            </Avatar>
+            <div className="leading-tight">
+              <div className="text-sm font-medium">{username}</div>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <CalendarDays className="h-3.5 w-3.5" />
+                <span>
+                  {dateLabel}
+                  {timeLabel ? ` · ${timeLabel}` : ""}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Badges + botón de eliminar (sin menú de 3 puntos) */}
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="rounded-full px-2.5 py-1 text-xs font-medium">
+              Sets: {totalSets}
+            </Badge>
+            <Badge className="rounded-full px-2.5 py-1 text-xs font-medium">
+              Volumen: {Intl.NumberFormat("es-MX").format(totalVolume)} kg
+            </Badge>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setOpenConfirm(true)}
+              aria-label="Eliminar entrenamiento"
+              title="Eliminar entrenamiento"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
         </div>
 
-        {/* Botón que abre el diálogo de confirmación */}
-        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-          <AlertDialogTrigger asChild>
-            <Button variant="ghost" size="icon" title="Eliminar entrenamiento">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </AlertDialogTrigger>
-
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>¿Eliminar este entrenamiento?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Esta acción no se puede deshacer. Se borrarán la sesión y sus sets asociados.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                disabled={deleting}
-                onClick={confirmDelete}
-              >
-                {deleting ? "Eliminando..." : "Eliminar"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <h3 className="mt-4 text-lg font-semibold">{titulo}</h3>
       </CardHeader>
 
-      <CardContent className="space-y-3">
-        <div className="flex flex-wrap gap-4 text-sm">
-          <span>
-            Volumen: <strong>{(workout.total_volumen ?? 0).toLocaleString()} kg</strong>
-          </span>
-          <span>
-            Sets:{" "}
-            <strong>
-              {doneSets}/{totalSets}
-            </strong>
-          </span>
-          {workout.sensacion_global && <span>🤔 {workout.sensacion_global}</span>}
-        </div>
-
-        <Separator />
-
-        {/* Resumen por ejercicio (imagen única + series enumeradas en vertical) */}
-        <div className="space-y-3">
-          {groups.length === 0 && <div className="text-sm text-muted-foreground">No hay sets completados.</div>}
-
-          {groups.map((g) => (
-            <div key={g.id} className="rounded-md border p-3">
-              <div className="flex items-center gap-3 mb-2">
-                {g.imagen ? (
+      <CardContent className="pt-4">
+        {ejercicios && ejercicios.length > 0 ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {ejercicios.map((ex, idx) => (
+              <div
+                key={(ex.id ?? idx)?.toString()}
+                className="flex items-start gap-3 rounded-2xl border border-border bg-muted/40 p-3"
+              >
+                {/* Imagen del ejercicio */}
+                {ex.ejemplo ? (
                   <img
-                    src={g.imagen}
-                    alt={g.nombre ?? `Ejercicio #${g.id}`}
-                    className="h-10 w-10 rounded-md object-cover border"
-                    onError={(e) => ((e.currentTarget.src = ""), (e.currentTarget.alt = "Sin imagen"))}
+                    src={ex.ejemplo}
+                    alt={ex.nombre ?? "Ejercicio"}
+                    className="h-10 w-10 rounded-xl object-cover ring-1 ring-border"
+                    loading="lazy"
                   />
                 ) : (
-                  <div className="h-10 w-10 grid place-items-center rounded-md border">
-                    <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                  </div>
+                  <div className="h-10 w-10 rounded-xl bg-muted ring-1 ring-border" />
                 )}
-                <div className="text-sm font-medium">{g.nombre ?? `Ejercicio #${g.id}`}</div>
-              </div>
 
-              <ul className="space-y-1 pl-1">
-                {g.sets.map((s) => (
-                  <li key={s.idx} className="text-sm tabular-nums">
-                    <span className="text-muted-foreground mr-1">Serie {s.idx}:</span>
-                    {s.kg} kg × {s.reps} reps
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium">{ex.nombre ?? "Ejercicio"}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {ex.sets_done ? `${ex.sets_done} sets` : ex.grupo_muscular || "—"}
+                    {ex.volume ? ` · ${Intl.NumberFormat("es-MX").format(Number(ex.volume))} kg` : ""}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+            Los ejercicios se mostrarán aquí cuando estén disponibles.
+          </div>
+        )}
       </CardContent>
+
+      {/* Diálogo de confirmación */}
+      <AlertDialog open={openConfirm} onOpenChange={setOpenConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar entrenamiento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará la sesión y sus sets asociados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Eliminando…" : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

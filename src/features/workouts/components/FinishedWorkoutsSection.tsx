@@ -1,67 +1,49 @@
 import { useMemo } from "react";
+import { useGetFinishedWorkoutsRichQuery } from "@/features/workouts/api/workoutsApi";
+import { parseVolume } from "@/types/workouts";
 import { Loader2 } from "lucide-react";
 import { WorkoutCard } from "./WorkoutCard";
-import { useDeleteWorkoutSessionMutation, useListUserWorkoutsQuery } from "../api/workoutsApi";
 
-/** Agrupa por fecha (YYYY-MM-DD) usando ended_at; si no hay, usa started_at */
-function groupByDay(items: ReturnType<typeof useListUserWorkoutsQuery>["data"] | undefined) {
-  const groups = new Map<string, typeof items>();
-  (items ?? []).forEach((w) => {
-    const keySrc = w.ended_at ?? w.started_at;
-    const d = new Date(keySrc);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(
-      2,
-      "0"
-    )}`;
-    const arr = groups.get(key) ?? [];
-    arr.push(w);
-    groups.set(key, arr);
-  });
-  // ordenar keys recientes -> antiguas
-  const ordered = Array.from(groups.entries()).sort(([a], [b]) => (a > b ? -1 : 1));
-  return ordered;
-}
+type Props = { limit?: number };
 
-export function FinishedWorkoutsSection() {
-  const { data, isLoading } = useListUserWorkoutsQuery();
-  const [deleteWorkout] = useDeleteWorkoutSessionMutation();
+export function FinishedWorkoutsSection({ limit = 20 }: Props) {
+  const { data, isLoading, isFetching, error } = useGetFinishedWorkoutsRichQuery({ limit });
 
-  const grouped = useMemo(() => groupByDay(data), [data]);
+  const workouts = useMemo(() => data ?? [], [data]);
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        Cargando entrenamientos...
+      <div className="flex items-center justify-center py-10 text-muted-foreground">
+        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+        Cargando entrenamientos…
       </div>
     );
   }
 
-  if (!data || data.length === 0) {
-    return <div className="text-sm text-muted-foreground">Aún no hay entrenamientos finalizados.</div>;
+  if (error) {
+    return <p className="text-destructive">No se pudieron cargar los entrenamientos.</p>;
   }
 
   return (
-    <div className="space-y-6">
-      {grouped.map(([day, items]) => {
-        const human = new Date(items![0]!.ended_at ?? items![0]!.started_at).toLocaleDateString();
-        return (
-          <section key={day} className="space-y-3">
-            <h3 className="text-sm font-medium text-muted-foreground">{human}</h3>
-            <div className="grid gap-3">
-              {items!.map((w) => (
-                <WorkoutCard
-                  key={w.id_sesion}
-                  workout={w}
-                  onDelete={async (id) => {
-                    await deleteWorkout({ id_sesion: id }).unwrap();
-                  }}
-                />
-              ))}
-            </div>
-          </section>
-        );
-      })}
-    </div>
+    <section aria-label="Entrenamientos recientes" className="mt-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        {workouts.map((w) => (
+          <WorkoutCard
+            key={w.id_sesion}
+            idSesion={w.id_sesion}
+            titulo={w.titulo}
+            endedAt={w.ended_at}
+            startedAt={w.started_at}
+            totalSets={w.total_sets}
+            totalVolume={parseVolume(w.total_volume)}
+            username={w.username ?? "Usuario"}
+            avatarUrl={w.url_avatar ?? undefined}
+            ejercicios={w.ejercicios as any}
+          />
+        ))}
+      </div>
+
+      {isFetching && <div className="mt-4 text-xs text-muted-foreground">Actualizando…</div>}
+    </section>
   );
 }
