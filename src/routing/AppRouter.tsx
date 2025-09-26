@@ -10,6 +10,9 @@ import WorkoutLivePage from "@/pages/dashboard/workouts/WorkoutLivePage";
 import OnboardingPage from "@/pages/auth/OnboardingPage";
 import ProtectedRoute from "./ProtectedRoutes/ProtectedRoute";
 
+
+import RecomendacionPage from "@/pages/RecomendacionPage";
+
 export default function AppRouter() {
   return (
     <Routes>
@@ -49,6 +52,16 @@ export default function AppRouter() {
       />
 
       {/* Dashboard con layout persistente */}
+      <Route
+        path="/recomendacion"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <RecomendacionPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/dashboard"
         element={
