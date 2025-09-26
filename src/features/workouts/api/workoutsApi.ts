@@ -50,7 +50,6 @@ export type WorkoutListItem = {
 export const workoutsApi = createApi({
   reducerPath: "workoutsApi",
   baseQuery: fakeBaseQuery(),
-  // 👇 importante: incluir ambos tagTypes usados abajo
   tagTypes: ["Workouts", "FinishedWorkouts"],
   endpoints: (builder) => ({
     createWorkoutSession: builder.mutation<CreateWorkoutResult, CreateWorkoutInput>({
@@ -77,17 +76,16 @@ export const workoutsApi = createApi({
         try {
           await queryFulfilled;
         } finally {
-          // 👇 refrescar KPIs del dashboard
           dispatch(dashboardApi.util.invalidateTags([{ type: "Kpis", id: "MONTH" }]));
         }
       },
     }),
 
-    /** Entrenamientos finalizados del usuario actual (filtra sets done y adjunta perfil) */
+    /** Entrenamientos finalizados (solo sets done) + perfil + nombre real de la rutina */
     getFinishedWorkoutsRich: builder.query<FinishedWorkoutRich[], { limit?: number; offset?: number }>({
       async queryFn({ limit = 20, offset = 0 }) {
         try {
-          // 1) Sesiones finalizadas (sin vista)
+          // 1) Sesiones finalizadas
           const sesRes = await supabase
             .from("Entrenamientos")
             .select("id_sesion, id_rutina, owner_uid, started_at, ended_at, sensacion_global")
@@ -99,22 +97,33 @@ export const workoutsApi = createApi({
           const sesiones = sesRes.data ?? [];
           if (sesiones.length === 0) return { data: [] };
 
-          const ids = sesiones.map((s) => s.id_sesion);
+          const sesionIds = sesiones.map((s) => s.id_sesion);
+          const rutinaIds = Array.from(new Set(sesiones.map((s) => s.id_rutina).filter((x): x is number => x != null)));
+          const ownerUids = Array.from(new Set(sesiones.map((s) => s.owner_uid)));
 
           // 1.b) Perfiles para username/avatar
-          const ownerUids = Array.from(new Set(sesiones.map((s) => s.owner_uid)));
           const perfRes = await supabase
             .from("Usuarios")
             .select("auth_uid, username, url_avatar")
             .in("auth_uid", ownerUids);
-
           if (perfRes.error) throw perfRes.error;
+
           const profileByUid = new Map<string, { username: string | null; url_avatar: string | null }>();
           for (const p of perfRes.data ?? []) {
             profileByUid.set(p.auth_uid, {
               username: p.username ?? null,
               url_avatar: p.url_avatar ?? null,
             });
+          }
+
+          // 1.c) Nombres de rutinas
+          let rutinaById = new Map<number, string | null>();
+          if (rutinaIds.length > 0) {
+            const rutRes = await supabase.from("Rutinas").select("id_rutina, nombre").in("id_rutina", rutinaIds);
+            if (rutRes.error) throw rutRes.error;
+            rutinaById = new Map<number, string | null>(
+              (rutRes.data ?? []).map((r) => [r.id_rutina as number, (r.nombre as string) ?? null])
+            );
           }
 
           // 2) SOLO sets completados + info de ejercicio
@@ -131,9 +140,8 @@ export const workoutsApi = createApi({
               Ejercicios:Ejercicios ( id, nombre, grupo_muscular, equipamento, ejemplo )
             `
             )
-            .in("id_sesion", ids)
+            .in("id_sesion", sesionIds)
             .eq("done", true);
-
           if (setsRes.error) throw setsRes.error;
 
           const sets = (setsRes.data ?? []) as Array<{
@@ -179,17 +187,18 @@ export const workoutsApi = createApi({
           const bySesion = new Map<number, FinishedWorkoutRich>();
           for (const s of sesiones) {
             const prof = profileByUid.get(s.owner_uid) ?? { username: null, url_avatar: null };
+            const titulo = rutinaById.get(s.id_rutina as number) ?? "Entrenamiento"; // ✅ nombre real de la rutina
             bySesion.set(s.id_sesion, {
               id_sesion: s.id_sesion,
               id_rutina: s.id_rutina ?? null,
               owner_uid: s.owner_uid,
               started_at: s.started_at,
               ended_at: s.ended_at!,
-              total_sets: 0, // si lo usas en UI, representa sets done
+              total_sets: 0, // sets done
               total_volume: 0,
-              titulo: "Entrenamiento",
-              username: prof.username, // ✅ vuelve username
-              url_avatar: prof.url_avatar, // ✅ vuelve avatar
+              titulo, // ✅
+              username: prof.username,
+              url_avatar: prof.url_avatar,
               ejercicios: [],
               sensacion_final: s.sensacion_global ?? null,
             });
@@ -277,7 +286,7 @@ export const workoutsApi = createApi({
         const rpc = await supabase.rpc("delete_workout_session", { p_id_sesion: id_sesion });
         if (!rpc.error) return { data: { success: true } };
 
-        // fallback: borrar manualmente por si el RPC no existe en tu entorno
+        // fallback por si el RPC no existe en tu entorno
         const { error: sErr } = await supabase.from("EntrenamientoSets").delete().eq("id_sesion", id_sesion);
         if (sErr) return { error: sErr };
         const { error: eErr } = await supabase.from("Entrenamientos").delete().eq("id_sesion", id_sesion);
@@ -290,7 +299,10 @@ export const workoutsApi = createApi({
         { type: "FinishedWorkouts", id: "LIST" },
       ],
       async onQueryStarted({ id_sesion }, { dispatch, queryFulfilled }) {
-        // Optimista: quitar de la lista "clásica"
+        // Invalida KPIs inmediatamente
+        dispatch(dashboardApi.util.invalidateTags([{ type: "Kpis", id: "MONTH" }]));
+
+        // Optimista: quitar de lista clásica si la tienes montada
         const patch = dispatch(
           workoutsApi.util.updateQueryData("listUserWorkouts", undefined, (draft) => {
             const i = draft.findIndex((w) => w.id_sesion === id_sesion);
@@ -301,7 +313,6 @@ export const workoutsApi = createApi({
           await queryFulfilled;
         } catch {
           patch.undo();
-        } finally {
           dispatch(dashboardApi.util.invalidateTags([{ type: "Kpis", id: "MONTH" }]));
         }
       },

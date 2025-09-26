@@ -1,9 +1,32 @@
+import { useEffect } from "react";
 import { useGetDashboardKpisQuery } from "@/features/dashboard/api/dashboardApi";
 import { Target, Calendar, TrendingUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useDeleteWorkoutSessionMutation } from "@/features/workouts/api/workoutsApi";
 
 export function DashboardKpis() {
-  const { data, isLoading, isError } = useGetDashboardKpisQuery();
+  // ✅ Hacemos que el query sea más reactivo ante invalidaciones
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch, // lo usaremos para refrescar manualmente
+    isFetching, // opcional: por si quieres mostrar un mini loader
+  } = useGetDashboardKpisQuery(undefined, {
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+    // Si tu dashboardApi tiene providesTags([{type: "Kpis", id: "MONTH"}]),
+    // se re-fetcherá automáticamente cuando invalidemos ese tag desde el delete.
+  });
+
+  // Tomamos el estado de la mutación de borrado. Si el delete se dispara desde
+  // este mismo componente, esto capturará el éxito y forzará un refetch inmediato.
+  const [deleteWorkout, { isSuccess: delOk }] = useDeleteWorkoutSessionMutation();
+
+  // ✅ Refresco inmediato al completar un borrado iniciado aquí
+  useEffect(() => {
+    if (delOk) refetch();
+  }, [delOk, refetch]);
 
   if (isLoading) {
     return (
@@ -61,13 +84,13 @@ export function DashboardKpis() {
           <div className="space-y-3">
             <h3 className="text-xl font-bold text-destructive">Error al cargar métricas</h3>
             <p className="text-sm text-destructive/80 leading-relaxed max-w-md">
-              No se pudieron cargar las métricas del dashboard. Verifica tu conexión e intenta recargar la página.
+              No se pudieron cargar las métrricas del dashboard. Verifica tu conexión e intenta recargar la página.
             </p>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className="mt-4 rounded-xl bg-gradient-to-r from-destructive/10 to-destructive/5 px-6 py-3 text-sm font-semibold text-destructive transition-all duration-200 hover:from-destructive/20 hover:to-destructive/10 hover:shadow-lg"
-              onClick={() => window.location.reload()}
+              onClick={() => refetch()}
             >
               Reintentar carga
             </motion.button>
