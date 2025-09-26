@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useGetFinishedWorkoutsRichQuery } from "@/features/workouts/api/workoutsApi";
 import { parseVolume, type FinishedWorkoutRich } from "@/types/workouts";
-import { Loader2, Activity, Sparkles } from "lucide-react";
+import { Loader2, Activity } from "lucide-react";
 import { WorkoutCard } from "./WorkoutCard";
 import { groupWorkoutsByDay } from "@/features/workouts/utils/groupByDay";
 import { motion, AnimatePresence } from "framer-motion";
