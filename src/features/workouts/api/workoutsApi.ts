@@ -87,7 +87,7 @@ export const workoutsApi = createApi({
     getFinishedWorkoutsRich: builder.query<FinishedWorkoutRich[], { limit?: number; offset?: number }>({
       async queryFn({ limit = 20, offset = 0 }) {
         const { data, error } = await supabase
-          .from("v_finished_workouts")
+          .from("v_finished_workouts_with_label") // ← antes: v_finished_workouts
           .select("*")
           .order("ended_at", { ascending: false })
           .range(offset, offset + limit - 1);

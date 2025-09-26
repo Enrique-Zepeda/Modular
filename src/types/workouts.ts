@@ -20,6 +20,7 @@ export interface FinishedWorkoutRich {
   username: string | null;
   url_avatar: string | null;
   ejercicios?: FinishedWorkoutExercise[];
+  sensacion_final?: string | null;
 }
 
 export const parseVolume = (v: number | string | null | undefined) => {
