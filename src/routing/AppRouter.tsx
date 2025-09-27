@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { PublicRoute } from "./PublicRoutes/PublicRoute";
 import { AuthCallbackPage, LoginPage, RegisterPage, ResetPasswordPage } from "../pages/auth";
 import { DashboardLayout } from "@/components/dashboard";
-import DashboardPage from "@/pages/dashboard/DashboardPage";
+
 import { RoutineBuilderPage, RoutineDetailPage, RoutinesPage } from "@/pages/dashboard/routines";
 import SettingsPage from "@/pages/dashboard/settings/SettingsPage";
 import { ExerciseListPage } from "@/features/exercises";
@@ -11,6 +11,7 @@ import OnboardingPage from "@/pages/auth/OnboardingPage";
 import ProtectedRoute from "./ProtectedRoutes/ProtectedRoute";
 import FriendsPage from "@/pages/friends/FriendsPage";
 import NotificationsPage from "@/pages/dashboard/settings/NotificationsPage";
+import { DashboardPage } from "@/pages/dashboard/DashboardPage";
 
 /** ✅ NUEVO: FriendsPage */
 

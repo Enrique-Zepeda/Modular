@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,7 +14,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { CalendarDays, Trash2, TrendingUp, Dumbbell, Heart, MessageCircle, Send } from "lucide-react";
+import { CalendarDays, Trash2, TrendingUp, Dumbbell, Heart, MessageCircle } from "lucide-react";
 import { useDeleteWorkoutSessionMutation } from "@/features/workouts/api/workoutsApi";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -44,9 +43,15 @@ type Props = {
   /** Encabezado opcional de agrupación por día: "Hoy" | "Ayer" | "19 Sep 2025" */
   dayHeader?: string | null;
   sensacionFinal?: string | null;
+
+  /** Oculta acciones (eliminar/likes/comentarios). */
+  readOnly?: boolean;
+
+  /** Indica si la sesión es del usuario actual (para poder borrar). */
+  isMine?: boolean;
 };
 
-/** Formatea "YYYY-MM-DD ..." a "DD/MM/YYYY" sin parsers ni cambios de zona */
+/** Formatea "YYYY-MM-DD ..." a "DD/MM/YYYY" */
 const formatAsDMY = (ts?: string) => {
   if (!ts) return "";
   const m = ts.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -55,7 +60,7 @@ const formatAsDMY = (ts?: string) => {
   return `${d}/${mo}/${y}`;
 };
 
-/** Extrae HH:MM del string y lo muestra en 12h con AM/PM, sin conversión de zona */
+/** Extrae HH:MM y lo muestra en 12h con AM/PM (sin tocar zonas) */
 const formatHourAmPm = (ts?: string) => {
   if (!ts) return "";
   const m = ts.match(/^[\d-]+[ T](\d{2}):(\d{2})/);
@@ -67,11 +72,9 @@ const formatHourAmPm = (ts?: string) => {
   return `${h12}:${mm} ${suffix}`;
 };
 
-/** Clave YYYY-MM-DD en zona horaria dada (para comparar días sin libs externas) */
 const ymdKey = (d: Date, timeZone = "America/Mexico_City") =>
   new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
 
-/** Devuelve "Hoy" | "Ayer" | "DD/MM/YYYY" (para la línea con el icono de calendario) */
 const labelForDay = (ts: string, timeZone = "America/Mexico_City") => {
   const d = new Date(ts);
   const now = new Date();
@@ -84,7 +87,7 @@ const labelForDay = (ts: string, timeZone = "America/Mexico_City") => {
 
   if (key === today) return "Hoy";
   if (key === yesterday) return "Ayer";
-  return formatAsDMY(ts); // > 2 días → fecha
+  return formatAsDMY(ts);
 };
 
 export function WorkoutCard({
@@ -100,10 +103,10 @@ export function WorkoutCard({
   className,
   dayHeader,
   sensacionFinal,
+  readOnly = false,
+  isMine = true,
 }: Props) {
   const endTs = endedAt || startedAt;
-
-  // ⬇️ Nuevo: etiqueta de día según la regla pedida
   const dayLabel = labelForDay(endTs, "America/Mexico_City");
   const timeLabel = formatHourAmPm(endTs);
 
@@ -116,9 +119,10 @@ export function WorkoutCard({
   const [openConfirm, setOpenConfirm] = useState(false);
   const [deleteWorkout, { isLoading: deleting }] = useDeleteWorkoutSessionMutation();
 
+  // Estado social (solo si no es readOnly)
   const [isLiked, setIsLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(Math.floor(Math.random() * 15) + 1); // Datos simulados
-  const [commentsCount, setCommentsCount] = useState(Math.floor(Math.random() * 8)); // Datos simulados
+  const [likesCount, setLikesCount] = useState(Math.floor(Math.random() * 15) + 1);
+  const [commentsCount, setCommentsCount] = useState(Math.floor(Math.random() * 8));
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
 
@@ -133,23 +137,8 @@ export function WorkoutCard({
     }
   };
 
-  const handleLike = () => {
-    setIsLiked(!isLiked);
-    setLikesCount((prev) => (isLiked ? prev - 1 : prev + 1));
-    toast.success(isLiked ? "Like removido" : "¡Te gusta este entrenamiento!");
-  };
-
-  const handleComment = () => {
-    setShowComments(!showComments);
-  };
-
-  const handleSendComment = () => {
-    if (commentText.trim()) {
-      toast.success("Comentario enviado (simulado)");
-      setCommentText("");
-      setCommentsCount((prev) => prev + 1);
-    }
-  };
+  // ✅ Regla: SOLO permitir eliminación si es mío y no es readOnly
+  const canDelete = isMine && !readOnly;
 
   return (
     <>
@@ -206,23 +195,26 @@ export function WorkoutCard({
                 </div>
               </div>
 
-              <motion.div
-                initial={{ opacity: 0.6, scale: 0.9 }}
-                animate={{ opacity: 0.7, scale: 0.95 }}
-                whileHover={{ opacity: 1, scale: 1 }}
-                className="transition-all duration-300"
-              >
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 shrink-0 rounded-xl hover:bg-destructive/15 hover:text-destructive transition-all duration-200 hover:scale-110 text-muted-foreground/60 hover:shadow-lg"
-                  onClick={() => setOpenConfirm(true)}
-                  aria-label="Eliminar entrenamiento"
-                  title="Eliminar entrenamiento"
+              {/* Botón eliminar: solo si es mío y NO es readOnly */}
+              {canDelete && (
+                <motion.div
+                  initial={{ opacity: 0.6, scale: 0.9 }}
+                  animate={{ opacity: 0.7, scale: 0.95 }}
+                  whileHover={{ opacity: 1, scale: 1 }}
+                  className="transition-all duration-300"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </motion.div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 shrink-0 rounded-xl hover:bg-destructive/15 hover:text-destructive transition-all duration-200 hover:scale-110 text-muted-foreground/60 hover:shadow-lg"
+                    onClick={() => setOpenConfirm(true)}
+                    aria-label="Eliminar entrenamiento"
+                    title="Eliminar entrenamiento"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </motion.div>
+              )}
             </div>
 
             <div className="mt-5 space-y-4">
@@ -353,168 +345,93 @@ export function WorkoutCard({
               </motion.div>
             )}
 
-            <div className="mt-6 pt-4 border-t border-border/30">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleLike}
-                      className={cn(
-                        "h-9 px-3 rounded-2xl transition-all duration-300 hover:scale-105",
-                        isLiked
-                          ? "text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
-                          : "text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20"
-                      )}
-                    >
-                      <motion.div animate={isLiked ? { scale: [1, 1.3, 1] } : {}} transition={{ duration: 0.3 }}>
-                        <Heart className={cn("h-4 w-4 mr-2 transition-all duration-200", isLiked && "fill-current")} />
-                      </motion.div>
-                      <span className="text-sm font-medium">{likesCount}</span>
-                    </Button>
-                  </motion.div>
+            {/* Footer social: solo si NO es readOnly */}
+            {!readOnly && (
+              <div className="mt-6 pt-4 border-t border-border/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setIsLiked((v) => !v);
+                          setLikesCount((prev) => (!isLiked ? prev + 1 : prev - 1));
+                          toast.success(!isLiked ? "¡Te gusta este entrenamiento!" : "Like removido");
+                        }}
+                        className={cn(
+                          "h-9 px-3 rounded-2xl transition-all duration-300 hover:scale-105",
+                          isLiked
+                            ? "text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                            : "text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20"
+                        )}
+                      >
+                        <motion.div animate={isLiked ? { scale: [1, 1.3, 1] } : {}} transition={{ duration: 0.3 }}>
+                          <Heart
+                            className={cn("h-4 w-4 mr-2 transition-all duration-200", isLiked && "fill-current")}
+                          />
+                        </motion.div>
+                        <span className="text-sm font-medium">{likesCount}</span>
+                      </Button>
+                    </motion.div>
 
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleComment}
-                      className={cn(
-                        "h-9 px-3 rounded-2xl transition-all duration-300 hover:scale-105",
-                        showComments
-                          ? "text-blue-500 bg-blue-50 dark:bg-blue-950/20"
-                          : "text-muted-foreground hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/20"
-                      )}
-                    >
-                      <MessageCircle className="h-4 w-4 mr-2" />
-                      <span className="text-sm font-medium">{commentsCount}</span>
-                    </Button>
-                  </motion.div>
-                </div>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowComments((v) => !v)}
+                        className={cn(
+                          "h-9 px-3 rounded-2xl transition-all duration-300 hover:scale-105",
+                          showComments
+                            ? "text-blue-500 bg-blue-50 dark:bg-blue-950/20"
+                            : "text-muted-foreground hover:text-blue-50 hover:text-blue-500 dark:hover:bg-blue-950/20"
+                        )}
+                      >
+                        <MessageCircle className="h-4 w-4 mr-2" />
+                        <span className="text-sm font-medium">{commentsCount}</span>
+                      </Button>
+                    </motion.div>
+                  </div>
 
-                <div className="text-xs text-muted-foreground/60">
-                  {likesCount > 0 && (
-                    <span>
-                      {likesCount === 1 ? "1 like" : `${likesCount} likes`}
-                      {commentsCount > 0 && " · "}
-                    </span>
-                  )}
-                  {commentsCount > 0 && (
-                    <span>{commentsCount === 1 ? "1 comentario" : `${commentsCount} comentarios`}</span>
-                  )}
+                  <div className="text-xs text-muted-foreground/60">
+                    {likesCount > 0 && (
+                      <span>
+                        {likesCount === 1 ? "1 like" : `${likesCount} likes`}
+                        {commentsCount > 0 && " · "}
+                      </span>
+                    )}
+                    {commentsCount > 0 && (
+                      <span>{commentsCount === 1 ? "1 comentario" : `${commentsCount} comentarios`}</span>
+                    )}
+                  </div>
                 </div>
               </div>
-
-              <AnimatePresence>
-                {showComments && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0, y: -10 }}
-                    animate={{ opacity: 1, height: "auto", y: 0 }}
-                    exit={{ opacity: 0, height: 0, y: -10 }}
-                    transition={{ duration: 0.3, ease: "easeOut" }}
-                    className="mt-4 pt-4 border-t border-border/20"
-                  >
-                    <div className="space-y-3">
-                      {/* Comentarios simulados */}
-                      <div className="space-y-3 max-h-32 overflow-y-auto">
-                        {Array.from({ length: Math.min(commentsCount, 3) }, (_, i) => (
-                          <motion.div
-                            key={i}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: i * 0.1 }}
-                            className="flex items-start gap-3"
-                          >
-                            <Avatar className="h-7 w-7 ring-1 ring-border/30">
-                              <AvatarFallback className="bg-gradient-to-br from-primary/10 to-primary/5 text-xs">
-                                U{i + 1}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <div className="bg-muted/50 rounded-2xl px-3 py-2">
-                                <div className="text-xs font-medium text-foreground mb-1">Usuario{i + 1}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  {i === 0 && "¡Excelente entrenamiento! 💪"}
-                                  {i === 1 && "Me inspira a entrenar más duro"}
-                                  {i === 2 && "¿Cuánto tiempo te tomó?"}
-                                </div>
-                              </div>
-                              <div className="text-xs text-muted-foreground/60 mt-1 ml-3">hace {i + 1}h</div>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-
-                      {/* Input para nuevo comentario */}
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="flex items-center gap-3 pt-2"
-                      >
-                        <Avatar className="h-8 w-8 ring-1 ring-border/30">
-                          {avatarUrl ? (
-                            <AvatarImage src={avatarUrl || "/placeholder.svg"} alt="Tu avatar" />
-                          ) : (
-                            <AvatarFallback className="bg-gradient-to-br from-primary/15 to-primary/5 text-primary text-xs">
-                              {initials}
-                            </AvatarFallback>
-                          )}
-                        </Avatar>
-                        <div className="flex-1 flex items-center gap-2">
-                          <Input
-                            placeholder="Escribe un comentario..."
-                            value={commentText}
-                            onChange={(e) => setCommentText(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSendComment();
-                              }
-                            }}
-                            className="h-9 rounded-2xl border-border/40 bg-muted/30 text-sm placeholder:text-muted-foreground/60 focus:border-primary/40 focus:bg-background/80"
-                          />
-                          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                            <Button
-                              size="sm"
-                              onClick={handleSendComment}
-                              disabled={!commentText.trim()}
-                              className="h-9 w-9 p-0 rounded-2xl bg-primary/90 hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              <Send className="h-4 w-4" />
-                            </Button>
-                          </motion.div>
-                        </div>
-                      </motion.div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+            )}
           </CardContent>
 
-          {/* Diálogo de confirmación */}
-          <AlertDialog open={openConfirm} onOpenChange={setOpenConfirm}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Eliminar entrenamiento</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Esta acción no se puede deshacer. Se eliminará la sesión y sus sets asociados.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  {deleting ? "Eliminando…" : "Eliminar"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          {/* Confirmación (solo si puedo borrar) */}
+          {canDelete && (
+            <AlertDialog open={openConfirm} onOpenChange={setOpenConfirm}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Eliminar entrenamiento</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta acción no se puede deshacer. Se eliminará la sesión y sus sets asociados.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {deleting ? "Eliminando…" : "Eliminar"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </Card>
       </motion.div>
     </>
