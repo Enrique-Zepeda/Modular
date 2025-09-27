@@ -5,6 +5,7 @@ import { User, Palette, Shield, BellIcon, Settings } from "lucide-react";
 import { AppearanceCard, ChangePasswordForm, Perfil } from "@/features/settings/components";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import NotificationsPage from "./NotificationsPage";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("profile");
@@ -106,10 +107,7 @@ export default function SettingsPage() {
                     <BellIcon className="h-12 w-12 text-primary" />
                   </div>
                   <h3 className="text-2xl font-bold mb-3">Configuración de notificaciones</h3>
-                  <p className="text-muted-foreground max-w-md text-lg leading-relaxed">
-                    Esta sección estará disponible próximamente. Podrás gestionar todas tus preferencias de
-                    notificaciones con controles granulares.
-                  </p>
+                  <NotificationsPage />
                 </div>
               </CardContent>
             </Card>

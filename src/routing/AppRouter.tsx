@@ -9,6 +9,10 @@ import { ExerciseListPage } from "@/features/exercises";
 import WorkoutLivePage from "@/pages/dashboard/workouts/WorkoutLivePage";
 import OnboardingPage from "@/pages/auth/OnboardingPage";
 import ProtectedRoute from "./ProtectedRoutes/ProtectedRoute";
+import FriendsPage from "@/pages/friends/FriendsPage";
+import NotificationsPage from "@/pages/dashboard/settings/NotificationsPage";
+
+/** ✅ NUEVO: FriendsPage */
 
 export default function AppRouter() {
   return (
@@ -125,6 +129,29 @@ export default function AppRouter() {
           <ProtectedRoute>
             <DashboardLayout>
               <SettingsPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ✅ NUEVO: Friends */}
+      <Route
+        path="/dashboard/friends"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <FriendsPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/dashboard/notifications"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <NotificationsPage />
             </DashboardLayout>
           </ProtectedRoute>
         }

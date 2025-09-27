@@ -1,21 +1,26 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { logoutUser } from "@/features/auth/thunks";
 import { useAppDispatch } from "@/hooks/useStore";
-import { Home, Calendar, Dumbbell, Settings, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { Home, Calendar, Dumbbell, Settings, LogOut, ChevronLeft, ChevronRight, Search, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import LogoutConfirmDialog from "../ui/logout-confirm-dialog";
+
+/** ✅ Importa el buscador del sidebar */
+import SidebarFriendSearch from "./SidebarFriendSearch";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Rutinas", href: "/dashboard/routines", icon: Calendar },
   { name: "Ejercicios", href: "/dashboard/ejercicios", icon: Dumbbell },
+  { name: "Notificaciones", href: "/dashboard/notifications", icon: Bell },
   { name: "Configuración", href: "/dashboard/settings", icon: Settings },
 ];
 
 export default function Sidebar() {
   const location = useLocation();
+  const navigate = useNavigate(); // ✅ para el atajo de búsqueda en modo colapsado
   const dispatch = useAppDispatch();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -46,10 +51,26 @@ export default function Sidebar() {
           size="sm"
           onClick={() => setIsCollapsed(!isCollapsed)}
           className={cn("h-8 w-8 p-0", isCollapsed && "mx-auto")}
+          aria-label={isCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
         >
           {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </Button>
       </div>
+
+      {/* 🔎 Buscador de amigos (visible sólo expandido) */}
+      {!isCollapsed && (
+        <div className="p-3 border-b">
+          <SidebarFriendSearch />
+        </div>
+      )}
+      {/* Atajo cuando está colapsado: lleva a /dashboard/friends */}
+      {isCollapsed && (
+        <div className="p-2 border-b flex justify-center">
+          <Button size="icon" variant="ghost" onClick={() => navigate("/dashboard/friends")} aria-label="Buscar amigos">
+            <Search className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 p-2">
