@@ -14,7 +14,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { CalendarDays, Trash2, TrendingUp, Dumbbell, Heart, MessageCircle } from "lucide-react";
+import { CalendarDays, Trash2, TrendingUp, Dumbbell, Heart } from "lucide-react";
 import { useDeleteWorkoutSessionMutation } from "@/features/workouts/api/workoutsApi";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -24,7 +24,7 @@ type ExerciseItem = {
   nombre?: string | null;
   grupo_muscular?: string | null;
   equipamento?: string | null;
-  ejemplo?: string | null; // URL de imagen
+  ejemplo?: string | null; // URL imagen
   sets_done?: number | null;
   volume?: number | string | null;
 };
@@ -40,18 +40,15 @@ type Props = {
   avatarUrl?: string;
   ejercicios?: ExerciseItem[];
   className?: string;
-  /** Encabezado opcional de agrupación por día: "Hoy" | "Ayer" | "19 Sep 2025" */
   dayHeader?: string | null;
   sensacionFinal?: string | null;
 
-  /** Oculta acciones (eliminar/likes/comentarios). */
+  /** 🔒 si true, oculta acciones sociales */
   readOnly?: boolean;
-
-  /** Indica si la sesión es del usuario actual (para poder borrar). */
+  /** ✅ si true, la sesión es del usuario actual (muestra botón borrar) */
   isMine?: boolean;
 };
 
-/** Formatea "YYYY-MM-DD ..." a "DD/MM/YYYY" */
 const formatAsDMY = (ts?: string) => {
   if (!ts) return "";
   const m = ts.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -60,7 +57,6 @@ const formatAsDMY = (ts?: string) => {
   return `${d}/${mo}/${y}`;
 };
 
-/** Extrae HH:MM y lo muestra en 12h con AM/PM (sin tocar zonas) */
 const formatHourAmPm = (ts?: string) => {
   if (!ts) return "";
   const m = ts.match(/^[\d-]+[ T](\d{2}):(\d{2})/);
@@ -72,19 +68,17 @@ const formatHourAmPm = (ts?: string) => {
   return `${h12}:${mm} ${suffix}`;
 };
 
-const ymdKey = (d: Date, timeZone = "America/Mexico_City") =>
-  new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+const ymdKey = (d: Date, tz = "America/Mexico_City") =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
 
-const labelForDay = (ts: string, timeZone = "America/Mexico_City") => {
+const labelForDay = (ts: string, tz = "America/Mexico_City") => {
   const d = new Date(ts);
   const now = new Date();
-
-  const today = ymdKey(now, timeZone);
+  const today = ymdKey(now, tz);
   const y = new Date(now);
   y.setDate(now.getDate() - 1);
-  const yesterday = ymdKey(y, timeZone);
-  const key = ymdKey(d, timeZone);
-
+  const yesterday = ymdKey(y, tz);
+  const key = ymdKey(d, tz);
   if (key === today) return "Hoy";
   if (key === yesterday) return "Ayer";
   return formatAsDMY(ts);
@@ -104,12 +98,11 @@ export function WorkoutCard({
   dayHeader,
   sensacionFinal,
   readOnly = false,
-  isMine = true,
+  isMine = false,
 }: Props) {
   const endTs = endedAt || startedAt;
   const dayLabel = labelForDay(endTs, "America/Mexico_City");
   const timeLabel = formatHourAmPm(endTs);
-
   const initials = (username || "U")
     .split(" ")
     .map((s) => s[0]?.toUpperCase())
@@ -119,12 +112,12 @@ export function WorkoutCard({
   const [openConfirm, setOpenConfirm] = useState(false);
   const [deleteWorkout, { isLoading: deleting }] = useDeleteWorkoutSessionMutation();
 
-  // Estado social (solo si no es readOnly)
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(Math.floor(Math.random() * 15) + 1);
-  const [commentsCount, setCommentsCount] = useState(Math.floor(Math.random() * 8));
-  const [showComments, setShowComments] = useState(false);
-  const [commentText, setCommentText] = useState("");
+  const [commentsCount] = useState(Math.floor(Math.random() * 8));
+
+  // 👇 Solo el dueño y no readOnly puede borrar
+  const canDelete = isMine && !readOnly;
 
   const handleDelete = async () => {
     try {
@@ -136,9 +129,6 @@ export function WorkoutCard({
       setOpenConfirm(false);
     }
   };
-
-  // ✅ Regla: SOLO permitir eliminación si es mío y no es readOnly
-  const canDelete = isMine && !readOnly;
 
   return (
     <>
@@ -154,34 +144,23 @@ export function WorkoutCard({
           className={cn(
             "group relative overflow-hidden bg-card text-card-foreground rounded-3xl border border-border/40 shadow-sm transition-all duration-500",
             "hover:shadow-2xl hover:shadow-primary/5 hover:border-primary/20",
-            "before:absolute before:inset-0 before:bg-gradient-to-br before:from-primary/[0.02] before:via-transparent before:to-primary/[0.01] before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500",
-            "after:absolute after:inset-0 after:bg-gradient-to-br after:from-transparent after:via-background/5 after:to-transparent after:opacity-0 hover:after:opacity-100 after:transition-opacity after:duration-300",
             className
           )}
         >
-          <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-primary/10 via-transparent to-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-sm" />
-
           <CardHeader className="relative pb-5 z-10">
             <div className="flex items-start justify-between gap-4">
               {/* Usuario + fecha */}
               <div className="flex items-center gap-4 min-w-0 flex-1">
                 <div className="relative">
-                  <motion.div whileHover={{ scale: 1.05 }} transition={{ type: "spring", stiffness: 300 }}>
-                    <Avatar className="h-12 w-12 ring-2 ring-border/30 transition-all duration-300 group-hover:ring-primary/30 group-hover:ring-4">
-                      {avatarUrl ? (
-                        <AvatarImage src={avatarUrl || "/placeholder.svg"} alt={username} />
-                      ) : (
-                        <AvatarFallback className="bg-gradient-to-br from-primary/15 to-primary/5 text-primary font-bold text-sm">
-                          {initials}
-                        </AvatarFallback>
-                      )}
-                    </Avatar>
-                  </motion.div>
-                  <motion.div
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
-                    className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-gradient-to-r from-green-400 to-green-500 ring-2 ring-background shadow-sm"
-                  />
+                  <Avatar className="h-12 w-12 ring-2 ring-border/30">
+                    {avatarUrl ? (
+                      <AvatarImage src={avatarUrl || "/placeholder.svg"} alt={username} />
+                    ) : (
+                      <AvatarFallback className="bg-gradient-to-br from-primary/15 to-primary/5 text-primary font-bold text-sm">
+                        {initials}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
                 </div>
                 <div className="leading-tight min-w-0 flex-1">
                   <div className="text-sm font-bold text-foreground truncate">{username}</div>
@@ -195,63 +174,37 @@ export function WorkoutCard({
                 </div>
               </div>
 
-              {/* Botón eliminar: solo si es mío y NO es readOnly */}
+              {/* 🗑️ Solo si puedo borrar */}
               {canDelete && (
-                <motion.div
-                  initial={{ opacity: 0.6, scale: 0.9 }}
-                  animate={{ opacity: 0.7, scale: 0.95 }}
-                  whileHover={{ opacity: 1, scale: 1 }}
-                  className="transition-all duration-300"
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0 rounded-xl hover:bg-destructive/15 hover:text-destructive transition-all duration-200 text-muted-foreground/60"
+                  onClick={() => setOpenConfirm(true)}
+                  aria-label="Eliminar entrenamiento"
+                  title="Eliminar entrenamiento"
                 >
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 shrink-0 rounded-xl hover:bg-destructive/15 hover:text-destructive transition-all duration-200 hover:scale-110 text-muted-foreground/60 hover:shadow-lg"
-                    onClick={() => setOpenConfirm(true)}
-                    aria-label="Eliminar entrenamiento"
-                    title="Eliminar entrenamiento"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </motion.div>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               )}
             </div>
 
             <div className="mt-5 space-y-4">
-              <motion.h3
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="text-xl font-bold leading-tight line-clamp-2 bg-gradient-to-r from-foreground via-foreground/95 to-foreground/80 bg-clip-text text-transparent"
-              >
-                {titulo}
-              </motion.h3>
+              <h3 className="text-xl font-bold leading-tight line-clamp-2">{titulo}</h3>
 
               <div className="flex flex-wrap items-center gap-2.5">
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Badge
-                    variant="secondary"
-                    className="rounded-2xl px-4 py-2 text-xs font-semibold bg-gradient-to-r from-muted/80 to-muted/60 hover:from-muted to-muted/80 transition-all duration-200 shadow-sm"
-                  >
-                    <Dumbbell className="h-3.5 w-3.5 mr-2" />
-                    {totalSets} sets
-                  </Badge>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Badge className="rounded-2xl px-4 py-2 text-xs font-semibold bg-gradient-to-r from-primary/15 to-primary/10 text-primary hover:from-primary/20 hover:to-primary/15 transition-all duration-200 shadow-sm border-primary/20">
-                    <TrendingUp className="h-3.5 w-3.5 mr-2" />
-                    {Intl.NumberFormat("es-MX").format(totalVolume)} kg
-                  </Badge>
-                </motion.div>
+                <Badge variant="secondary" className="rounded-2xl px-4 py-2 text-xs font-semibold">
+                  <Dumbbell className="h-3.5 w-3.5 mr-2" />
+                  {totalSets} sets
+                </Badge>
+                <Badge className="rounded-2xl px-4 py-2 text-xs font-semibold">
+                  <TrendingUp className="h-3.5 w-3.5 mr-2" />
+                  {Intl.NumberFormat("es-MX").format(totalVolume)} kg
+                </Badge>
                 {sensacionFinal && (
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Badge
-                      variant="outline"
-                      className="rounded-2xl px-4 py-2 text-xs font-semibold border-muted-foreground/30 text-muted-foreground hover:border-muted-foreground/50 hover:bg-muted/20 transition-all duration-200"
-                    >
-                      {sensacionFinal}
-                    </Badge>
-                  </motion.div>
+                  <Badge variant="outline" className="rounded-2xl px-4 py-2 text-xs font-semibold">
+                    {sensacionFinal}
+                  </Badge>
                 )}
               </div>
             </div>
@@ -264,40 +217,27 @@ export function WorkoutCard({
                   {ejercicios.map((ex, idx) => (
                     <motion.div
                       key={(ex.id ?? idx)?.toString()}
-                      initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                      initial={{ opacity: 0, scale: 0.95, y: 10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.9, y: -20 }}
-                      transition={{ delay: idx * 0.08, duration: 0.3 }}
-                      whileHover={{ scale: 1.02, y: -2 }}
-                      className="group/exercise relative overflow-hidden rounded-2xl border border-border/30 bg-gradient-to-br from-muted/40 to-muted/20 p-4 transition-all duration-300 hover:bg-gradient-to-br hover:from-muted/60 hover:to-muted/40 hover:border-border/50 hover:shadow-lg"
+                      transition={{ delay: idx * 0.05, duration: 0.25 }}
+                      className="rounded-2xl border border-border/30 bg-muted/20 p-4"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.01] to-transparent opacity-0 group-hover/exercise:opacity-100 transition-opacity duration-300" />
-
-                      <div className="relative flex items-start gap-3">
-                        <div className="relative shrink-0">
+                      <div className="flex items-start gap-3">
+                        <div className="shrink-0">
                           {ex.ejemplo ? (
-                            <motion.img
-                              whileHover={{ scale: 1.1 }}
-                              transition={{ type: "spring", stiffness: 300 }}
-                              src={ex.ejemplo || "/placeholder.svg"}
+                            <img
+                              src={ex.ejemplo}
                               alt={ex.nombre ?? "Ejercicio"}
-                              className="h-14 w-14 rounded-2xl object-cover ring-1 ring-border/40 transition-all duration-300 group-hover/exercise:ring-border/60 group-hover/exercise:shadow-md"
+                              className="h-14 w-14 rounded-2xl object-cover border"
                             />
                           ) : (
-                            <motion.div
-                              whileHover={{ scale: 1.1, rotate: 5 }}
-                              transition={{ type: "spring", stiffness: 300 }}
-                              className="h-14 w-14 rounded-2xl bg-gradient-to-br from-muted/80 to-muted/60 ring-1 ring-border/40 flex items-center justify-center transition-all duration-300 group-hover/exercise:ring-border/60"
-                            >
+                            <div className="h-14 w-14 rounded-2xl bg-muted/60 flex items-center justify-center">
                               <Dumbbell className="h-6 w-6 text-muted-foreground/70" />
-                            </motion.div>
+                            </div>
                           )}
                         </div>
-
                         <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-bold text-foreground leading-tight mb-1">
-                            {ex.nombre ?? "Ejercicio"}
-                          </div>
+                          <div className="truncate text-sm font-bold">{ex.nombre ?? "Ejercicio"}</div>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             {ex.sets_done && (
                               <span className="font-semibold text-foreground/80">{ex.sets_done} sets</span>
@@ -305,11 +245,9 @@ export function WorkoutCard({
                             {ex.sets_done && (ex.grupo_muscular || ex.volume) && (
                               <span className="text-muted-foreground/40">·</span>
                             )}
-                            {ex.grupo_muscular && !ex.volume && (
-                              <span className="truncate text-muted-foreground/80">{ex.grupo_muscular}</span>
-                            )}
+                            {ex.grupo_muscular && !ex.volume && <span className="truncate">{ex.grupo_muscular}</span>}
                             {ex.volume && (
-                              <span className="font-semibold text-primary/90">
+                              <span className="font-semibold">
                                 {Intl.NumberFormat("es-MX").format(Number(ex.volume))} kg
                               </span>
                             )}
@@ -321,89 +259,37 @@ export function WorkoutCard({
                 </AnimatePresence>
               </div>
             ) : (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="relative overflow-hidden rounded-2xl border border-dashed border-border/50 bg-gradient-to-br from-muted/30 to-muted/10 p-8"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.01] to-transparent" />
-                <div className="relative flex items-center gap-4">
-                  <motion.div
-                    animate={{ rotate: [0, 10, -10, 0] }}
-                    transition={{ duration: 4, repeat: Number.POSITIVE_INFINITY }}
-                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-muted/80 to-muted/60"
-                  >
+              <div className="rounded-2xl border border-dashed border-border/50 bg-muted/10 p-8">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/50">
                     <Dumbbell className="h-6 w-6 text-muted-foreground/60" />
-                  </motion.div>
-                  <div className="text-left">
+                  </div>
+                  <div>
                     <p className="text-sm font-semibold text-muted-foreground">Sin ejercicios registrados</p>
                     <p className="text-xs text-muted-foreground/70 mt-1">
                       Los ejercicios aparecerán cuando estén disponibles
                     </p>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             )}
 
-            {/* Footer social: solo si NO es readOnly */}
+            {/* Footer social: lo mantengo, pero solo likes/comentarios para UI. */}
             {!readOnly && (
               <div className="mt-6 pt-4 border-t border-border/30">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setIsLiked((v) => !v);
-                          setLikesCount((prev) => (!isLiked ? prev + 1 : prev - 1));
-                          toast.success(!isLiked ? "¡Te gusta este entrenamiento!" : "Like removido");
-                        }}
-                        className={cn(
-                          "h-9 px-3 rounded-2xl transition-all duration-300 hover:scale-105",
-                          isLiked
-                            ? "text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
-                            : "text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20"
-                        )}
-                      >
-                        <motion.div animate={isLiked ? { scale: [1, 1.3, 1] } : {}} transition={{ duration: 0.3 }}>
-                          <Heart
-                            className={cn("h-4 w-4 mr-2 transition-all duration-200", isLiked && "fill-current")}
-                          />
-                        </motion.div>
-                        <span className="text-sm font-medium">{likesCount}</span>
-                      </Button>
-                    </motion.div>
-
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowComments((v) => !v)}
-                        className={cn(
-                          "h-9 px-3 rounded-2xl transition-all duration-300 hover:scale-105",
-                          showComments
-                            ? "text-blue-500 bg-blue-50 dark:bg-blue-950/20"
-                            : "text-muted-foreground hover:text-blue-50 hover:text-blue-500 dark:hover:bg-blue-950/20"
-                        )}
-                      >
-                        <MessageCircle className="h-4 w-4 mr-2" />
-                        <span className="text-sm font-medium">{commentsCount}</span>
-                      </Button>
-                    </motion.div>
-                  </div>
-
-                  <div className="text-xs text-muted-foreground/60">
-                    {likesCount > 0 && (
-                      <span>
-                        {likesCount === 1 ? "1 like" : `${likesCount} likes`}
-                        {commentsCount > 0 && " · "}
-                      </span>
-                    )}
-                    {commentsCount > 0 && (
-                      <span>{commentsCount === 1 ? "1 comentario" : `${commentsCount} comentarios`}</span>
-                    )}
-                  </div>
+                <div className="flex items-center gap-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setIsLiked((v) => !v);
+                      setLikesCount((prev) => (!isLiked ? prev + 1 : prev - 1));
+                      toast.success(!isLiked ? "¡Te gusta este entrenamiento!" : "Like removido");
+                    }}
+                  >
+                    <Heart className={cn("h-4 w-4 mr-2", isLiked && "fill-current text-red-500")} />
+                    <span className="text-sm font-medium">{likesCount}</span>
+                  </Button>
                 </div>
               </div>
             )}

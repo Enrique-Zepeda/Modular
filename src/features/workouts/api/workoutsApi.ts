@@ -1,6 +1,7 @@
 import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react";
 import { supabase } from "@/lib/supabase/client";
 import { dashboardApi } from "@/features/dashboard/api/dashboardApi";
+import { friendsFeedApi } from "@/features/friends/api"; // 👈 para invalidar el feed unificado
 import type { FinishedWorkoutRich } from "@/types/workouts";
 
 /** ===== Tipos ===== **/
@@ -52,6 +53,7 @@ export const workoutsApi = createApi({
   baseQuery: fakeBaseQuery(),
   tagTypes: ["Workouts", "FinishedWorkouts"],
   endpoints: (builder) => ({
+    /** Crear sesión con sets (RPC transaccional) */
     createWorkoutSession: builder.mutation<CreateWorkoutResult, CreateWorkoutInput>({
       async queryFn(payload) {
         const { data, error } = await supabase.rpc("create_workout_session", {
@@ -76,9 +78,47 @@ export const workoutsApi = createApi({
         try {
           await queryFulfilled;
         } finally {
+          // refrescar KPIs del mes
           dispatch(dashboardApi.util.invalidateTags([{ type: "Kpis", id: "MONTH" }]));
+          // y el feed unificado (por si la sesión aparece ahí)
+          dispatch(friendsFeedApi.util.invalidateTags(["FriendsFeed"]));
         }
       },
+    }),
+
+    /** ✅ Listado simple de mis sesiones (para mantener compatibilidad con el export existente) */
+    listUserWorkouts: builder.query<WorkoutListItem[], void>({
+      async queryFn() {
+        try {
+          const { data: userData, error: userErr } = await supabase.auth.getUser();
+          if (userErr) throw userErr;
+          const uid = userData.user?.id;
+          if (!uid) throw new Error("No authenticated user");
+
+          // Sesiones del usuario (ordenadas desc) + sets y nombre de la rutina (si RLS lo permite)
+          const { data, error } = await supabase
+            .from("Entrenamientos")
+            .select(
+              `
+              id_sesion, started_at, ended_at, duracion_seg, total_volumen, sensacion_global, notas,
+              Rutinas ( id_rutina, nombre ),
+              sets:EntrenamientoSets (
+                id_ejercicio, idx, kg, reps, rpe, done,
+                Ejercicios ( id, nombre, ejemplo )
+              )
+            `
+            )
+            .eq("owner_uid", uid)
+            .order("started_at", { ascending: false })
+            .limit(50);
+
+          if (error) return { error };
+          return { data: (data ?? []) as unknown as WorkoutListItem[] };
+        } catch (error) {
+          return { error: error as any };
+        }
+      },
+      providesTags: [{ type: "Workouts", id: "LIST" }],
     }),
 
     /** Entrenamientos finalizados (solo sets done) + perfil + nombre real de la rutina */
@@ -187,7 +227,7 @@ export const workoutsApi = createApi({
           const bySesion = new Map<number, FinishedWorkoutRich>();
           for (const s of sesiones) {
             const prof = profileByUid.get(s.owner_uid) ?? { username: null, url_avatar: null };
-            const titulo = rutinaById.get(s.id_rutina as number) ?? "Entrenamiento"; // ✅ nombre real de la rutina
+            const titulo = rutinaById.get(s.id_rutina as number) ?? "Entrenamiento"; // ✅ nombre de la rutina
             bySesion.set(s.id_sesion, {
               id_sesion: s.id_sesion,
               id_rutina: s.id_rutina ?? null,
@@ -196,7 +236,7 @@ export const workoutsApi = createApi({
               ended_at: s.ended_at!,
               total_sets: 0, // sets done
               total_volume: 0,
-              titulo, // ✅
+              titulo,
               username: prof.username,
               url_avatar: prof.url_avatar,
               ejercicios: [],
@@ -281,12 +321,13 @@ export const workoutsApi = createApi({
       providesTags: [{ type: "FinishedWorkouts", id: "LIST" }],
     }),
 
+    /** Borrar sesión (RPC o fallback) */
     deleteWorkoutSession: builder.mutation<{ success: true }, { id_sesion: number }>({
       async queryFn({ id_sesion }) {
         const rpc = await supabase.rpc("delete_workout_session", { p_id_sesion: id_sesion });
         if (!rpc.error) return { data: { success: true } };
 
-        // fallback por si el RPC no existe en tu entorno
+        // Fallback si no existe el RPC en tu entorno
         const { error: sErr } = await supabase.from("EntrenamientoSets").delete().eq("id_sesion", id_sesion);
         if (sErr) return { error: sErr };
         const { error: eErr } = await supabase.from("Entrenamientos").delete().eq("id_sesion", id_sesion);
@@ -298,22 +339,17 @@ export const workoutsApi = createApi({
         { type: "Workouts", id: "LIST" },
         { type: "FinishedWorkouts", id: "LIST" },
       ],
-      async onQueryStarted({ id_sesion }, { dispatch, queryFulfilled }) {
-        // Invalida KPIs inmediatamente
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        // refrescar KPIs + feed unificado
         dispatch(dashboardApi.util.invalidateTags([{ type: "Kpis", id: "MONTH" }]));
+        dispatch(friendsFeedApi.util.invalidateTags(["FriendsFeed"]));
 
-        // Optimista: quitar de lista clásica si la tienes montada
-        const patch = dispatch(
-          workoutsApi.util.updateQueryData("listUserWorkouts", undefined, (draft) => {
-            const i = draft.findIndex((w) => w.id_sesion === id_sesion);
-            if (i >= 0) draft.splice(i, 1);
-          })
-        );
         try {
           await queryFulfilled;
         } catch {
-          patch.undo();
+          // fuerza estado consistente si falla
           dispatch(dashboardApi.util.invalidateTags([{ type: "Kpis", id: "MONTH" }]));
+          dispatch(friendsFeedApi.util.invalidateTags(["FriendsFeed"]));
         }
       },
     }),
