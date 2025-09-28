@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardKpis } from "@/features/dashboard/components";
 import { useGetFinishedWorkoutsRichQuery } from "@/features/workouts/api/workoutsApi";
@@ -9,6 +9,7 @@ import { BarChart3, Activity } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { normalizeSensation } from "@/features/workouts/utils/sensation";
 
+// Título seguro
 const safeTitle = (v: unknown): string | null => {
   if (typeof v !== "string") return null;
   const t = v.trim();
@@ -16,45 +17,44 @@ const safeTitle = (v: unknown): string | null => {
 };
 
 export function DashboardPage() {
-  // RTK Query: forzamos refetch en foco/mount para que no dependas de refrescar manualmente
-  const { data: myWorkouts = [], isLoading: loadingMine } = useGetFinishedWorkoutsRichQuery(
-    { limit: 30 },
-    { refetchOnMountOrArgChange: true, refetchOnFocus: true, refetchOnReconnect: true }
-  );
+  // 1) Datos
+  const { data: myWorkouts = [], isLoading: loadingMine } = useGetFinishedWorkoutsRichQuery({ limit: 30 });
+  const { data: friendsFeed = [], isLoading: loadingFriends } = useListFriendsFeedRichQuery({ limit: 30 });
 
-  const { data: friendsFeed = [], isLoading: loadingFriends } = useListFriendsFeedRichQuery(
-    { limit: 30 },
-    { refetchOnMountOrArgChange: true, refetchOnFocus: true, refetchOnReconnect: true }
-  );
-
-  // resolver id_usuario
+  // 2) Resolver mi id_usuario (entero)
   const [myUsuarioId, setMyUsuarioId] = useState<number | null>(null);
   useEffect(() => {
     let mounted = true;
     (async () => {
-      const rpc = await supabase.rpc("current_usuario_id");
-      if (!rpc.error && typeof rpc.data === "number") {
-        if (mounted) setMyUsuarioId(rpc.data as number);
-        return;
+      try {
+        const rpc = await supabase.rpc("current_usuario_id");
+        if (!rpc.error && typeof rpc.data === "number") {
+          if (mounted) setMyUsuarioId(rpc.data as number);
+          return;
+        }
+        const { data: auth } = await supabase.auth.getUser();
+        const uid = auth.user?.id;
+        if (!uid) return;
+        const prof = await supabase.from("Usuarios").select("id_usuario").eq("auth_uid", uid).single();
+        if (!prof.error && prof.data?.id_usuario && mounted) setMyUsuarioId(prof.data.id_usuario as number);
+      } catch {
+        // noop
       }
-      const { data: auth } = await supabase.auth.getUser();
-      const uid = auth.user?.id;
-      if (!uid) return;
-      const prof = await supabase.from("Usuarios").select("id_usuario").eq("auth_uid", uid).single();
-      if (!prof.error && prof.data?.id_usuario && mounted) setMyUsuarioId(prof.data.id_usuario as number);
     })();
     return () => {
       mounted = false;
     };
   }, []);
 
-  // mapear elementos (SIN hidratación adicional)
+  // 3) Mapear items base (sin hidrataciones ni RPC adicionales)
   const items = useMemo(() => {
+    // Mis sesiones (FinishedWorkoutRich) — ya traen sensacion_final desde la vista
     const mine = (myWorkouts as any[]).map((w) => {
       const titulo =
         safeTitle(w.rutina_nombre) || safeTitle(w.Rutinas?.nombre) || safeTitle(w.titulo) || "Entrenamiento";
 
-      const sens = normalizeSensation(w.sensacion_final ?? w.sensacion ?? w.sensacion_global);
+      const sensRawMine = w.sensacion_final ?? w.sensacion_global ?? null;
+      const sensNormMine = normalizeSensation(sensRawMine);
 
       return {
         source: "mine" as const,
@@ -68,7 +68,7 @@ export function DashboardPage() {
         username: w.username ?? "Yo",
         avatarUrl: w.url_avatar ?? undefined,
         ejercicios: w.ejercicios ?? [],
-        sensacionFinal: sens, // ← SIEMPRE string
+        sensacionFinal: sensNormMine,
         isMine: true,
         readOnly: false,
         endedSort: String(w.ended_at ?? w.started_at),
@@ -76,16 +76,14 @@ export function DashboardPage() {
       };
     });
 
+    // Feed de amigos — AHORA viene sensacion desde el RPC (BD)
     const friends = (friendsFeed as any[]).map((w) => {
       const titulo =
         safeTitle(w.rutina_nombre) ||
         safeTitle(w.nota) ||
         `Entrenamiento de ${String(w.username || "").trim() || "amigo"}`;
 
-      // RPC feed debe venir con sensacion; si viniera null por alguna razón,
-      // normalizamos y forzamos "Sin sensaciones"
-      const sens = normalizeSensation(w.sensacion ?? w.sensacion_final);
-
+      const sensNormFriend = normalizeSensation(w.sensacion); // <-- directo del RPC (no más hidrataciones)
       const isMine = myUsuarioId != null && w.id_usuario === myUsuarioId;
 
       return {
@@ -95,12 +93,12 @@ export function DashboardPage() {
         titulo,
         startedAt: String(w.fecha),
         endedAt: String(w.fecha),
-        totalSets: Number(w.total_series_done ?? w.total_series ?? 0),
-        totalVolume: Number(w.total_kg_done ?? w.total_kg ?? 0),
+        totalSets: Number(w.total_series ?? 0),
+        totalVolume: Number(w.total_kg ?? 0),
         username: String(w.username ?? ""),
         avatarUrl: (w.url_avatar ?? undefined) as string | undefined,
         ejercicios: (w.ejercicios ?? []) as any[],
-        sensacionFinal: sens, // ← SIEMPRE string
+        sensacionFinal: sensNormFriend,
         isMine,
         readOnly: !isMine,
         endedSort: String(w.fecha),
@@ -108,7 +106,7 @@ export function DashboardPage() {
       };
     });
 
-    // preferimos el mejor título (score) y deduplicamos por idSesion
+    // Preferimos el feed si existe la misma sesión, dedupe por mejor score
     const merged = [...friends, ...mine];
     const byId = new Map<number, any>();
     for (const it of merged) {
@@ -129,6 +127,7 @@ export function DashboardPage() {
       transition={{ duration: 0.7, ease: "easeOut" }}
       className="space-y-10"
     >
+      {/* Hero */}
       <motion.div
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -150,6 +149,7 @@ export function DashboardPage() {
         </div>
       </motion.div>
 
+      {/* KPIs */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -158,6 +158,7 @@ export function DashboardPage() {
         <DashboardKpis />
       </motion.div>
 
+      {/* Feed */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -173,7 +174,7 @@ export function DashboardPage() {
                 <span className="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
                   Entrenamientos recientes
                 </span>
-                <p className="text-sm font-normal text-muted-foreground mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   Una sola vista con tus sesiones y las de tus amigos. La papelera solo aparece en tus sesiones.
                 </p>
               </div>
@@ -199,7 +200,7 @@ export function DashboardPage() {
                   username={w.username}
                   avatarUrl={w.avatarUrl}
                   ejercicios={w.ejercicios}
-                  sensacionFinal={w.sensacionFinal} // SIEMPRE string
+                  sensacionFinal={w.sensacionFinal}
                   isMine={w.isMine}
                   readOnly={w.readOnly}
                 />
