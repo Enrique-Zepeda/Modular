@@ -1,60 +1,126 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardKpis } from "@/features/dashboard/components";
+import { useGetFinishedWorkoutsRichQuery } from "@/features/workouts/api/workoutsApi";
 import { useListFriendsFeedRichQuery } from "@/features/friends/api";
 import { WorkoutCard } from "@/features/workouts/components/WorkoutCard";
 import { motion } from "framer-motion";
 import { BarChart3, Activity } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { normalizeSensation } from "@/features/workouts/utils/sensation";
 
-/**
- * Dashboard unificado (propios + amigos)
- *
- * - Mantiene el hero y las KPIs.
- * - Unifica el feed en una sola sección.
- * - Obtiene el id_usuario del usuario autenticado para:
- *    * Mostrar el icono de eliminar SOLO en tus entrenamientos.
- *    * Bloquear acciones en entrenamientos de amigos (readOnly).
- * - NO toca la UI social de la card (likes/comentarios visuales permanecen).
- */
+const safeTitle = (v: unknown): string | null => {
+  if (typeof v !== "string") return null;
+  const t = v.trim();
+  return t.length ? t : null;
+};
+
 export function DashboardPage() {
-  // Feed enriquecido (propios + amigos) ya con ejercicios "done" por sesión
-  const { data: feed = [], isLoading } = useListFriendsFeedRichQuery({ limit: 30 });
+  // RTK Query: forzamos refetch en foco/mount para que no dependas de refrescar manualmente
+  const { data: myWorkouts = [], isLoading: loadingMine } = useGetFinishedWorkoutsRichQuery(
+    { limit: 30 },
+    { refetchOnMountOrArgChange: true, refetchOnFocus: true, refetchOnReconnect: true }
+  );
 
-  // Guardamos mi id_usuario (entero) para comparar con w.id_usuario del feed
+  const { data: friendsFeed = [], isLoading: loadingFriends } = useListFriendsFeedRichQuery(
+    { limit: 30 },
+    { refetchOnMountOrArgChange: true, refetchOnFocus: true, refetchOnReconnect: true }
+  );
+
+  // resolver id_usuario
   const [myUsuarioId, setMyUsuarioId] = useState<number | null>(null);
-
   useEffect(() => {
     let mounted = true;
-
     (async () => {
-      try {
-        // 1) Preferido: RPC que devuelve tu id_usuario (más eficiente)
-        const rpc = await supabase.rpc("current_usuario_id");
-        if (!rpc.error && typeof rpc.data === "number") {
-          if (mounted) setMyUsuarioId(rpc.data as number);
-          return;
-        }
-
-        // 2) Fallback: resolver por auth.uid en tabla Usuarios
-        const { data: auth } = await supabase.auth.getUser();
-        const uid = auth.user?.id;
-        if (!uid) return;
-
-        const prof = await supabase.from("Usuarios").select("id_usuario").eq("auth_uid", uid).single();
-
-        if (!prof.error && prof.data?.id_usuario && mounted) {
-          setMyUsuarioId(prof.data.id_usuario as number);
-        }
-      } catch {
-        // noop
+      const rpc = await supabase.rpc("current_usuario_id");
+      if (!rpc.error && typeof rpc.data === "number") {
+        if (mounted) setMyUsuarioId(rpc.data as number);
+        return;
       }
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth.user?.id;
+      if (!uid) return;
+      const prof = await supabase.from("Usuarios").select("id_usuario").eq("auth_uid", uid).single();
+      if (!prof.error && prof.data?.id_usuario && mounted) setMyUsuarioId(prof.data.id_usuario as number);
     })();
-
     return () => {
       mounted = false;
     };
   }, []);
+
+  // mapear elementos (SIN hidratación adicional)
+  const items = useMemo(() => {
+    const mine = (myWorkouts as any[]).map((w) => {
+      const titulo =
+        safeTitle(w.rutina_nombre) || safeTitle(w.Rutinas?.nombre) || safeTitle(w.titulo) || "Entrenamiento";
+
+      const sens = normalizeSensation(w.sensacion_final ?? w.sensacion ?? w.sensacion_global);
+
+      return {
+        source: "mine" as const,
+        key: `mine-${w.id_sesion}`,
+        idSesion: Number(w.id_sesion),
+        titulo,
+        startedAt: String(w.started_at),
+        endedAt: String(w.ended_at ?? w.started_at),
+        totalSets: Number(w.total_sets ?? 0),
+        totalVolume: Number(w.total_volume ?? 0),
+        username: w.username ?? "Yo",
+        avatarUrl: w.url_avatar ?? undefined,
+        ejercicios: w.ejercicios ?? [],
+        sensacionFinal: sens, // ← SIEMPRE string
+        isMine: true,
+        readOnly: false,
+        endedSort: String(w.ended_at ?? w.started_at),
+        __score: titulo !== "Entrenamiento" ? 2 : 0,
+      };
+    });
+
+    const friends = (friendsFeed as any[]).map((w) => {
+      const titulo =
+        safeTitle(w.rutina_nombre) ||
+        safeTitle(w.nota) ||
+        `Entrenamiento de ${String(w.username || "").trim() || "amigo"}`;
+
+      // RPC feed debe venir con sensacion; si viniera null por alguna razón,
+      // normalizamos y forzamos "Sin sensaciones"
+      const sens = normalizeSensation(w.sensacion ?? w.sensacion_final);
+
+      const isMine = myUsuarioId != null && w.id_usuario === myUsuarioId;
+
+      return {
+        source: "friends" as const,
+        key: `friend-${w.id_workout}`,
+        idSesion: Number(w.id_workout),
+        titulo,
+        startedAt: String(w.fecha),
+        endedAt: String(w.fecha),
+        totalSets: Number(w.total_series_done ?? w.total_series ?? 0),
+        totalVolume: Number(w.total_kg_done ?? w.total_kg ?? 0),
+        username: String(w.username ?? ""),
+        avatarUrl: (w.url_avatar ?? undefined) as string | undefined,
+        ejercicios: (w.ejercicios ?? []) as any[],
+        sensacionFinal: sens, // ← SIEMPRE string
+        isMine,
+        readOnly: !isMine,
+        endedSort: String(w.fecha),
+        __score: titulo !== "Entrenamiento" ? 3 : 1,
+      };
+    });
+
+    // preferimos el mejor título (score) y deduplicamos por idSesion
+    const merged = [...friends, ...mine];
+    const byId = new Map<number, any>();
+    for (const it of merged) {
+      const prev = byId.get(it.idSesion);
+      if (!prev || (it.__score ?? 0) > (prev.__score ?? 0)) byId.set(it.idSesion, it);
+    }
+    const out = Array.from(byId.values());
+    out.sort((a, b) => (a.endedSort < b.endedSort ? 1 : -1));
+    return out;
+  }, [myWorkouts, friendsFeed, myUsuarioId]);
+
+  const isLoading = loadingMine || loadingFriends;
 
   return (
     <motion.div
@@ -63,7 +129,6 @@ export function DashboardPage() {
       transition={{ duration: 0.7, ease: "easeOut" }}
       className="space-y-10"
     >
-      {/* Hero */}
       <motion.div
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -79,13 +144,12 @@ export function DashboardPage() {
               Entrenamientos recientes
             </h1>
             <p className="text-muted-foreground mt-2 text-lg leading-relaxed">
-              Tus entrenamientos y los de tus amigos, con ejercicios completados
+              Tus entrenamientos y los de tus amigos, con ejercicios completados y sensación final.
             </p>
           </div>
         </div>
       </motion.div>
 
-      {/* KPIs */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -94,7 +158,6 @@ export function DashboardPage() {
         <DashboardKpis />
       </motion.div>
 
-      {/* Feed unificado (propios + amigos) */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -111,7 +174,7 @@ export function DashboardPage() {
                   Entrenamientos recientes
                 </span>
                 <p className="text-sm font-normal text-muted-foreground mt-1">
-                  Tus entrenamientos y los de tus amigos — la papelera solo aparece en los tuyos
+                  Una sola vista con tus sesiones y las de tus amigos. La papelera solo aparece en tus sesiones.
                 </p>
               </div>
             </CardTitle>
@@ -119,44 +182,28 @@ export function DashboardPage() {
 
           <CardContent className="p-8 space-y-4">
             {isLoading && <div className="text-sm text-muted-foreground">Cargando actividad…</div>}
-            {!isLoading && feed.length === 0 && (
+            {!isLoading && items.length === 0 && (
               <div className="text-sm text-muted-foreground">Aún no hay actividad reciente.</div>
             )}
 
             {!isLoading &&
-              feed.map((w) => {
-                // Marcamos si la sesión es mía comparando ids numéricos
-                const isMine = myUsuarioId != null && w.id_usuario === myUsuarioId;
-
-                // Título: nombre de la rutina (preferido) o nota; si no, fallback
-                const titulo =
-                  (w.rutina_nombre && w.rutina_nombre.trim()) ||
-                  (w.nota && w.nota.trim()) ||
-                  (isMine ? "Entrenamiento" : `Entrenamiento de ${w.username}`);
-
-                return (
-                  <WorkoutCard
-                    key={w.id_workout}
-                    idSesion={w.id_workout}
-                    titulo={titulo as string}
-                    startedAt={w.fecha}
-                    endedAt={w.fecha}
-                    // Totales solo con sets "done" si vienen; si no, usa totales agregados
-                    totalSets={(w as any).total_series_done ?? w.total_series ?? 0}
-                    totalVolume={Math.round((((w as any).total_kg_done ?? w.total_kg ?? 0) as number) * 100) / 100}
-                    username={w.username}
-                    avatarUrl={w.url_avatar ?? undefined}
-                    // Lista de ejercicios (solo los que tienen sets marcados done)
-                    ejercicios={(w as any).ejercicios ?? []}
-                    sensacionFinal={w.sensacion ?? undefined}
-                    // 🔒 Acciones visuales:
-                    //  - isMine=true  -> ver papelera y UI social (likes/comentarios) habilitada
-                    //  - isMine=false -> NO ver papelera y UI social deshabilitada (solo visual si la card lo permite)
-                    isMine={!!isMine}
-                    readOnly={!isMine}
-                  />
-                );
-              })}
+              items.map((w) => (
+                <WorkoutCard
+                  key={w.key}
+                  idSesion={w.idSesion}
+                  titulo={w.titulo}
+                  startedAt={w.startedAt}
+                  endedAt={w.endedAt}
+                  totalSets={w.totalSets}
+                  totalVolume={w.totalVolume}
+                  username={w.username}
+                  avatarUrl={w.avatarUrl}
+                  ejercicios={w.ejercicios}
+                  sensacionFinal={w.sensacionFinal} // SIEMPRE string
+                  isMine={w.isMine}
+                  readOnly={w.readOnly}
+                />
+              ))}
           </CardContent>
         </Card>
       </motion.div>

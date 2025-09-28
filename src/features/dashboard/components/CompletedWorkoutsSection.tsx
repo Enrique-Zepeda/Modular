@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Loader2 } from "lucide-react";
 import { useListUserWorkoutsQuery } from "@/features/workouts/api/workoutsApi";
 import { WorkoutCard } from "@/features/workouts/components";
+import type { FinishedWorkoutRich } from "@/types/workouts";
 
 function toLocalDayKey(iso: string) {
   const d = new Date(iso);
@@ -21,17 +22,16 @@ export function CompletedWorkoutsSection() {
   const { data, isLoading, isError } = useListUserWorkoutsQuery();
 
   const grouped = useMemo(() => {
-    const g = new Map<string, any[]>();
-    for (const s of data ?? []) {
+    const g = new Map<string, FinishedWorkoutRich[]>();
+    for (const s of (data ?? []) as FinishedWorkoutRich[]) {
       const base = s.ended_at ?? s.started_at;
       if (!base) continue;
       const key = toLocalDayKey(base);
       if (!g.has(key)) g.set(key, []);
       g.get(key)!.push(s);
     }
-    // Convertir a array ordenado por fecha (más reciente primero)
-    const entries = Array.from(g.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1));
-    return entries;
+    // más recientes primero
+    return Array.from(g.entries()).sort((a, b) => (a[0] < b[0] ? 1 : -1));
   }, [data]);
 
   if (isLoading) {
@@ -61,7 +61,21 @@ export function CompletedWorkoutsSection() {
             <h3 className="text-sm font-medium text-muted-foreground">{formatDayHeader(dayKey)}</h3>
             <div className="grid gap-3">
               {sessions.map((s) => (
-                <WorkoutCard key={s.id_sesion} session={s} />
+                <WorkoutCard
+                  key={s.id_sesion}
+                  idSesion={s.id_sesion}
+                  titulo={s.titulo ?? s.Rutinas?.nombre ?? "Entrenamiento"}
+                  startedAt={s.started_at}
+                  endedAt={s.ended_at ?? s.started_at}
+                  totalSets={(s as any).total_sets ?? 0}
+                  totalVolume={Number((s as any).total_volume ?? 0)}
+                  username={"Tú"}
+                  avatarUrl={undefined}
+                  ejercicios={(s as any).ejercicios ?? []}
+                  sensacionFinal={s.sensacion_final ?? (s as any).sensacion_global ?? null}
+                  isMine={true}
+                  readOnly={false}
+                />
               ))}
             </div>
           </div>
