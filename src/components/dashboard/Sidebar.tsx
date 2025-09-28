@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { logoutUser } from "@/features/auth/thunks";
 import { useAppDispatch } from "@/hooks/useStore";
-import { Home, Calendar, Dumbbell, Settings, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { Home, Calendar, Dumbbell, Settings, LogOut, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import LogoutConfirmDialog from "../ui/logout-confirm-dialog";
 
@@ -11,6 +11,7 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Rutinas", href: "/dashboard/routines", icon: Calendar },
   { name: "Ejercicios", href: "/dashboard/ejercicios", icon: Dumbbell },
+  { name: "Recomendación de Rutina", href: "/recomendacion", icon: Sparkles },
   { name: "Configuración", href: "/dashboard/settings", icon: Settings },
 ];
 

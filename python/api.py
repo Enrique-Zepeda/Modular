@@ -1,166 +1,155 @@
 import os
 import pandas as pd
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import accuracy_score
 from flask import Flask, request, jsonify
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
 
-# --- 1. Model Training (This runs only once when the server starts) ---
+# --- 1. Carga y Preparación de Datos ---
 
-# Cargar los datos desde el archivo CSV (rutas relativas/robustas)
-DATA_FILE_CANDIDATES = [
-    os.path.join(os.path.dirname(__file__), "gym_routines_dataset.csv"),
-    os.path.join(os.getcwd(), "python", "gym_routines_dataset.csv"),
-    os.path.join(os.getcwd(), "gym_routines_dataset.csv"),
-]
+# Cargar el nuevo dataset con más registros y variables
+DATA_FILE = "pruebas.csv" 
+try:
+    # Intenta construir una ruta más robusta
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    data_path = os.path.join(base_dir, DATA_FILE)
+    if not os.path.exists(data_path):
+        data_path = DATA_FILE # Fallback a ruta relativa si no se encuentra
 
-df = None
-for candidate in DATA_FILE_CANDIDATES:
-    try:
-        if os.path.exists(candidate):
-            df = pd.read_csv(candidate)
-            print(f"✅ Datos cargados correctamente desde: {candidate}")
-            break
-    except Exception as exc:
-        print(f"⚠️  No se pudo leer '{candidate}': {exc}")
+    df = pd.read_csv(data_path)
+    print(f"✅ Datos cargados correctamente desde: {data_path}")
+    print(f"Total de registros: {len(df)}")
+except FileNotFoundError:
+    print(f"❌ Error: No se encontró el archivo '{DATA_FILE}'. Asegúrate de que esté en la misma carpeta que el script.")
+    # Termina la ejecución si no hay datos, ya que el modelo no se puede entrenar
+    exit()
 
-if df is None:
-    print("❌ Error: No se encontró el archivo 'gym_routines_dataset.csv'.")
-    raise FileNotFoundError("gym_routines_dataset.csv no encontrado en rutas conocidas")
+# --- 2. Preprocesamiento y Codificación ---
 
-# Preprocessing and Encoding
 df_encoded = df.copy()
 encoders = {}
-for column in df.columns:
-    if df[column].dtype == 'object':
-        le = LabelEncoder()
-        df_encoded[column] = le.fit_transform(df[column])
-        encoders[column] = le
 
+# Las variables numéricas como 'Edad', 'Dias', 'Tiempo' no necesitan codificación LabelEncoder
+# Solo codificamos las columnas de tipo 'object' (texto)
+categorical_cols = df.select_dtypes(include=['object']).columns
+
+for column in categorical_cols:
+    le = LabelEncoder()
+    df_encoded[column] = le.fit_transform(df[column])
+    encoders[column] = le
+
+# Separamos las características (X) de la etiqueta a predecir (y)
 X = df_encoded.drop('Rutina', axis=1)
-
 y = df_encoded['Rutina']
 
-# Model Training
-tree_clf = DecisionTreeClassifier(criterion='entropy', random_state=42)
-tree_clf.fit(X, y)
-print("✅ Modelo de Árbol de Decisión entrenado y listo.")
+# Identificar y eliminar clases con un solo miembro para evitar errores en train_test_split con stratify
+class_counts = y.value_counts()
+single_member_classes = class_counts[class_counts < 2].index
 
+if not single_member_classes.empty:
+    print(f"⚠️ Eliminando las siguientes clases con menos de 2 miembros para la estratificación: {list(encoders['Rutina'].inverse_transform(single_member_classes))}")
+    df_encoded = df_encoded[~df_encoded['Rutina'].isin(single_member_classes)]
+    X = df_encoded.drop('Rutina', axis=1)
+    y = df_encoded['Rutina']
 
-# --- 2. API Server Setup ---
+# --- 3. División de Datos y Entrenamiento del Modelo ---
 
-app = Flask(__name__)
-# Configuración CORS explícita para el frontend local
-CORS(
-    app,
-    resources={r"/*": {"origins": ["http://localhost:5173"]}},
-    supports_credentials=False,
+# 80% para entrenamiento, 20% para prueba.
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
 )
 
-@app.after_request
-def apply_cors_headers(response):
-    # Asegura cabeceras mínimas para navegadores exigentes
-    response.headers.setdefault("Access-Control-Allow-Origin", "http://localhost:5173")
-    response.headers.setdefault("Vary", "Origin")
-    response.headers.setdefault(
-        "Access-Control-Allow-Headers", "Content-Type, Authorization"
-    )
-    response.headers.setdefault(
-        "Access-Control-Allow-Methods", "GET, POST, OPTIONS"
-    )
-    return response
+# Usamos RandomForestClassifier, que es más robusto
+model = RandomForestClassifier(n_estimators=150, random_state=42, oob_score=True, max_features='sqrt')
+model.fit(X_train, y_train)
+print("✅ Modelo de Random Forest entrenado.")
+
+# --- 4. Evaluación del Modelo ---
+
+y_pred = model.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+print(f"📊 Precisión del modelo en el conjunto de prueba: {accuracy:.2f}")
+# OOB score es una buena estimación de cómo se comportará el modelo con datos nuevos
+if hasattr(model, 'oob_score_'):
+    print(f"📊 Precisión Out-of-Bag (OOB): {model.oob_score_:.2f}")
 
 
-def normalizar_entrada(objetivo: str, nivel: str, dias, tiempo):
-    objetivo_map = {
-        "ganar músculo": "Ganar Musculo",
-        "ganar musculo": "Ganar Musculo",
-        "perder grasa": "Perder Grasa",
-        "mantenerse": "Mantenerse",
-    }
-    nivel_map = {
-        "principiante": "Principiante",
-        "intermedio": "Intermedio",
-        "avanzado": "Avanzado",
-    }
+# --- 5. Lógica de la API con Flask ---
 
-    def parse_int(value, default=None):
-        try:
-            return int(value)
-        except Exception:
-            return default
+app = Flask(__name__)
+CORS(app, resources={r"/predict": {"origins": "*"}})
 
-    objetivo_norm = objetivo_map.get(str(objetivo).strip().lower())
-    nivel_norm = nivel_map.get(str(nivel).strip().lower())
-
-    dias_str = str(dias).strip().lower()
-    if dias_str in {"5 o más", "5 o mas", "5+", ">=5", "5 o más días"}:
-        dias_norm = 5
-    else:
-        dias_norm = parse_int(dias_str)
-
-    tiempo_str = str(tiempo).strip().lower().replace(" minutos", " min")
-    if "+" in tiempo_str:
-        tiempo_norm = parse_int(tiempo_str.split("+")[0])
-    else:
-        tiempo_norm = parse_int(tiempo_str.split()[0])
-
-    if not objetivo_norm or not nivel_norm or dias_norm is None or tiempo_norm is None:
-        raise ValueError("Entradas inválidas. Verifique objetivo, nivel, días y tiempo.")
-
-    return objetivo_norm, nivel_norm, dias_norm, tiempo_norm
-
-
-def predecir_rutina(objetivo, nivel, dias, tiempo):
-    objetivo_norm, nivel_norm, dias_norm, tiempo_norm = normalizar_entrada(
-        objetivo, nivel, dias, tiempo
-    )
-    nuevo_usuario_df = pd.DataFrame({
-        'Objetivo': [objetivo_norm], 'Nivel': [nivel_norm], 'Dias': [dias_norm], 'Tiempo': [tiempo_norm]
+def predecir_rutina(objetivo, nivel, dias, tiempo, equipo, edad, sexo):
+    """
+    Toma los datos del usuario, los preprocesa y devuelve la predicción del modelo.
+    """
+    # El orden de las columnas debe ser exactamente el mismo que en X
+    feature_columns = ['Objetivo', 'Nivel', 'Dias', 'Tiempo', 'Equipo_Disponible', 'Edad', 'Sexo']
+    
+    input_data = pd.DataFrame({
+        'Objetivo': [objetivo], 'Nivel': [nivel], 'Dias': [int(dias)],
+        'Tiempo': [int(tiempo)], 'Equipo_Disponible': [equipo],
+        'Edad': [int(edad)], 'Sexo': [sexo]
     })
-    for column in ['Objetivo', 'Nivel']:
+    
+    # Aseguramos el orden de las columnas
+    input_data = input_data[feature_columns]
+
+    # Codificamos las columnas categóricas de la entrada del usuario
+    for column in ['Objetivo', 'Nivel', 'Equipo_Disponible', 'Sexo']:
         try:
-            nuevo_usuario_df[column] = encoders[column].transform(nuevo_usuario_df[column])
-        except Exception as exc:
-            raise ValueError(f"Valor no reconocido para {column}: {exc}")
-    try:
-        prediccion_codificada = tree_clf.predict(nuevo_usuario_df)
-        rutina_recomendada = encoders['Rutina'].inverse_transform(prediccion_codificada)
-    except Exception as exc:
-        raise RuntimeError(f"Fallo al predecir: {exc}")
+            le = encoders[column]
+            input_data[column] = le.transform(input_data[column])
+        except ValueError as e:
+            raise ValueError(f"Valor no reconocido para '{column}': '{input_data[column].iloc[0]}'. Valores esperados: {list(le.classes_)}") from e
+
+    # Realizamos la predicción
+    prediccion_codificada = model.predict(input_data)
+
+    # Devolvemos el nombre de la rutina
+    rutina_recomendada = encoders['Rutina'].inverse_transform(prediccion_codificada)
     return rutina_recomendada[0]
 
-@app.route('/predict', methods=['POST', 'OPTIONS'])
-@cross_origin(origins=["http://localhost:5173"], allow_headers=["Content-Type", "Authorization"], methods=["POST", "OPTIONS"])
+
+@app.route('/predict', methods=['POST'])
 def predict():
-    # Preflight
-    if request.method == 'OPTIONS':
-        return ('', 204)
-
-    data = request.get_json(silent=True) or {}
-    required_fields = ['objetivo', 'nivel', 'dias', 'tiempo']
-    if not all(field in data for field in required_fields):
-        return jsonify({"error": "Faltan datos en la solicitud."}), 400
-
+    """
+    Endpoint de la API actualizado para recibir las nuevas variables.
+    """
     try:
-        recomendacion = predecir_rutina(data['objetivo'], data['nivel'], data['dias'], data['tiempo'])
-        return jsonify({'rutina_recomendada': recomendacion})
-    except Exception as e:
-        return jsonify({"error": f"Error al procesar la solicitud: {e}"}), 400
+        data = request.get_json()
+        required_fields = ['objetivo', 'nivel', 'dias', 'tiempo', 'equipo', 'edad', 'sexo']
+        if not data or not all(k in data for k in required_fields):
+            return jsonify({"error": f"Faltan datos. Se requieren: {', '.join(required_fields)}."}), 400
 
-@app.route('/health', methods=['GET', 'OPTIONS'])
-@cross_origin(origins=["http://localhost:5173"], methods=["GET", "OPTIONS"])
-def health():
-    if request.method == 'OPTIONS':
-        return ('', 204)
+        recomendacion = predecir_rutina(
+            data['objetivo'], data['nivel'], data['dias'], data['tiempo'],
+            data['equipo'], data['edad'], data['sexo']
+        )
+        return jsonify({'rutina_recomendada': recomendacion})
+    except ValueError as e:
+        # Error por valor no reconocido (ej. 'Nivel'='Super Saiyan')
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        # Error genérico para cualquier otro problema
+        print(f"Error inesperado: {type(e).__name__} - {e}")
+        return jsonify({"error": "Ocurrió un error interno en el servidor."}), 500
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Endpoint para verificar el estado del servidor y el modelo."""
     return jsonify({
         "status": "ok",
-        "model": "DecisionTreeClassifier",
-        "samples": int(len(df)),
+        "model": "RandomForestClassifier",
+        "dataset": DATA_FILE,
+        "total_samples": len(df),
+        "test_set_accuracy": f"{accuracy:.2f}",
+        "oob_accuracy": f"{model.oob_score_:.2f}" if hasattr(model, 'oob_score_') else "N/A"
     })
 
-# --- 3. Run the Server ---
+# --- 6. Ejecución del Servidor ---
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', '5000'))
-    debug = os.environ.get('FLASK_DEBUG', 'true').lower() == 'true'
-    app.run(host='0.0.0.0', port=port, debug=debug)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
