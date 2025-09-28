@@ -9,21 +9,20 @@ from flask_cors import CORS
 
 # --- 1. Carga y Preparación de Datos ---
 
-# Cargar el nuevo dataset con más registros y variables
+# Usaremos el nuevo dataset con rutinas repetidas
 DATA_FILE = "pruebas.csv" 
 try:
-    # Intenta construir una ruta más robusta
     base_dir = os.path.dirname(os.path.abspath(__file__))
     data_path = os.path.join(base_dir, DATA_FILE)
     if not os.path.exists(data_path):
-        data_path = DATA_FILE # Fallback a ruta relativa si no se encuentra
+        data_path = DATA_FILE
 
     df = pd.read_csv(data_path)
     print(f"✅ Datos cargados correctamente desde: {data_path}")
     print(f"Total de registros: {len(df)}")
+    print(f"Número de rutinas únicas: {df['Rutina'].nunique()}")
 except FileNotFoundError:
     print(f"❌ Error: No se encontró el archivo '{DATA_FILE}'. Asegúrate de que esté en la misma carpeta que el script.")
-    # Termina la ejecución si no hay datos, ya que el modelo no se puede entrenar
     exit()
 
 # --- 2. Preprocesamiento y Codificación ---
@@ -31,8 +30,6 @@ except FileNotFoundError:
 df_encoded = df.copy()
 encoders = {}
 
-# Las variables numéricas como 'Edad', 'Dias', 'Tiempo' no necesitan codificación LabelEncoder
-# Solo codificamos las columnas de tipo 'object' (texto)
 categorical_cols = df.select_dtypes(include=['object']).columns
 
 for column in categorical_cols:
@@ -40,28 +37,38 @@ for column in categorical_cols:
     df_encoded[column] = le.fit_transform(df[column])
     encoders[column] = le
 
-# Separamos las características (X) de la etiqueta a predecir (y)
 X = df_encoded.drop('Rutina', axis=1)
 y = df_encoded['Rutina']
 
-# Identificar y eliminar clases con un solo miembro para evitar errores en train_test_split con stratify
+# --- ESTA LÓGICA AHORA FUNCIONARÁ CORRECTAMENTE ---
+# Con el nuevo dataset, la mayoría de las clases (rutinas) tendrán más de 1 miembro.
+# Este código es una salvaguarda: si alguna rutina AÚN ASÍ aparece solo una vez,
+# la eliminará para prevenir el error, pero ya no borrará todo el dataset.
 class_counts = y.value_counts()
 single_member_classes = class_counts[class_counts < 2].index
 
 if not single_member_classes.empty:
-    print(f"⚠️ Eliminando las siguientes clases con menos de 2 miembros para la estratificación: {list(encoders['Rutina'].inverse_transform(single_member_classes))}")
+    rutinas_eliminadas = encoders['Rutina'].inverse_transform(single_member_classes)
+    print(f"⚠️  Se encontraron clases con 1 solo miembro. Eliminando {len(rutinas_eliminadas)} registros para poder usar 'stratify'.")
+    print(f"Rutinas eliminadas: {list(rutinas_eliminadas)}")
+    # Filtramos el DataFrame para excluir esas clases
     df_encoded = df_encoded[~df_encoded['Rutina'].isin(single_member_classes)]
+    # Regeneramos X e y a partir del DataFrame filtrado
     X = df_encoded.drop('Rutina', axis=1)
     y = df_encoded['Rutina']
 
+# Si después de filtrar no quedan datos, detenemos la ejecución.
+if df_encoded.empty:
+    print("❌ Error: Después de filtrar clases únicas, el dataset quedó vacío. No se puede continuar.")
+    exit()
+
 # --- 3. División de Datos y Entrenamiento del Modelo ---
 
-# 80% para entrenamiento, 20% para prueba.
+# Ahora 'stratify=y' funcionará sin problemas.
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
 )
 
-# Usamos RandomForestClassifier, que es más robusto
 model = RandomForestClassifier(n_estimators=150, random_state=42, oob_score=True, max_features='sqrt')
 model.fit(X_train, y_train)
 print("✅ Modelo de Random Forest entrenado.")
@@ -71,80 +78,56 @@ print("✅ Modelo de Random Forest entrenado.")
 y_pred = model.predict(X_test)
 accuracy = accuracy_score(y_test, y_pred)
 print(f"📊 Precisión del modelo en el conjunto de prueba: {accuracy:.2f}")
-# OOB score es una buena estimación de cómo se comportará el modelo con datos nuevos
 if hasattr(model, 'oob_score_'):
     print(f"📊 Precisión Out-of-Bag (OOB): {model.oob_score_:.2f}")
 
-
-# --- 5. Lógica de la API con Flask ---
+# --- 5. Lógica de la API con Flask (Sin cambios aquí) ---
 
 app = Flask(__name__)
 CORS(app, resources={r"/predict": {"origins": "*"}})
 
 def predecir_rutina(objetivo, nivel, dias, tiempo, equipo, edad, sexo):
-    """
-    Toma los datos del usuario, los preprocesa y devuelve la predicción del modelo.
-    """
-    # El orden de las columnas debe ser exactamente el mismo que en X
     feature_columns = ['Objetivo', 'Nivel', 'Dias', 'Tiempo', 'Equipo_Disponible', 'Edad', 'Sexo']
-    
     input_data = pd.DataFrame({
         'Objetivo': [objetivo], 'Nivel': [nivel], 'Dias': [int(dias)],
         'Tiempo': [int(tiempo)], 'Equipo_Disponible': [equipo],
         'Edad': [int(edad)], 'Sexo': [sexo]
     })
-    
-    # Aseguramos el orden de las columnas
     input_data = input_data[feature_columns]
-
-    # Codificamos las columnas categóricas de la entrada del usuario
     for column in ['Objetivo', 'Nivel', 'Equipo_Disponible', 'Sexo']:
         try:
             le = encoders[column]
             input_data[column] = le.transform(input_data[column])
-        except ValueError as e:
-            raise ValueError(f"Valor no reconocido para '{column}': '{input_data[column].iloc[0]}'. Valores esperados: {list(le.classes_)}") from e
-
-    # Realizamos la predicción
+        except (ValueError, KeyError) as e:
+            valores_esperados = list(encoders.get(column, le).classes_)
+            raise ValueError(f"Valor no reconocido para '{column}': '{input_data[column].iloc[0]}'. Valores esperados: {valores_esperados}") from e
     prediccion_codificada = model.predict(input_data)
-
-    # Devolvemos el nombre de la rutina
     rutina_recomendada = encoders['Rutina'].inverse_transform(prediccion_codificada)
     return rutina_recomendada[0]
 
-
 @app.route('/predict', methods=['POST'])
 def predict():
-    """
-    Endpoint de la API actualizado para recibir las nuevas variables.
-    """
     try:
         data = request.get_json()
         required_fields = ['objetivo', 'nivel', 'dias', 'tiempo', 'equipo', 'edad', 'sexo']
         if not data or not all(k in data for k in required_fields):
             return jsonify({"error": f"Faltan datos. Se requieren: {', '.join(required_fields)}."}), 400
-
         recomendacion = predecir_rutina(
             data['objetivo'], data['nivel'], data['dias'], data['tiempo'],
             data['equipo'], data['edad'], data['sexo']
         )
         return jsonify({'rutina_recomendada': recomendacion})
     except ValueError as e:
-        # Error por valor no reconocido (ej. 'Nivel'='Super Saiyan')
         return jsonify({"error": str(e)}), 400
     except Exception as e:
-        # Error genérico para cualquier otro problema
         print(f"Error inesperado: {type(e).__name__} - {e}")
         return jsonify({"error": "Ocurrió un error interno en el servidor."}), 500
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    """Endpoint para verificar el estado del servidor y el modelo."""
     return jsonify({
-        "status": "ok",
-        "model": "RandomForestClassifier",
-        "dataset": DATA_FILE,
-        "total_samples": len(df),
+        "status": "ok", "model": "RandomForestClassifier", "dataset": DATA_FILE,
+        "total_samples_after_filtering": len(df_encoded),
         "test_set_accuracy": f"{accuracy:.2f}",
         "oob_accuracy": f"{model.oob_score_:.2f}" if hasattr(model, 'oob_score_') else "N/A"
     })
