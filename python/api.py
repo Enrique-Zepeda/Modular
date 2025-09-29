@@ -9,7 +9,7 @@ from flask_cors import CORS
 
 # --- 1. Carga y Preparación de Datos ---
 
-# Usaremos el nuevo dataset con rutinas repetidas
+# Se carga el dataset de pruebas
 DATA_FILE = "pruebas.csv" 
 try:
     base_dir = os.path.dirname(os.path.abspath(__file__))
