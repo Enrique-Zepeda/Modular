@@ -1,10 +1,14 @@
 import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react";
 import { supabase } from "@/lib/supabase/client";
 
+/** ===== Tipos del feed =====
+ * Mantengo los nombres/exports que ya usa el Dashboard.
+ * Añadimos `duracion_seg?: number | null` porque v2 lo devuelve.
+ */
 export type FriendWorkoutCard = {
-  id_workout: number;
-  id_usuario: number;
-  fecha: string;
+  id_workout: number; // id_sesion en Entrenamientos
+  id_usuario: number; // dueño (entero)
+  fecha: string; // timestamptz (fin o fecha base del post)
   sensacion: string | null;
   nota: string | null;
   username: string;
@@ -12,9 +16,9 @@ export type FriendWorkoutCard = {
   url_avatar: string | null;
   total_series: number | null;
   total_kg: number | null;
-  /** 👇 NUEVO: directo del RPC */
-  id_rutina: number | null;
-  rutina_nombre: string | null;
+  id_rutina: number | null; // viene en v2
+  rutina_nombre: string | null; // viene en v2
+  duracion_seg?: number | null; // 👈 NUEVO (v2) — usado por DashboardPage
 };
 
 export type FriendWorkoutExercise = {
@@ -38,10 +42,14 @@ export const friendsFeedApi = createApi({
   baseQuery: fakeBaseQuery(),
   tagTypes: ["FriendsFeed"],
   endpoints: (builder) => ({
+    /** ============================
+     * Feed simple (usa RPC v2)
+     * ============================ */
     listFriendsFeed: builder.query<FriendWorkoutCard[], { limit?: number; before?: string } | void>({
       async queryFn(args) {
         const { limit = 20, before = null as any } = args || {};
-        const { data, error } = await supabase.rpc("feed_friends_workouts", {
+        // 🔁 Usar la versión v2 que incluye `duracion_seg`, `id_rutina`, `rutina_nombre`
+        const { data, error } = await supabase.rpc("feed_friends_workouts_v2", {
           p_limit: limit,
           p_before: before,
         });
@@ -51,12 +59,18 @@ export const friendsFeedApi = createApi({
       providesTags: ["FriendsFeed"],
     }),
 
+    /** =====================================
+     * Feed “rich” con ejercicios agregados
+     * 1) Base desde RPC v2 (trae duracion_seg)
+     * 2) Join manual de sets (como ya estaba)
+     * ===================================== */
     listFriendsFeedRich: builder.query<FriendWorkoutCardRich[], { limit?: number; before?: string } | void>({
       async queryFn(args) {
         try {
           const { limit = 20, before = null as any } = args || {};
-          // 1) Base (ahora con rutina_nombre desde el RPC)
-          const baseRes = await supabase.rpc("feed_friends_workouts", {
+
+          // 1) Base (ahora con v2)
+          const baseRes = await supabase.rpc("feed_friends_workouts_v2", {
             p_limit: limit,
             p_before: before,
           });
@@ -67,41 +81,47 @@ export const friendsFeedApi = createApi({
 
           const sessionIds = base.map((f) => f.id_workout);
 
-          // 2) Sets done + ejercicios
+          // 2) Cargar sets/ejercicios relacionados (idéntico a tu lógica previa)
+          type Row = {
+            id_sesion: number;
+            id_ejercicio: number;
+            id: number; // Ejercicios.id
+            nombre: string | null;
+            grupo_muscular: string | null;
+            equipamento: string | null;
+            ejemplo: string | null;
+            idx: number;
+            kg: number | null;
+            reps: number | null;
+            done: boolean | null;
+          };
+
           const setsRes = await supabase
             .from("EntrenamientoSets")
             .select(
               `
               id_sesion,
               id_ejercicio,
+              idx,
               kg,
               reps,
               done,
-              Ejercicios:Ejercicios ( id, nombre, grupo_muscular, equipamento, ejemplo )
+              Ejercicios:Ejercicios (
+                id,
+                nombre,
+                grupo_muscular,
+                equipamento,
+                ejemplo
+              )
             `
             )
-            .in("id_sesion", sessionIds)
-            .eq("done", true);
+            .in("id_sesion", sessionIds);
 
           if (setsRes.error) throw setsRes.error;
 
-          type Row = {
-            id_sesion: number;
-            id_ejercicio: number;
-            kg: number;
-            reps: number;
-            Ejercicios: {
-              id: number;
-              nombre: string | null;
-              grupo_muscular: string | null;
-              equipamento: string | null;
-              ejemplo: string | null;
-            } | null;
-          };
+          const rows = (setsRes.data ?? []) as any[];
 
-          const rows = (setsRes.data ?? []) as Row[];
-
-          // 3) Agregación en memoria
+          // 3) Agregación en memoria (igual que antes)
           const bySesion = new Map<number, FriendWorkoutCardRich>();
           for (const b of base) {
             bySesion.set(b.id_workout, {
@@ -112,67 +132,48 @@ export const friendsFeedApi = createApi({
             });
           }
 
-          const key = (sid: number, eid: number) => `${sid}-${eid}`;
-          const agg = new Map<
-            string,
-            {
-              id_sesion: number;
+          for (const r of rows) {
+            const sId = Number(r.id_sesion);
+            const bucket = bySesion.get(sId);
+            if (!bucket) continue;
+
+            const ex = r.Ejercicios as {
               id: number;
               nombre: string | null;
               grupo_muscular: string | null;
               equipamento: string | null;
               ejemplo: string | null;
-              sets_done: number;
-              volume: number;
-            }
-          >();
+            } | null;
 
-          for (const r of rows) {
-            const vol = Number(r.kg ?? 0) * Number(r.reps ?? 0);
-            const k = key(r.id_sesion, r.id_ejercicio);
-            const ej = r.Ejercicios ?? ({} as any);
-            if (!agg.has(k)) {
-              agg.set(k, {
-                id_sesion: r.id_sesion,
-                id: r.id_ejercicio,
-                nombre: ej?.nombre ?? null,
-                grupo_muscular: ej?.grupo_muscular ?? null,
-                equipamento: ej?.equipamento ?? null,
-                ejemplo: ej?.ejemplo ?? null,
-                sets_done: 0,
-                volume: 0,
-              });
-            }
-            const a = agg.get(k)!;
-            a.sets_done += 1;
-            a.volume += vol;
+            bucket.total_series_done += 1;
+            const kg = Number(r.kg ?? 0);
+            const reps = Number(r.reps ?? 0);
+            bucket.total_kg_done += Number.isFinite(kg * reps) ? kg * reps : 0;
 
-            const ses = bySesion.get(r.id_sesion);
-            if (ses) {
-              ses.total_series_done += 1;
-              ses.total_kg_done += vol;
+            if (ex) {
+              const found = bucket.ejercicios.find((e) => e.id === ex.id);
+              if (!found) {
+                bucket.ejercicios.push({
+                  id: ex.id,
+                  nombre: ex.nombre,
+                  grupo_muscular: ex.grupo_muscular,
+                  equipamento: ex.equipamento,
+                  ejemplo: ex.ejemplo,
+                  sets_done: 1,
+                  volume: Number.isFinite(kg * reps) ? kg * reps : 0,
+                });
+              } else {
+                found.sets_done += 1;
+                const add = Number.isFinite(kg * reps) ? kg * reps : 0;
+                found.volume = Number(found.volume ?? 0) + add;
+              }
             }
           }
 
-          for (const a of agg.values()) {
-            const ses = bySesion.get(a.id_sesion);
-            if (ses) {
-              ses.ejercicios.push({
-                id: a.id,
-                nombre: a.nombre,
-                grupo_muscular: a.grupo_muscular,
-                equipamento: a.equipamento,
-                ejemplo: a.ejemplo,
-                sets_done: a.sets_done,
-                volume: a.volume,
-              });
-            }
-          }
-
-          // 4) Salida ordenada
           const out = Array.from(bySesion.values()).sort((a, b) =>
             a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0
           );
+
           return { data: out };
         } catch (error) {
           return { error: error as any };

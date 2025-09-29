@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardKpis } from "@/features/dashboard/components";
 import { useGetFinishedWorkoutsRichQuery } from "@/features/workouts/api/workoutsApi";
-import { useListFriendsFeedRichQuery } from "@/features/friends/api";
+
 import { WorkoutCard } from "@/features/workouts/components/WorkoutCard";
 import { motion, AnimatePresence } from "framer-motion";
 import { BarChart3, Activity } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { normalizeSensation } from "@/features/workouts/utils/sensation";
+import { diffSecondsSafe } from "@/lib/duration";
+import { useListFriendsFeedRichQuery } from "@/features/friends/api/friendsFeedApi";
 
 // Título seguro
 const safeTitle = (v: unknown): string | null => {
@@ -20,6 +22,9 @@ export function DashboardPage() {
   // 1) Datos
   const { data: myWorkouts = [], isLoading: loadingMine } = useGetFinishedWorkoutsRichQuery({ limit: 30 });
   const { data: friendsFeed = [], isLoading: loadingFriends } = useListFriendsFeedRichQuery({ limit: 30 });
+
+  console.debug("[DBG] myWorkouts raw sample:", Array.isArray(myWorkouts) ? myWorkouts.slice(0, 2) : myWorkouts);
+  console.debug("[DBG] friendsFeed raw sample:", Array.isArray(friendsFeed) ? friendsFeed.slice(0, 2) : friendsFeed);
 
   // 2) Resolver mi id_usuario (entero)
   const [myUsuarioId, setMyUsuarioId] = useState<number | null>(null);
@@ -46,7 +51,7 @@ export function DashboardPage() {
     };
   }, []);
 
-  // 3) Mapear items base
+  // 3) Mapear items base (+ duración calculada si falta)
   const baseItems = useMemo(() => {
     // Mis sesiones (FinishedWorkoutRich)
     const mine = (myWorkouts as any[]).map((w) => {
@@ -55,6 +60,15 @@ export function DashboardPage() {
 
       const sensRawMine = w.sensacion_final ?? w.sensacion_global ?? null;
       const sensNormMine = normalizeSensation(sensRawMine);
+
+      // 👇 prioridad: usar w.duracion_seg si la API lo trae; si no, calcular por fechas
+      const dSeg =
+        (typeof w.duracion_seg === "number" ? w.duracion_seg : null) ??
+        diffSecondsSafe(String(w.ended_at ?? w.started_at), String(w.started_at));
+
+      if (w.duracion_seg == null) {
+        console.warn("[WARN] myWorkouts item sin duracion_seg:", w);
+      }
 
       return {
         source: "mine" as const,
@@ -71,6 +85,7 @@ export function DashboardPage() {
         sensacionFinal: sensNormMine,
         isMine: true,
         readOnly: false,
+        duracionSeg: dSeg ?? undefined, // 👈 lo pasamos a la card
         endedSort: String(w.ended_at ?? w.started_at),
         __score: titulo !== "Entrenamiento" ? 2 : 0,
       };
@@ -85,6 +100,15 @@ export function DashboardPage() {
 
       const sensNormFriend = normalizeSensation(w.sensacion);
       const isMine = myUsuarioId != null && w.id_usuario === myUsuarioId;
+
+      // 👇 si no viene duracion_seg en el feed, calculamos
+      const dSeg =
+        (typeof w.duracion_seg === "number" ? w.duracion_seg : null) ??
+        diffSecondsSafe(String(w.fecha), String(w.fecha));
+
+      if (w.duracion_seg == null) {
+        console.warn("[WARN] friendsFeed item sin duracion_seg:", w);
+      }
 
       return {
         source: "friends" as const,
@@ -101,12 +125,13 @@ export function DashboardPage() {
         sensacionFinal: sensNormFriend,
         isMine,
         readOnly: !isMine,
+        duracionSeg: dSeg ?? undefined, // 👈 lo pasamos a la card
         endedSort: String(w.fecha),
         __score: titulo !== "Entrenamiento" ? 3 : 1,
       };
     });
 
-    // Preferimos el feed si existe la misma sesión, dedupe por mejor score
+    // Dedupe por id, preferimos el feed si tiene mejor score
     const merged = [...friends, ...mine];
     const byId = new Map<number, any>();
     for (const it of merged) {
@@ -115,6 +140,8 @@ export function DashboardPage() {
     }
     const out = Array.from(byId.values());
     out.sort((a, b) => (a.endedSort < b.endedSort ? 1 : -1));
+
+    console.debug("[DBG] baseItems sample:", out.slice(0, 2));
     return out;
   }, [myWorkouts, friendsFeed, myUsuarioId]);
 
@@ -208,7 +235,7 @@ export function DashboardPage() {
                     sensacionFinal={w.sensacionFinal}
                     isMine={w.isMine}
                     readOnly={w.readOnly}
-                    // 👇 remueve inmediatamente del feed
+                    duracionSeg={w.duracionSeg} // 👈 PASAMOS duración
                     onDeleted={(id) =>
                       setDeletedIds((prev) => {
                         const next = new Set(prev);

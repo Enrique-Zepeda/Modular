@@ -1,8 +1,9 @@
 import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react";
 import { supabase } from "@/lib/supabase/client";
 import { dashboardApi } from "@/features/dashboard/api/dashboardApi";
-import { friendsFeedApi } from "@/features/friends/api"; // 👈 para invalidar el feed unificado
+
 import type { FinishedWorkoutRich } from "@/types/workouts";
+import { friendsFeedApi } from "@/features/friends/api/friendsFeedApi";
 
 /** ===== Tipos ===== **/
 export type WorkoutSetInput = {
@@ -86,7 +87,7 @@ export const workoutsApi = createApi({
       },
     }),
 
-    /** ✅ Listado simple de mis sesiones (para mantener compatibilidad con el export existente) */
+    /** ✅ Listado simple de mis sesiones (compat con export existente) */
     listUserWorkouts: builder.query<WorkoutListItem[], void>({
       async queryFn() {
         try {
@@ -95,7 +96,6 @@ export const workoutsApi = createApi({
           const uid = userData.user?.id;
           if (!uid) throw new Error("No authenticated user");
 
-          // Sesiones del usuario (ordenadas desc) + sets y nombre de la rutina (si RLS lo permite)
           const { data, error } = await supabase
             .from("Entrenamientos")
             .select(
@@ -121,27 +121,40 @@ export const workoutsApi = createApi({
       providesTags: [{ type: "Workouts", id: "LIST" }],
     }),
 
-    /** Entrenamientos finalizados (solo sets done) + perfil + nombre real de la rutina */
+    /**
+     * Entrenamientos finalizados (solo sets done) + perfil + nombre real de la rutina.
+     * 🔧 Cambios clave:
+     *  - Incluimos `duracion_seg` desde Entrenamientos.
+     *  - Mantenemos el contrato FinishedWorkoutRich actual.
+     */
     getFinishedWorkoutsRich: builder.query<FinishedWorkoutRich[], { limit?: number; offset?: number }>({
       async queryFn({ limit = 20, offset = 0 }) {
         try {
-          // 1) Sesiones finalizadas
+          // 1) Sesiones finalizadas (+ duracion_seg)
           const sesRes = await supabase
             .from("Entrenamientos")
-            .select("id_sesion, id_rutina, owner_uid, started_at, ended_at, sensacion_global")
+            .select("id_sesion, id_rutina, owner_uid, started_at, ended_at, sensacion_global, duracion_seg") // 👈 AQUI
             .not("ended_at", "is", null)
             .order("ended_at", { ascending: false })
             .range(offset, offset + limit - 1);
 
           if (sesRes.error) throw sesRes.error;
-          const sesiones = sesRes.data ?? [];
+          const sesiones = (sesRes.data ?? []) as Array<{
+            id_sesion: number;
+            id_rutina: number | null;
+            owner_uid: string;
+            started_at: string;
+            ended_at: string | null;
+            sensacion_global: string | null;
+            duracion_seg: number | null;
+          }>;
           if (sesiones.length === 0) return { data: [] };
 
           const sesionIds = sesiones.map((s) => s.id_sesion);
           const rutinaIds = Array.from(new Set(sesiones.map((s) => s.id_rutina).filter((x): x is number => x != null)));
           const ownerUids = Array.from(new Set(sesiones.map((s) => s.owner_uid)));
 
-          // 1.b) Perfiles para username/avatar
+          // 1.b) Perfiles
           const perfRes = await supabase
             .from("Usuarios")
             .select("auth_uid, username, url_avatar")
@@ -166,7 +179,7 @@ export const workoutsApi = createApi({
             );
           }
 
-          // 2) SOLO sets completados + info de ejercicio
+          // 2) SOLO sets done + info ejercicio
           const setsRes = await supabase
             .from("EntrenamientoSets")
             .select(
@@ -224,26 +237,7 @@ export const workoutsApi = createApi({
           };
 
           // 4) Agregación por sesión/ejercicio
-          const bySesion = new Map<number, FinishedWorkoutRich>();
-          for (const s of sesiones) {
-            const prof = profileByUid.get(s.owner_uid) ?? { username: null, url_avatar: null };
-            const titulo = rutinaById.get(s.id_rutina as number) ?? "Entrenamiento"; // ✅ nombre de la rutina
-            bySesion.set(s.id_sesion, {
-              id_sesion: s.id_sesion,
-              id_rutina: s.id_rutina ?? null,
-              owner_uid: s.owner_uid,
-              started_at: s.started_at,
-              ended_at: s.ended_at!,
-              total_sets: 0, // sets done
-              total_volume: 0,
-              titulo,
-              username: prof.username,
-              url_avatar: prof.url_avatar,
-              ejercicios: [],
-              sensacion_final: s.sensacion_global ?? null,
-            });
-          }
-
+          const bySesion = new Map<FinishedWorkoutRich["id_sesion"], FinishedWorkoutRich>();
           const exKey = (sid: number, eid: number) => `${sid}-${eid}`;
           const exAgg = new Map<
             string,
@@ -259,6 +253,27 @@ export const workoutsApi = createApi({
               rpeScores: number[];
             }
           >();
+
+          for (const s of sesiones) {
+            const prof = profileByUid.get(s.owner_uid) ?? { username: null, url_avatar: null };
+            const titulo = rutinaById.get(s.id_rutina as number) ?? "Entrenamiento";
+            bySesion.set(s.id_sesion, {
+              id_sesion: s.id_sesion,
+              id_rutina: s.id_rutina ?? null,
+              owner_uid: s.owner_uid,
+              started_at: s.started_at,
+              ended_at: (s.ended_at as string) ?? s.started_at,
+              total_sets: 0,
+              total_volume: 0,
+              titulo,
+              username: prof.username,
+              url_avatar: prof.url_avatar,
+              ejercicios: [],
+              sensacion_final: s.sensacion_global ?? null,
+              // 👇 añadimos duracion_seg si existe; si no, lo calculas en el UI (ya lo haces)
+              duracion_seg: s.duracion_seg ?? null,
+            } as FinishedWorkoutRich);
+          }
 
           for (const set of sets) {
             const vol = Number(set.kg) * Number(set.reps);
@@ -288,7 +303,6 @@ export const workoutsApi = createApi({
             ses.total_sets = (ses.total_sets ?? 0) + 1;
           }
 
-          // 5) Construcción de ejercicios por sesión + sensación si falta
           for (const agg of exAgg.values()) {
             const ses = bySesion.get(agg.id_sesion)!;
             ses.ejercicios!.push({
@@ -301,6 +315,7 @@ export const workoutsApi = createApi({
               volume: agg.volume,
             });
           }
+
           for (const ses of bySesion.values()) {
             if (!ses.sensacion_final) {
               const scores = Array.from(exAgg.values())
@@ -311,7 +326,6 @@ export const workoutsApi = createApi({
             }
           }
 
-          // 6) Orden final
           const data = Array.from(bySesion.values()).sort((a, b) => (a.ended_at < b.ended_at ? 1 : -1));
           return { data };
         } catch (error) {
@@ -347,7 +361,6 @@ export const workoutsApi = createApi({
         try {
           await queryFulfilled;
         } catch {
-          // fuerza estado consistente si falla
           dispatch(dashboardApi.util.invalidateTags([{ type: "Kpis", id: "MONTH" }]));
           dispatch(friendsFeedApi.util.invalidateTags(["FriendsFeed"]));
         }

@@ -1,3 +1,4 @@
+export { DurationBadge } from "./DurationBadge";
 export { ExerciseFinder } from "./ExerciseFinder";
 export { ExerciseLogCard } from "./ExerciseLogCard";
 export { ExerciseQuickConfigDialog } from "./ExerciseQuickConfigDialog";

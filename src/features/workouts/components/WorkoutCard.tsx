@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -14,10 +14,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { CalendarDays, Trash2, TrendingUp, Dumbbell, Heart } from "lucide-react";
+import { CalendarDays, Trash2, TrendingUp, Dumbbell, Heart, Timer } from "lucide-react";
 import { useDeleteWorkoutSessionMutation } from "@/features/workouts/api/workoutsApi";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { diffSecondsSafe, formatDurationShort } from "@/lib/duration";
 
 type ExerciseItem = {
   id?: number | string | null;
@@ -43,19 +44,19 @@ type Props = {
   dayHeader?: string | null;
   sensacionFinal?: string | null;
 
+  // 👇 NUEVO: duración, si viene de la API la usamos; si no, calculamos con las fechas
+  duracionSeg?: number | null;
+
   readOnly?: boolean;
   isMine?: boolean;
-
-  // 👇 NUEVO: callback para eliminar la card del feed
   onDeleted?: (idSesion: number) => void;
 };
 
-// usa la zona del navegador
 const LOCAL_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
 const formatAsDMY = (ts?: string) => {
   if (!ts) return "";
-  const d = new Date(ts); // JS ajusta a local automáticamente
+  const d = new Date(ts);
   const dd = d.getDate().toString().padStart(2, "0");
   const mm = (d.getMonth() + 1).toString().padStart(2, "0");
   const yyyy = d.getFullYear();
@@ -64,7 +65,7 @@ const formatAsDMY = (ts?: string) => {
 
 const formatHourAmPm = (ts?: string) => {
   if (!ts) return "";
-  const d = new Date(ts); // nada de regex, deja que JS convierta
+  const d = new Date(ts);
   const h = d.getHours();
   const m = d.getMinutes().toString().padStart(2, "0");
   const suffix = h >= 12 ? "PM" : "AM";
@@ -101,6 +102,7 @@ export function WorkoutCard({
   className,
   dayHeader,
   sensacionFinal,
+  duracionSeg, // 👈 puede venir null/undefined
   readOnly = false,
   isMine = false,
   onDeleted,
@@ -120,14 +122,12 @@ export function WorkoutCard({
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(Math.floor(Math.random() * 15) + 1);
 
-  // Solo el dueño y no readOnly puede borrar
   const canDelete = isMine && !readOnly;
 
   const handleDelete = async () => {
     try {
       await deleteWorkout({ id_sesion: idSesion }).unwrap();
       toast.success("Entrenamiento eliminado");
-      // 👇 avisar al padre para ocultarlo inmediatamente
       onDeleted?.(idSesion);
     } catch (e: any) {
       toast.error(e?.message ?? "No se pudo eliminar la sesión");
@@ -138,6 +138,14 @@ export function WorkoutCard({
 
   const sensationText = (sensacionFinal && sensacionFinal.trim()) || "Sin sensaciones";
 
+  // 👇 Calcular duración si no viene de props
+  const durationSeconds = useMemo(() => {
+    if (duracionSeg != null) return Math.max(0, Math.floor(duracionSeg));
+    return diffSecondsSafe(endedAt, startedAt);
+  }, [duracionSeg, endedAt, startedAt]);
+
+  const durationLabel = useMemo(() => formatDurationShort(durationSeconds), [durationSeconds]);
+
   return (
     <>
       {dayHeader ? <div className="px-1 mb-2 mt-6 text-sm font-medium text-muted-foreground">{dayHeader}</div> : null}
@@ -145,7 +153,7 @@ export function WorkoutCard({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 10, scale: 0.98 }} // 👈 animación de salida al eliminar
+        exit={{ opacity: 0, y: 10, scale: 0.98 }}
         whileHover={{ y: -4, scale: 1.01 }}
         transition={{ duration: 0.25, ease: "easeOut" }}
       >
@@ -207,15 +215,23 @@ export function WorkoutCard({
                   <Dumbbell className="h-3.5 w-3.5 mr-2" />
                   {totalSets} sets
                 </Badge>
+
                 <Badge className="rounded-2xl px-4 py-2 text-xs font-semibold">
                   <TrendingUp className="h-3.5 w-3.5 mr-2" />
                   {Intl.NumberFormat("es-MX").format(totalVolume)} kg
                 </Badge>
 
-                {/* Sensación: siempre mostramos algo */}
                 <Badge variant="outline" className="rounded-2xl px-4 py-2 text-xs font-semibold">
                   {sensationText}
                 </Badge>
+
+                {/* 👇 NUEVO: Badge de duración (neutro/secondary, discreto) */}
+                {durationLabel && (
+                  <Badge variant="secondary" className="rounded-2xl px-3 py-1.5 text-xs font-medium">
+                    <Timer className="h-3.5 w-3.5 mr-1.5" />
+                    {durationLabel}
+                  </Badge>
+                )}
               </div>
             </div>
           </CardHeader>
@@ -284,7 +300,6 @@ export function WorkoutCard({
               </div>
             )}
 
-            {/* Footer social: demo */}
             {!readOnly && (
               <div className="mt-6 pt-4 border-t border-border/30">
                 <div className="flex items-center gap-4">
@@ -293,7 +308,7 @@ export function WorkoutCard({
                     size="sm"
                     onClick={() => {
                       setIsLiked((v) => !v);
-                      setLikesCount((prev) => (!v ? prev + 1 : prev - 1));
+                      setLikesCount((prev) => (isLiked ? prev - 1 : prev + 1));
                     }}
                   >
                     <Heart className={cn("h-4 w-4 mr-2", isLiked && "fill-current text-red-500")} />
@@ -304,7 +319,6 @@ export function WorkoutCard({
             )}
           </CardContent>
 
-          {/* Confirmación (solo si puedo borrar) */}
           {canDelete && (
             <AlertDialog open={openConfirm} onOpenChange={setOpenConfirm}>
               <AlertDialogContent>

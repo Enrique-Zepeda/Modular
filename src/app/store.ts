@@ -12,7 +12,7 @@ import { profileApi } from "@/features/settings/api/profileApi";
 
 import { setupListeners } from "@reduxjs/toolkit/query";
 import { friendsApi } from "@/features/friends/api/friendsApi";
-import { friendsFeedApi } from "@/features/friends/api";
+import { friendsFeedApi } from "@/features/friends/api/friendsFeedApi";
 
 export const store = configureStore({
   reducer: {

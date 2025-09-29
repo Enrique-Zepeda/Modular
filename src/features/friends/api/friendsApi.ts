@@ -6,27 +6,71 @@ const tableUsers = "Usuarios";
 const tableFriends = "Amigos";
 const tableRequests = "SolicitudesAmistad";
 
+/** Tipos para el feed de amigos (RPC v2) */
+export type FriendFeedItem = {
+  id_workout: number;
+  id_usuario: number;
+  fecha: string; // timestamptz
+  sensacion: string | null;
+  nota: string | null;
+  username: string | null;
+  nombre: string | null;
+  url_avatar: string | null;
+  total_series: number | null;
+  total_kg: number | string | null;
+  id_rutina: number | null;
+  rutina_nombre: string | null;
+  duracion_seg?: number | null; // 👈 NUEVO en v2
+  // Campos opcionales si tu RPC también los expone
+  ejercicios?: any[] | null;
+  total_series_done?: number | null;
+  total_kg_done?: number | string | null;
+};
+
 export const friendsApi = createApi({
   reducerPath: "friendsApi",
   baseQuery: fakeBaseQuery(),
-  tagTypes: ["Friends", "Requests", "Search"],
+  tagTypes: ["Friends", "Requests", "Search", "FriendsFeed"], // 👈 añadimos FriendsFeed
   endpoints: (builder) => ({
+    // -----------------------------
+    // FEED DE AMIGOS (RPC v2 con duracion_seg)
+    // -----------------------------
+    listFriendsFeedRich: builder.query<FriendFeedItem[], { limit?: number; before?: string | null } | void>({
+      async queryFn(args) {
+        try {
+          const p_limit = Math.max(1, args?.limit ?? 30);
+          const p_before = args?.before ?? null;
+
+          // RPC que devuelve duracion_seg al final
+          const { data, error } = await supabase.rpc("feed_friends_workouts_v2", {
+            p_limit,
+            p_before,
+          });
+          if (error) return { error };
+
+          // Si tu RPC no trae ejercicios/… no pasa nada; el componente es tolerante
+          return { data: (data ?? []) as FriendFeedItem[] };
+        } catch (e: any) {
+          return { error: { status: 500, data: e?.message ?? "Error cargando feed de amigos" } as any };
+        }
+      },
+      providesTags: ["FriendsFeed"],
+    }),
+
     // -----------------------------
     // BÚSQUEDA DE USUARIOS (global)
     // -----------------------------
     searchUsers: builder.query<UserPublicProfile[], { term: string }>({
       async queryFn({ term }) {
         try {
-          // RPC recomendada (si la creaste)
           const rpc = await supabase.rpc("search_users", { term });
           if (!rpc.error && rpc.data) {
             return { data: rpc.data as UserPublicProfile[] };
           }
-        } catch (_) {
+        } catch {
           // ignore y fallback abajo
         }
 
-        // Fallback: búsqueda directa (menos precisa sin normalize en cliente)
         const me = await supabase.rpc("current_usuario_id");
         const myId = me.data as number;
 
@@ -34,7 +78,7 @@ export const friendsApi = createApi({
           .from(tableUsers)
           .select("id_usuario,username,nombre,url_avatar")
           .ilike("username", `%${term}%`)
-          .neq("id_usuario", myId) // <- number
+          .neq("id_usuario", myId)
           .limit(20);
 
         if (error) return { error };
@@ -52,7 +96,6 @@ export const friendsApi = createApi({
           const me = await supabase.rpc("current_usuario_id");
           const myId = me.data as number;
 
-          // Solo las columnas reales que existen en tu tabla
           const { data: pairs, error: errPairs } = await supabase
             .from(tableFriends)
             .select("id_usuario1,id_usuario2")
@@ -79,7 +122,6 @@ export const friendsApi = createApi({
               username: u.username ?? "",
               nombre: u.nombre ?? null,
               url_avatar: u.url_avatar ?? null,
-              // created_at no existe en tu tabla; lo dejamos como null
               created_at: null,
             };
           });
@@ -147,7 +189,7 @@ export const friendsApi = createApi({
     sendFriendRequest: builder.mutation<FriendRequest, { destinatario_id: number; mensaje?: string }>({
       async queryFn({ destinatario_id, mensaje }) {
         const { data, error } = await supabase.rpc("request_friend", {
-          destinatario: destinatario_id, // <- number
+          destinatario: destinatario_id,
           p_mensaje: mensaje ?? null,
         });
         if (error) return { error };
@@ -198,7 +240,9 @@ export const friendsApi = createApi({
   }),
 });
 
+// 👇 hooks
 export const {
+  useListFriendsFeedRichQuery, // feed con duracion_seg (v2)
   useSearchUsersQuery,
   useListFriendsQuery,
   useListIncomingRequestsQuery,
@@ -208,3 +252,6 @@ export const {
   useRejectFriendRequestMutation,
   useCancelFriendRequestMutation,
 } = friendsApi;
+
+// 👇 alias de compat para invalidaciones desde otros slices
+export const friendsFeedApi = friendsApi;
