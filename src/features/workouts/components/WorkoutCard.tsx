@@ -42,33 +42,40 @@ type Props = {
   className?: string;
   dayHeader?: string | null;
   sensacionFinal?: string | null;
+
   readOnly?: boolean;
   isMine?: boolean;
+
+  // 👇 NUEVO: callback para eliminar la card del feed
+  onDeleted?: (idSesion: number) => void;
 };
+
+// usa la zona del navegador
+const LOCAL_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
 const formatAsDMY = (ts?: string) => {
   if (!ts) return "";
-  const m = ts.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!m) return ts;
-  const [, y, mo, d] = m;
-  return `${d}/${mo}/${y}`;
+  const d = new Date(ts); // JS ajusta a local automáticamente
+  const dd = d.getDate().toString().padStart(2, "0");
+  const mm = (d.getMonth() + 1).toString().padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
 };
 
 const formatHourAmPm = (ts?: string) => {
   if (!ts) return "";
-  const m = ts.match(/^[\d-]+[ T](\d{2}):(\d{2})/);
-  if (!m) return "";
-  const hh = Number.parseInt(m[1], 10);
-  const mm = m[2];
-  const suffix = hh >= 12 ? "PM" : "AM";
-  const h12 = ((hh + 11) % 12) + 1;
-  return `${h12}:${mm} ${suffix}`;
+  const d = new Date(ts); // nada de regex, deja que JS convierta
+  const h = d.getHours();
+  const m = d.getMinutes().toString().padStart(2, "0");
+  const suffix = h >= 12 ? "PM" : "AM";
+  const h12 = ((h + 11) % 12) + 1;
+  return `${h12}:${m} ${suffix}`;
 };
 
-const ymdKey = (d: Date, tz = "America/Mexico_City") =>
+const ymdKey = (d: Date, tz = LOCAL_TZ) =>
   new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
 
-const labelForDay = (ts: string, tz = "America/Mexico_City") => {
+const labelForDay = (ts: string, tz = LOCAL_TZ) => {
   const d = new Date(ts);
   const now = new Date();
   const today = ymdKey(now, tz);
@@ -96,9 +103,10 @@ export function WorkoutCard({
   sensacionFinal,
   readOnly = false,
   isMine = false,
+  onDeleted,
 }: Props) {
   const endTs = endedAt || startedAt;
-  const dayLabel = labelForDay(endTs, "America/Mexico_City");
+  const dayLabel = labelForDay(endTs);
   const timeLabel = formatHourAmPm(endTs);
   const initials = (username || "U")
     .split(" ")
@@ -111,7 +119,6 @@ export function WorkoutCard({
 
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(Math.floor(Math.random() * 15) + 1);
-  const [commentsCount] = useState(Math.floor(Math.random() * 8));
 
   // Solo el dueño y no readOnly puede borrar
   const canDelete = isMine && !readOnly;
@@ -120,6 +127,8 @@ export function WorkoutCard({
     try {
       await deleteWorkout({ id_sesion: idSesion }).unwrap();
       toast.success("Entrenamiento eliminado");
+      // 👇 avisar al padre para ocultarlo inmediatamente
+      onDeleted?.(idSesion);
     } catch (e: any) {
       toast.error(e?.message ?? "No se pudo eliminar la sesión");
     } finally {
@@ -136,8 +145,9 @@ export function WorkoutCard({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 10, scale: 0.98 }} // 👈 animación de salida al eliminar
         whileHover={{ y: -4, scale: 1.01 }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
       >
         <Card
           className={cn(
@@ -182,6 +192,7 @@ export function WorkoutCard({
                   onClick={() => setOpenConfirm(true)}
                   aria-label="Eliminar entrenamiento"
                   title="Eliminar entrenamiento"
+                  disabled={deleting}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -201,7 +212,7 @@ export function WorkoutCard({
                   {Intl.NumberFormat("es-MX").format(totalVolume)} kg
                 </Badge>
 
-                {/* Sensación (siempre mostramos algo: “Sin sensaciones” como fallback) */}
+                {/* Sensación: siempre mostramos algo */}
                 <Badge variant="outline" className="rounded-2xl px-4 py-2 text-xs font-semibold">
                   {sensationText}
                 </Badge>
@@ -210,7 +221,21 @@ export function WorkoutCard({
           </CardHeader>
 
           <CardContent className="relative pt-0 z-10">
-            {ejercicios && ejercicios.length > 0 ? (
+            {!ejercicios || ejercicios.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border/50 bg-muted/10 p-8">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/50">
+                    <Dumbbell className="h-6 w-6 text-muted-foreground/60" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-muted-foreground">Sin ejercicios registrados</p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">
+                      Los ejercicios aparecerán cuando estén disponibles
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
               <div className="grid gap-4 sm:grid-cols-2">
                 <AnimatePresence>
                   {ejercicios.map((ex, idx) => (
@@ -257,23 +282,9 @@ export function WorkoutCard({
                   ))}
                 </AnimatePresence>
               </div>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-border/50 bg-muted/10 p-8">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/50">
-                    <Dumbbell className="h-6 w-6 text-muted-foreground/60" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-muted-foreground">Sin ejercicios registrados</p>
-                    <p className="text-xs text-muted-foreground/70 mt-1">
-                      Los ejercicios aparecerán cuando estén disponibles
-                    </p>
-                  </div>
-                </div>
-              </div>
             )}
 
-            {/* Footer social: demo UI */}
+            {/* Footer social: demo */}
             {!readOnly && (
               <div className="mt-6 pt-4 border-t border-border/30">
                 <div className="flex items-center gap-4">
@@ -282,8 +293,7 @@ export function WorkoutCard({
                     size="sm"
                     onClick={() => {
                       setIsLiked((v) => !v);
-                      setLikesCount((prev) => (!isLiked ? prev + 1 : prev - 1));
-                      toast.success(!isLiked ? "¡Te gusta este entrenamiento!" : "Like removido");
+                      setLikesCount((prev) => (!v ? prev + 1 : prev - 1));
                     }}
                   >
                     <Heart className={cn("h-4 w-4 mr-2", isLiked && "fill-current text-red-500")} />

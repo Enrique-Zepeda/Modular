@@ -4,7 +4,7 @@ import { DashboardKpis } from "@/features/dashboard/components";
 import { useGetFinishedWorkoutsRichQuery } from "@/features/workouts/api/workoutsApi";
 import { useListFriendsFeedRichQuery } from "@/features/friends/api";
 import { WorkoutCard } from "@/features/workouts/components/WorkoutCard";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { BarChart3, Activity } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { normalizeSensation } from "@/features/workouts/utils/sensation";
@@ -46,9 +46,9 @@ export function DashboardPage() {
     };
   }, []);
 
-  // 3) Mapear items base (sin hidrataciones ni RPC adicionales)
-  const items = useMemo(() => {
-    // Mis sesiones (FinishedWorkoutRich) — ya traen sensacion_final desde la vista
+  // 3) Mapear items base
+  const baseItems = useMemo(() => {
+    // Mis sesiones (FinishedWorkoutRich)
     const mine = (myWorkouts as any[]).map((w) => {
       const titulo =
         safeTitle(w.rutina_nombre) || safeTitle(w.Rutinas?.nombre) || safeTitle(w.titulo) || "Entrenamiento";
@@ -76,14 +76,14 @@ export function DashboardPage() {
       };
     });
 
-    // Feed de amigos — AHORA viene sensacion desde el RPC (BD)
+    // Feed de amigos (desde BD)
     const friends = (friendsFeed as any[]).map((w) => {
       const titulo =
         safeTitle(w.rutina_nombre) ||
         safeTitle(w.nota) ||
         `Entrenamiento de ${String(w.username || "").trim() || "amigo"}`;
 
-      const sensNormFriend = normalizeSensation(w.sensacion); // <-- directo del RPC (no más hidrataciones)
+      const sensNormFriend = normalizeSensation(w.sensacion);
       const isMine = myUsuarioId != null && w.id_usuario === myUsuarioId;
 
       return {
@@ -117,6 +117,10 @@ export function DashboardPage() {
     out.sort((a, b) => (a.endedSort < b.endedSort ? 1 : -1));
     return out;
   }, [myWorkouts, friendsFeed, myUsuarioId]);
+
+  // 4) Eliminación optimista en UI
+  const [deletedIds, setDeletedIds] = useState<Set<number>>(new Set());
+  const visibleItems = useMemo(() => baseItems.filter((x) => !deletedIds.has(x.idSesion)), [baseItems, deletedIds]);
 
   const isLoading = loadingMine || loadingFriends;
 
@@ -183,28 +187,39 @@ export function DashboardPage() {
 
           <CardContent className="p-8 space-y-4">
             {isLoading && <div className="text-sm text-muted-foreground">Cargando actividad…</div>}
-            {!isLoading && items.length === 0 && (
+            {!isLoading && visibleItems.length === 0 && (
               <div className="text-sm text-muted-foreground">Aún no hay actividad reciente.</div>
             )}
 
-            {!isLoading &&
-              items.map((w) => (
-                <WorkoutCard
-                  key={w.key}
-                  idSesion={w.idSesion}
-                  titulo={w.titulo}
-                  startedAt={w.startedAt}
-                  endedAt={w.endedAt}
-                  totalSets={w.totalSets}
-                  totalVolume={w.totalVolume}
-                  username={w.username}
-                  avatarUrl={w.avatarUrl}
-                  ejercicios={w.ejercicios}
-                  sensacionFinal={w.sensacionFinal}
-                  isMine={w.isMine}
-                  readOnly={w.readOnly}
-                />
-              ))}
+            {!isLoading && (
+              <AnimatePresence initial={false}>
+                {visibleItems.map((w) => (
+                  <WorkoutCard
+                    key={w.key}
+                    idSesion={w.idSesion}
+                    titulo={w.titulo}
+                    startedAt={w.startedAt}
+                    endedAt={w.endedAt}
+                    totalSets={w.totalSets}
+                    totalVolume={w.totalVolume}
+                    username={w.username}
+                    avatarUrl={w.avatarUrl}
+                    ejercicios={w.ejercicios}
+                    sensacionFinal={w.sensacionFinal}
+                    isMine={w.isMine}
+                    readOnly={w.readOnly}
+                    // 👇 remueve inmediatamente del feed
+                    onDeleted={(id) =>
+                      setDeletedIds((prev) => {
+                        const next = new Set(prev);
+                        next.add(id);
+                        return next;
+                      })
+                    }
+                  />
+                ))}
+              </AnimatePresence>
+            )}
           </CardContent>
         </Card>
       </motion.div>
