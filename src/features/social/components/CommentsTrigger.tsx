@@ -12,9 +12,23 @@ type Props = {
 
 export const CommentsTrigger = memo(function CommentsTrigger({ count = 0, onOpen, className, size = "sm" }: Props) {
   return (
-    <Button type="button" variant="ghost" size={size} onClick={onOpen} className={cn("gap-2", className)}>
-      <MessageSquare className="h-4 w-4" />
-      <span className="text-sm tabular-nums">{count}</span>
+    <Button
+      type="button"
+      variant="ghost"
+      size={size}
+      onClick={onOpen}
+      className={cn(
+        "gap-2.5 hover:bg-gradient-to-br hover:from-sky-50 hover:to-blue-50 dark:hover:from-sky-950/30 dark:hover:to-blue-950/30 border-2 border-border/80 hover:border-sky-400 dark:hover:border-sky-600 hover:shadow-md hover:shadow-sky-500/10 hover:scale-105 transition-all duration-200 group px-4 py-2.5 h-auto rounded-xl font-bold shadow-sm",
+        "focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 active:scale-95",
+        className
+      )}
+      aria-label={`Ver ${count} comentarios`}
+    >
+      <MessageSquare
+        className="h-4 w-4 text-sky-600 dark:text-sky-400 group-hover:scale-110 transition-transform duration-200"
+        aria-hidden="true"
+      />
+      <span className="text-xs font-bold tabular-nums min-w-[2ch] text-sky-700 dark:text-sky-300">{count}</span>
     </Button>
   );
 });

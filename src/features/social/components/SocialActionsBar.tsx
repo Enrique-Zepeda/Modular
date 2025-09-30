@@ -54,15 +54,16 @@ export const SocialActionsBar = memo(function SocialActionsBar({
   }, [sessionId, initialCommentsCount]);
 
   return (
-    <div className="flex items-center gap-2">
-      <LikeButton sessionId={sessionId} initialCount={initialLikesCount} initialLikedByMe={initialLikedByMe} />
-      <CommentsTrigger count={count} onOpen={() => setOpen(true)} />
+    <div className="space-y-5 w-full">
+      <div className="flex items-center gap-3 flex-wrap">
+        <LikeButton sessionId={sessionId} initialCount={initialLikesCount} initialLikedByMe={initialLikedByMe} />
+        <CommentsTrigger count={count} onOpen={() => setOpen(true)} />
+      </div>
       {open ? (
         <CommentsThread
           sessionId={sessionId}
           onClose={() => {
             setOpen(false);
-            // refrescamos contador al cerrar (por si hubo deletes)
             void fetchCommentsCount(sessionId)
               .then(setCount)
               .catch(() => {});

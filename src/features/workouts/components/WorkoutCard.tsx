@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -17,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { CalendarDays, Trash2, TrendingUp, Dumbbell, Timer } from "lucide-react";
 import { useDeleteWorkoutSessionMutation } from "@/features/workouts/api/workoutsApi";
 import toast from "react-hot-toast";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { diffSecondsSafe, formatDurationShort } from "@/lib/duration";
 
 /** 👇 Social (likes + comentarios, realtime) */
@@ -146,40 +145,68 @@ export function WorkoutCard({
 
   return (
     <>
-      {dayHeader ? <div className="px-1 mb-2 mt-6 text-sm font-medium text-muted-foreground">{dayHeader}</div> : null}
+      {dayHeader ? (
+        <div className="px-2 mb-4 mt-8 text-xs font-bold text-muted-foreground/80 uppercase tracking-widest flex items-center gap-2">
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+          <span>{dayHeader}</span>
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+        </div>
+      ) : null}
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 10, scale: 0.98 }}
-        whileHover={{ y: -4, scale: 1.01 }}
-        transition={{ duration: 0.25, ease: "easeOut" }}
+        exit={{ opacity: 0, y: 5 }}
+        transition={{ duration: 0.2 }}
       >
         <Card
           className={cn(
-            "group relative overflow-hidden bg-card text-card-foreground rounded-3xl border border-border/40 shadow-sm transition-all duration-500",
-            "hover:shadow-2xl hover:shadow-primary/5 hover:border-primary/20",
+            "relative overflow-hidden border-2 border-border/60 rounded-3xl",
+            "backdrop-blur-xl bg-gradient-to-br from-card/95 via-card/90 to-card/95",
+            "shadow-2xl transition-all duration-700",
+            "hover:shadow-[0_20px_70px_-15px_rgba(139,92,246,0.3)]",
+            "hover:-translate-y-0.5",
+            "motion-reduce:transition-none motion-reduce:hover:shadow-none motion-reduce:hover:translate-y-0",
+            "supports-[backdrop-filter]:backdrop-blur-xl",
             className
           )}
         >
-          <CardHeader className="relative pb-5 z-10">
+          <CardHeader className="pb-5 pt-6 px-6 space-y-5">
             <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-4 min-w-0 flex-1">
-                <div className="relative">
-                  <Avatar className="h-12 w-12 ring-2 ring-border/30">
-                    {avatarUrl ? (
-                      <AvatarImage src={avatarUrl || "/placeholder.svg"} alt={username} />
-                    ) : (
-                      <AvatarFallback className="bg-gradient-to-br from-primary/15 to-primary/5 text-primary font-bold text-sm">
-                        {initials}
-                      </AvatarFallback>
-                    )}
-                  </Avatar>
-                </div>
+              <div className="flex-1" />
+              {canDelete && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0 hover:bg-destructive/15 hover:text-destructive hover:scale-110 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2 rounded-lg"
+                  onClick={() => setOpenConfirm(true)}
+                  aria-label="Eliminar entrenamiento"
+                  disabled={deleting}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+
+            <div className="space-y-5">
+              <h3 className="text-xl font-bold leading-tight line-clamp-2 text-balance bg-gradient-to-br from-foreground to-foreground/80 bg-clip-text text-transparent">
+                {titulo}
+              </h3>
+
+              <div className="flex items-center gap-3.5">
+                <Avatar className="h-11 w-11 border-2 border-primary/20 ring-2 ring-primary/10 shadow-lg shadow-primary/5">
+                  {avatarUrl ? (
+                    <AvatarImage src={avatarUrl || "/placeholder.svg"} alt={username} />
+                  ) : (
+                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-xs font-bold">
+                      {initials}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
                 <div className="leading-tight min-w-0 flex-1">
-                  <div className="text-sm font-bold text-foreground truncate">{username}</div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                    <CalendarDays className="h-3.5 w-3.5 shrink-0" />
+                  <div className="text-sm font-bold truncate text-foreground">{username}</div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground/80 mt-1">
+                    <CalendarDays className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                     <span className="truncate">
                       {dayLabel}
                       {timeLabel ? ` · ${timeLabel}` : ""}
@@ -188,115 +215,109 @@ export function WorkoutCard({
                 </div>
               </div>
 
-              {canDelete && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 shrink-0 rounded-xl hover:bg-destructive/15 hover:text-destructive transition-all duration-200 text-muted-foreground/60"
-                  onClick={() => setOpenConfirm(true)}
-                  aria-label="Eliminar entrenamiento"
-                  title="Eliminar entrenamiento"
-                  disabled={deleting}
+              <div
+                className="flex flex-wrap items-center gap-3 pt-1"
+                role="list"
+                aria-label="Estadísticas del entrenamiento"
+              >
+                <div
+                  className="flex items-center justify-center gap-2 min-w-[90px] px-3 py-2.5 bg-gradient-to-br from-blue-500/15 to-blue-600/10 border-2 border-blue-500/40 rounded-xl hover:from-blue-500/25 hover:to-blue-600/20 hover:border-blue-500/60 hover:shadow-lg hover:shadow-blue-500/20 hover:scale-105 transition-all duration-200"
+                  role="listitem"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
+                  <Dumbbell className="h-4 w-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+                  <span className="font-bold text-blue-700 dark:text-blue-300">{totalSets}</span>
+                  <span className="text-xs text-blue-600/80 dark:text-blue-400/80 font-semibold">sets</span>
+                </div>
 
-            <div className="mt-5 space-y-4">
-              <h3 className="text-xl font-bold leading-tight line-clamp-2">{titulo}</h3>
-
-              <div className="flex flex-wrap items-center gap-2.5">
-                <Badge variant="secondary" className="rounded-2xl px-4 py-2 text-xs font-semibold">
-                  <Dumbbell className="h-3.5 w-3.5 mr-2" />
-                  {totalSets} sets
-                </Badge>
-
-                <Badge className="rounded-2xl px-4 py-2 text-xs font-semibold">
-                  <TrendingUp className="h-3.5 w-3.5 mr-2" />
-                  {Intl.NumberFormat("es-MX").format(totalVolume)} kg
-                </Badge>
-
-                <Badge variant="outline" className="rounded-2xl px-4 py-2 text-xs font-semibold">
-                  {sensationText}
-                </Badge>
+                <div
+                  className="flex items-center justify-center gap-2 min-w-[90px] px-3 py-2.5 bg-gradient-to-br from-emerald-500/15 to-emerald-600/10 border-2 border-emerald-500/40 rounded-xl hover:from-emerald-500/25 hover:to-emerald-600/20 hover:border-emerald-500/60 hover:shadow-lg hover:shadow-emerald-500/20 hover:scale-105 transition-all duration-200"
+                  role="listitem"
+                >
+                  <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                  <span className="font-bold text-emerald-700 dark:text-emerald-300">
+                    {Intl.NumberFormat("es-MX").format(totalVolume)}
+                  </span>
+                  <span className="text-xs text-emerald-600/80 dark:text-emerald-400/80 font-semibold">kg</span>
+                </div>
 
                 {durationLabel && (
-                  <Badge variant="secondary" className="rounded-2xl px-3 py-1.5 text-xs font-medium">
-                    <Timer className="h-3.5 w-3.5 mr-1.5" />
-                    {durationLabel}
-                  </Badge>
+                  <div
+                    className="flex items-center justify-center gap-2 min-w-[90px] px-3 py-2.5 bg-gradient-to-br from-amber-500/15 to-amber-600/10 border-2 border-amber-500/40 rounded-xl hover:from-amber-500/25 hover:to-amber-600/20 hover:border-amber-500/60 hover:shadow-lg hover:shadow-amber-500/20 hover:scale-105 transition-all duration-200"
+                    role="listitem"
+                  >
+                    <Timer className="h-4 w-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                    <span className="font-bold text-amber-700 dark:text-amber-300">{durationLabel}</span>
+                  </div>
+                )}
+
+                {sensationText !== "Sin sensaciones" && (
+                  <div
+                    className="flex items-center justify-center gap-2 min-w-[90px] px-3 py-2.5 bg-gradient-to-br from-purple-500/15 to-purple-600/10 border-2 border-purple-500/40 rounded-xl hover:from-purple-500/25 hover:to-purple-600/20 hover:border-purple-500/60 hover:shadow-lg hover:shadow-purple-500/20 hover:scale-105 transition-all duration-200  font-semibold text-purple-700 dark:text-purple-300"
+                    role="listitem"
+                  >
+                    {sensationText}
+                  </div>
                 )}
               </div>
             </div>
           </CardHeader>
 
-          <CardContent className="relative pt-0 z-10">
+          <CardContent className="pt-0 pb-6 px-6 space-y-5">
             {!ejercicios || ejercicios.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border/50 bg-muted/10 p-8">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/50">
-                    <Dumbbell className="h-6 w-6 text-muted-foreground/60" />
+              <div className="border-2 border-dashed border-border/80 bg-gradient-to-br from-muted/30 to-muted/10 p-6 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center bg-gradient-to-br from-muted to-muted/80 rounded-xl shadow-sm">
+                    <Dumbbell className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-muted-foreground">Sin ejercicios registrados</p>
-                    <p className="text-xs text-muted-foreground/70 mt-1">
-                      Los ejercicios aparecerán cuando estén disponibles
-                    </p>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <AnimatePresence>
-                  {ejercicios.map((ex, idx) => (
-                    <motion.div
-                      key={(ex.id ?? idx)?.toString()}
-                      initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      transition={{ delay: idx * 0.05, duration: 0.25 }}
-                      className="rounded-2xl border border-border/30 bg-muted/20 p-4"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="shrink-0">
-                          {ex.ejemplo ? (
-                            <img
-                              src={ex.ejemplo}
-                              alt={ex.nombre ?? "Ejercicio"}
-                              className="h-14 w-14 rounded-2xl object-cover border"
-                            />
-                          ) : (
-                            <div className="h-14 w-14 rounded-2xl bg-muted/60 flex items-center justify-center">
-                              <Dumbbell className="h-6 w-6 text-muted-foreground/70" />
-                            </div>
-                          )}
+              <div className="space-y-3" role="list" aria-label="Ejercicios realizados">
+                {ejercicios.map((ex, idx) => (
+                  <div
+                    key={(ex.id ?? idx)?.toString()}
+                    className="flex items-start gap-3.5 p-4 border-2 border-border/80 bg-gradient-to-br from-muted/20 via-muted/10 to-transparent hover:from-muted/40 hover:via-muted/30 hover:to-muted/20 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-200 group/exercise rounded-xl"
+                    role="listitem"
+                  >
+                    <div className="shrink-0">
+                      {ex.ejemplo ? (
+                        <img
+                          src={ex.ejemplo || "/placeholder.svg"}
+                          alt={ex.nombre ?? "Ejercicio"}
+                          className="h-12 w-12 object-cover border-2 border-border/80 rounded-lg group-hover/exercise:border-primary/50 group-hover/exercise:shadow-md transition-all duration-200"
+                        />
+                      ) : (
+                        <div className="h-12 w-12 bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center rounded-lg border-2 border-primary/40 group-hover/exercise:border-primary/60 group-hover/exercise:shadow-md group-hover/exercise:shadow-primary/20 transition-all duration-200">
+                          <Dumbbell className="h-5 w-5 text-primary" aria-hidden="true" />
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-bold">{ex.nombre ?? "Ejercicio"}</div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            {ex.sets_done && (
-                              <span className="font-semibold text-foreground/80">{ex.sets_done} sets</span>
-                            )}
-                            {ex.sets_done && (ex.grupo_muscular || ex.volume) && (
-                              <span className="text-muted-foreground/40">·</span>
-                            )}
-                            {ex.grupo_muscular && !ex.volume && <span className="truncate">{ex.grupo_muscular}</span>}
-                            {ex.volume && (
-                              <span className="font-semibold">
-                                {Intl.NumberFormat("es-MX").format(Number(ex.volume))} kg
-                              </span>
-                            )}
-                          </div>
-                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-bold line-clamp-1 text-foreground mb-2.5">
+                        {ex.nombre ?? "Ejercicio"}
                       </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+                      <div className="flex items-center gap-2">
+                        {ex.sets_done && (
+                          <span className="inline-flex items-center justify-center gap-1 min-w-[70px] px-2.5 py-1 bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/40 rounded-lg text-xs font-bold text-blue-700 dark:text-blue-300 shadow-sm">
+                            {ex.sets_done} sets
+                          </span>
+                        )}
+                        {ex.volume && (
+                          <span className="inline-flex items-center justify-center gap-1 min-w-[70px] px-2.5 py-1 bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/40 rounded-lg text-xs font-bold text-emerald-700 dark:text-emerald-300 shadow-sm">
+                            {Intl.NumberFormat("es-MX").format(Number(ex.volume))} kg
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
-            {/* 👇 Acciones sociales DENTRO de la card (abierto por defecto) */}
-            <div className="mt-6 pt-4 border-t border-border/30">
+            <div className="pt-5 border-t-2 border-border/80">
               <SocialActionsBar
                 sessionId={idSesion}
                 initialLikesCount={socialInitial?.likesCount}

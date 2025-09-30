@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { DashboardKpis } from "@/features/dashboard/components";
 import { useGetFinishedWorkoutsRichQuery } from "@/features/workouts/api/workoutsApi";
 
 import { WorkoutCard } from "@/features/workouts/components/WorkoutCard";
 import { motion, AnimatePresence } from "framer-motion";
-import { BarChart3, Activity } from "lucide-react";
+import { BarChart3 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { normalizeSensation } from "@/features/workouts/utils/sensation";
 import { diffSecondsSafe } from "@/lib/duration";
@@ -180,18 +180,20 @@ export function DashboardPage() {
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.6 }}
-        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-muted/30 via-muted/10 to-transparent p-8 border border-border/40"
+        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-accent/5 to-transparent p-10 border-2 border-border/60 backdrop-blur-xl shadow-2xl shadow-primary/10"
       >
-        <div className="relative flex items-center gap-5">
-          <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/20 shadow-xl">
-            <BarChart3 className="h-8 w-8 text-primary" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-50" />
+        <div className="relative flex items-center gap-6">
+          <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-primary/30 to-accent/20 ring-2 ring-primary/30 shadow-2xl shadow-primary/30">
+            <BarChart3 className="h-10 w-10 text-primary drop-shadow-lg" />
+            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-primary/20 to-accent/20 blur-2xl opacity-50 animate-pulse" />
           </div>
           <div className="flex-1">
-            <h1 className="text-4xl font-black tracking-tight bg-gradient-to-r from-foreground via-foreground/95 to-foreground/80 bg-clip-text text-transparent">
+            <h1 className="text-5xl font-black tracking-tight bg-gradient-to-r from-foreground via-primary/90 to-accent/90 bg-clip-text text-transparent drop-shadow-sm">
               Entrenamientos recientes
             </h1>
-            <p className="text-muted-foreground mt-2 text-lg leading-relaxed">
-              Tus entrenamientos y los de tus amigos, con ejercicios completados y sensación final.
+            <p className="text-muted-foreground mt-3 text-lg leading-relaxed font-medium">
+              Tus entrenamientos y los de tus amigos.
             </p>
           </div>
         </div>
@@ -212,33 +214,23 @@ export function DashboardPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6, duration: 0.6 }}
       >
-        <Card className="relative overflow-hidden border-border/40 shadow-sm hover:shadow-xl transition-all duration-500 rounded-3xl">
-          <CardHeader className="relative bg-gradient-to-br from-muted/40 via-muted/20 to-transparent border-b border-border/40 p-8">
-            <CardTitle className="relative flex items-center gap-4 text-2xl font-bold">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 ring-1 ring-primary/20 shadow-lg">
-                <Activity className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <span className="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-                  Entrenamientos recientes
-                </span>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Una sola vista con tus sesiones y las de tus amigos. La papelera solo aparece en tus sesiones.
-                </p>
-              </div>
-            </CardTitle>
-          </CardHeader>
-
-          <CardContent className="p-8 space-y-4">
-            {isLoading && <div className="text-sm text-muted-foreground">Cargando actividad…</div>}
+        <Card>
+          <CardContent className="p-8 space-y-6">
+            {isLoading && <div className="text-sm text-muted-foreground py-4">Cargando actividad…</div>}
             {!isLoading && visibleItems.length === 0 && (
-              <div className="text-sm text-muted-foreground">Aún no hay actividad reciente.</div>
+              <div className="text-sm text-muted-foreground py-4">Aún no hay actividad reciente.</div>
             )}
 
             {!isLoading && (
               <AnimatePresence initial={false}>
                 {visibleItems.map((w) => (
-                  <div key={w.key} className="space-y-2">
+                  <motion.div
+                    key={w.key}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.3 }}
+                  >
                     <WorkoutCard
                       idSesion={w.idSesion}
                       titulo={w.titulo}
@@ -254,10 +246,9 @@ export function DashboardPage() {
                       readOnly={w.readOnly}
                       duracionSeg={w.duracionSeg}
                       onDeleted={(id) => setDeletedIds((prev) => new Set(prev).add(id))}
-                      /* 👇 ESTA LÍNEA ES LA CLAVE */
                       socialInitial={w.socialInitial}
                     />
-                  </div>
+                  </motion.div>
                 ))}
               </AnimatePresence>
             )}
