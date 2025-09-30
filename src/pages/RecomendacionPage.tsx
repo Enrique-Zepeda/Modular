@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Loader2, Sparkles, CheckCircle, AlertCircle } from "lucide-react";
+import { useGetProgramByNameQuery } from "@/features/routines/api/rutinasApi";
 
 export default function RecomendacionPage() {
   const [objetivo, setObjetivo] = useState<string>("Ganar_Musculo");
@@ -17,6 +18,11 @@ export default function RecomendacionPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultado, setResultado] = useState<string | null>(null);
+  const {
+    data: programa,
+    isLoading: loadingPrograma,
+    isError: errorPrograma,
+  } = useGetProgramByNameQuery(resultado ?? "", { skip: !resultado });
 
   const validateForm = () => {
     const edadNum = parseInt(edad);
@@ -253,6 +259,49 @@ export default function RecomendacionPage() {
                       </p>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Programa recomendado desde Supabase */}
+            {resultado && (
+              <Card className="shadow-lg border border-gray-100">
+                <CardHeader>
+                  <CardTitle className="text-xl">Programa recomendado en base a tu resultado</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {loadingPrograma && (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Cargando programa...
+                    </div>
+                  )}
+                  {errorPrograma && (
+                    <div className="flex items-center gap-2 text-red-600">
+                      <AlertCircle className="h-4 w-4" /> No fue posible cargar el programa.
+                    </div>
+                  )}
+                  {programa && (
+                    <div className="space-y-4">
+                      <div>
+                        <h2 className="text-2xl font-bold text-gray-900">{programa.nombre?.replace(/_/g, ' ')}</h2>
+                        <p className="text-gray-700 mt-1">{programa.descripcion}</p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {(programa.ProgramasRutinas ?? []).map((item: any, idx: number) => (
+                          <Card key={idx} className="border border-gray-100">
+                            <CardHeader>
+                              <CardTitle className="text-lg">
+                                {item?.Rutinas?.nombre?.replace(/_/g, ' ') || 'Rutina'}
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <p className="text-gray-700">{item?.Rutinas?.descripcion}</p>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}

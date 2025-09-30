@@ -77,8 +77,40 @@ export const rutinasApi = createApi({
   keepUnusedDataFor: 60, // reduce churn al navegar
   refetchOnFocus: false,
   refetchOnReconnect: false,
-  tagTypes: ["Rutinas", "RutinaDetalle", "Ejercicios"],
+  tagTypes: ["Rutinas", "RutinaDetalle", "Ejercicios", "Programas"],
   endpoints: (builder) => ({
+    // ✅ INICIO DEL BLOQUE CORREGIDO
+    // Reemplaza el endpoint COMPLETO con este bloque en rutinasApi.ts
+
+    // Reemplaza el endpoint COMPLETO con este bloque final en rutinasApi.ts
+
+    getProgramByName: builder.query<
+      {
+        nombre: string;
+        descripcion: string | null;
+        ProgramasRutinas: {
+          Rutinas: { nombre: string; descripcion: string | null };
+        }[];
+      } | null,
+      string
+    >({
+      async queryFn(programName) {
+        try {
+          // CAMBIO: En lugar de .from().select(), usamos .rpc()
+          const { data, error } = await supabase.rpc("get_program_details", {
+            p_nombre: programName, // Pasamos el argumento a la función SQL
+          });
+
+          if (error) return { error };
+          // El resultado de la función viene directamente en la propiedad 'data'
+          return { data: (data as any) ?? null };
+        } catch (error) {
+          return { error: { status: 500, data: error } as any };
+        }
+      },
+      providesTags: (_r, _e, name) => [{ type: "Programas", id: name }],
+    }),
+    // ✅ FIN DEL BLOQUE CORREGIDO
     /** Lista de rutinas del usuario autenticado (cache key = ownerUid) */
     getRutinas: builder.query<Rutina[], string | undefined>({
       async queryFn(ownerUid) {
@@ -108,7 +140,9 @@ export const rutinasApi = createApi({
             ejercicios_count: rutina.ejercicios_count?.[0]?.count || 0,
           }));
 
-          return { data: rutinasWithCount as (Rutina & { ejercicios_count: number })[] };
+          return {
+            data: rutinasWithCount as (Rutina & { ejercicios_count: number })[],
+          };
         } catch (error) {
           return { error: { status: 500, data: error } as any };
         }
@@ -122,7 +156,13 @@ export const rutinasApi = createApi({
     /** Listado de ejercicios (tabla pública) */
     getEjercicios: builder.query<
       Ejercicio[],
-      { search?: string; grupo_muscular?: string; dificultad?: string; limit?: number; offset?: number } | void
+      {
+        search?: string;
+        grupo_muscular?: string;
+        dificultad?: string;
+        limit?: number;
+        offset?: number;
+      } | void
     >({
       async queryFn(args) {
         const params = args ?? {};
@@ -130,11 +170,15 @@ export const rutinasApi = createApi({
 
         let query = supabase
           .from("Ejercicios")
-          .select("id, nombre, grupo_muscular, descripcion, equipamento, dificultad, musculos_involucrados, ejemplo")
+          .select(
+            "id, nombre, grupo_muscular, descripcion, equipamento, dificultad, musculos_involucrados, ejemplo"
+          )
           .order("id", { ascending: true });
 
         if (search && search.trim().length > 0) {
-          query = query.or(`nombre.ilike.%${search}%,descripcion.ilike.%${search}%`);
+          query = query.or(
+            `nombre.ilike.%${search}%,descripcion.ilike.%${search}%`
+          );
         }
         if (grupo_muscular && grupo_muscular !== "all") {
           query = query.eq("grupo_muscular", grupo_muscular);
@@ -175,7 +219,9 @@ export const rutinasApi = createApi({
 
         if (error) return { error };
 
-        const ejercicios = (data?.EjerciciosRutinas ?? []).slice().sort(sortByOrdenThenId);
+        const ejercicios = (data?.EjerciciosRutinas ?? [])
+          .slice()
+          .sort(sortByOrdenThenId);
         ejercicios.forEach((er: EjercicioRutina & { sets?: SetEntry[] }) => {
           er.sets = sortSets(er.sets);
         });
@@ -212,13 +258,18 @@ export const rutinasApi = createApi({
           await queryFulfilled;
         } finally {
           // 👇 refrescar KPIs (rutinas creadas y potencialmente otras)
-          dispatch(dashboardApi.util.invalidateTags([{ type: "Kpis", id: "MONTH" }]));
+          dispatch(
+            dashboardApi.util.invalidateTags([{ type: "Kpis", id: "MONTH" }])
+          );
         }
       },
     }),
 
     /** Actualizar rutina */
-    updateRutina: builder.mutation<Rutina, { id_rutina: number } & UpsertRutinaInput>({
+    updateRutina: builder.mutation<
+      Rutina,
+      { id_rutina: number } & UpsertRutinaInput
+    >({
       async queryFn({ id_rutina, ...rutinaData }) {
         try {
           const { data, error } = await supabase
@@ -243,7 +294,9 @@ export const rutinasApi = createApi({
           await queryFulfilled;
         } finally {
           // 👇 por consistencia, refrescamos KPIs
-          dispatch(dashboardApi.util.invalidateTags([{ type: "Kpis", id: "MONTH" }]));
+          dispatch(
+            dashboardApi.util.invalidateTags([{ type: "Kpis", id: "MONTH" }])
+          );
         }
       },
     }),
@@ -260,8 +313,21 @@ export const rutinasApi = createApi({
         orden?: number;
       }
     >({
-      async queryFn({ id_rutina, id_ejercicio, series = null, repeticiones = null, peso_sugerido = null, orden }) {
-        const payload: any = { id_rutina, id_ejercicio, series, repeticiones, peso_sugerido };
+      async queryFn({
+        id_rutina,
+        id_ejercicio,
+        series = null,
+        repeticiones = null,
+        peso_sugerido = null,
+        orden,
+      }) {
+        const payload: any = {
+          id_rutina,
+          id_ejercicio,
+          series,
+          repeticiones,
+          peso_sugerido,
+        };
         if (typeof orden === "number") payload.orden = orden;
 
         const { data, error } = await supabase
@@ -277,11 +343,16 @@ export const rutinasApi = createApi({
         if (error) return { error };
         return { data: data as unknown as EjercicioRutina };
       },
-      invalidatesTags: (_r, _e, arg) => [{ type: "RutinaDetalle", id: arg.id_rutina }],
+      invalidatesTags: (_r, _e, arg) => [
+        { type: "RutinaDetalle", id: arg.id_rutina },
+      ],
     }),
 
     /** Quitar ejercicio de la rutina */
-    removeEjercicioFromRutina: builder.mutation<{ success: true }, { id_rutina: number; id_ejercicio: number }>({
+    removeEjercicioFromRutina: builder.mutation<
+      { success: true },
+      { id_rutina: number; id_ejercicio: number }
+    >({
       async queryFn({ id_rutina, id_ejercicio }) {
         const { error } = await supabase
           .from("EjerciciosRutinas")
@@ -291,7 +362,9 @@ export const rutinasApi = createApi({
         if (error) return { error };
         return { data: { success: true } };
       },
-      invalidatesTags: (_r, _e, arg) => [{ type: "RutinaDetalle", id: arg.id_rutina }],
+      invalidatesTags: (_r, _e, arg) => [
+        { type: "RutinaDetalle", id: arg.id_rutina },
+      ],
     }),
 
     /** Reordenamiento en bloque (ejercicios) */
@@ -307,18 +380,26 @@ export const rutinasApi = createApi({
         if (error) return { error };
         return { data: { success: true } };
       },
-      invalidatesTags: (_r, _e, arg) => [{ type: "RutinaDetalle", id: arg.id_rutina }],
+      invalidatesTags: (_r, _e, arg) => [
+        { type: "RutinaDetalle", id: arg.id_rutina },
+      ],
       async onQueryStarted({ id_rutina, items }, { dispatch, queryFulfilled }) {
         const patch = dispatch(
-          rutinasApi.util.updateQueryData("getRutinaById", id_rutina, (draft) => {
-            if (!draft) return;
-            const mapOrden = new Map(items.map((i) => [i.id_ejercicio, i.orden] as const));
-            draft.EjerciciosRutinas.forEach((er) => {
-              const nuevo = mapOrden.get(er.id_ejercicio);
-              if (typeof nuevo === "number") er.orden = nuevo;
-            });
-            draft.EjerciciosRutinas.sort(sortByOrdenThenId);
-          })
+          rutinasApi.util.updateQueryData(
+            "getRutinaById",
+            id_rutina,
+            (draft) => {
+              if (!draft) return;
+              const mapOrden = new Map(
+                items.map((i) => [i.id_ejercicio, i.orden] as const)
+              );
+              draft.EjerciciosRutinas.forEach((er) => {
+                const nuevo = mapOrden.get(er.id_ejercicio);
+                if (typeof nuevo === "number") er.orden = nuevo;
+              });
+              draft.EjerciciosRutinas.sort(sortByOrdenThenId);
+            }
+          )
         );
         try {
           await queryFulfilled;
@@ -342,18 +423,29 @@ export const rutinasApi = createApi({
         if (error) return { error };
         return { data: { success: true } };
       },
-      invalidatesTags: (_r, _e, arg) => [{ type: "RutinaDetalle", id: arg.id_rutina }],
+      invalidatesTags: (_r, _e, arg) => [
+        { type: "RutinaDetalle", id: arg.id_rutina },
+      ],
       // optimista simple
-      async onQueryStarted({ id_rutina, id_ejercicio, sets }, { dispatch, queryFulfilled }) {
+      async onQueryStarted(
+        { id_rutina, id_ejercicio, sets },
+        { dispatch, queryFulfilled }
+      ) {
         const patch = dispatch(
-          rutinasApi.util.updateQueryData("getRutinaById", id_rutina, (draft) => {
-            if (!draft) return;
-            const er = draft.EjerciciosRutinas.find((x) => x.id_ejercicio === id_ejercicio);
-            if (er) {
-              er.sets = sortSets(sets);
-              er.series = sets.length;
+          rutinasApi.util.updateQueryData(
+            "getRutinaById",
+            id_rutina,
+            (draft) => {
+              if (!draft) return;
+              const er = draft.EjerciciosRutinas.find(
+                (x) => x.id_ejercicio === id_ejercicio
+              );
+              if (er) {
+                er.sets = sortSets(sets);
+                er.series = sets.length;
+              }
             }
-          })
+          )
         );
         try {
           await queryFulfilled;
@@ -366,7 +458,10 @@ export const rutinasApi = createApi({
     /** Eliminar rutina */
     deleteRutina: builder.mutation<{ success: true }, { id_rutina: number }>({
       async queryFn({ id_rutina }) {
-        const { error } = await supabase.from("Rutinas").delete().eq("id_rutina", id_rutina);
+        const { error } = await supabase
+          .from("Rutinas")
+          .delete()
+          .eq("id_rutina", id_rutina);
         if (error) return { error };
         return { data: { success: true } };
       },
@@ -385,7 +480,13 @@ export const rutinasApi = createApi({
             )
           : { undo: () => {} };
 
-        const patchDetail = dispatch(rutinasApi.util.updateQueryData("getRutinaById", id_rutina, (_draft) => {}));
+        const patchDetail = dispatch(
+          rutinasApi.util.updateQueryData(
+            "getRutinaById",
+            id_rutina,
+            (_draft) => {}
+          )
+        );
 
         try {
           await queryFulfilled;
@@ -394,7 +495,9 @@ export const rutinasApi = createApi({
           patchDetail.undo();
         } finally {
           // 👇 refrescar KPIs (rutinas creadas)
-          dispatch(dashboardApi.util.invalidateTags([{ type: "Kpis", id: "MONTH" }]));
+          dispatch(
+            dashboardApi.util.invalidateTags([{ type: "Kpis", id: "MONTH" }])
+          );
         }
       },
       invalidatesTags: (_r, _e, arg) => [
@@ -417,6 +520,7 @@ export const {
   useGetEjerciciosQuery,
   useReorderEjerciciosMutation,
   useReplaceExerciseSetsMutation,
+  useGetProgramByNameQuery,
 } = rutinasApi;
 
 // Aliases (mantener por compatibilidad; idealmente remover en limpieza futura)
