@@ -1,3 +1,5 @@
+// FILE: src/pages/profile/ProfilePage.tsx
+import * as React from "react";
 import { useParams } from "react-router-dom";
 import {
   useGetMyProfileQuery,
@@ -7,10 +9,14 @@ import {
 import ProfileCard from "@/features/profile/components/ProfileCard";
 import ProfileStats from "@/features/profile/components/ProfileStats";
 import LastWorkoutSummaryCard from "@/features/profile/components/LastWorkoutSummaryCard";
+import ProfileFriendsModal from "@/features/profile/components/ProfileFriendsModal";
 
 export default function ProfilePage() {
   const { username } = useParams<{ username?: string }>();
   const isSelf = !username;
+
+  // Estado del modal de amigos (solo existe aquí)
+  const [openFriends, setOpenFriends] = React.useState(false);
 
   // Card básica
   const my = useGetMyProfileQuery(undefined, { skip: !isSelf });
@@ -35,7 +41,13 @@ export default function ProfilePage() {
         avatarUrl={profile?.url_avatar ?? null}
       />
 
-      <ProfileStats summary={summary} loading={summaryQ.isLoading} hideLastPanel />
+      {/* Hacemos la tarjeta "Amigos" clickeable desde aquí */}
+      <ProfileStats
+        summary={summary}
+        loading={summaryQ.isLoading}
+        hideLastPanel
+        onFriendsClick={() => setOpenFriends(true)}
+      />
 
       {/* Último entrenamiento COMPLETO (sin likes/comentarios) */}
       {targetUsername && (
@@ -44,6 +56,11 @@ export default function ProfilePage() {
           displayName={profile?.nombre ?? null}
           avatarUrl={profile?.url_avatar ?? null}
         />
+      )}
+
+      {/* Modal de amistades — solo se renderiza aquí */}
+      {targetUsername && (
+        <ProfileFriendsModal username={targetUsername} open={openFriends} onOpenChange={setOpenFriends} />
       )}
     </div>
   );

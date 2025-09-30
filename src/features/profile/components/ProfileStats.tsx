@@ -13,10 +13,37 @@ function formatKg(n: number) {
   return `${fixed.toLocaleString()} kg`;
 }
 
-type StatProps = { icon: React.ReactNode; label: string; value: string | number };
-function Stat({ icon, label, value }: StatProps) {
+type StatProps = {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  onClick?: () => void; // 👈 hace el stat clickeable cuando se pasa
+};
+function Stat({ icon, label, value, onClick }: StatProps) {
+  const clickable = !!onClick;
+
   return (
-    <Card className="bg-muted/30 border-muted/40">
+    <Card
+      onClick={onClick}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={
+        clickable
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick?.();
+              }
+            }
+          : undefined
+      }
+      className={`bg-muted/30 border-muted/40 ${
+        clickable
+          ? "cursor-pointer hover:bg-accent/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          : ""
+      }`}
+      aria-label={clickable ? label : undefined}
+    >
       <CardContent className="p-4 flex items-center gap-3">
         <div className="shrink-0">{icon}</div>
         <div className="flex flex-col min-w-0">
@@ -31,11 +58,13 @@ function Stat({ icon, label, value }: StatProps) {
 export default function ProfileStats({
   summary,
   loading,
-  hideLastPanel = false, // 👈 nuevo: permite ocultar el panel simple del último entrenamiento
+  hideLastPanel = false, // permite ocultar el panel simple del último entrenamiento
+  onFriendsClick, // 👈 NUEVO: handler para abrir el modal
 }: {
   summary: ProfileSummary | null;
   loading?: boolean;
   hideLastPanel?: boolean;
+  onFriendsClick?: () => void;
 }) {
   if (loading) {
     return (
@@ -61,7 +90,13 @@ export default function ProfileStats({
         <Stat icon={<Activity className="h-5 w-5" />} label="Entrenamientos" value={summary.workouts_count} />
         <Stat icon={<Clock className="h-5 w-5" />} label="Tiempo total" value={formatHM(summary.total_duration_sec)} />
         <Stat icon={<Dumbbell className="h-5 w-5" />} label="Volumen total" value={formatKg(summary.total_volume_kg)} />
-        <Stat icon={<Users className="h-5 w-5" />} label="Amigos" value={summary.friends_count} />
+        {/* 👇 Esta es la tarjeta clickeable */}
+        <Stat
+          icon={<Users className="h-5 w-5" />}
+          label="Amigos"
+          value={summary.friends_count}
+          onClick={onFriendsClick}
+        />
         <Stat
           icon={<History className="h-5 w-5" />}
           label="Último entrenamiento"
