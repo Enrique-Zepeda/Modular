@@ -13,6 +13,7 @@ import { profileApi } from "@/features/settings/api/profileApi";
 import { setupListeners } from "@reduxjs/toolkit/query";
 import { friendsApi } from "@/features/friends/api/friendsApi";
 import { friendsFeedApi } from "@/features/friends/api/friendsFeedApi";
+import { userProfileApi } from "@/features/profile/api/userProfileApi";
 
 export const store = configureStore({
   reducer: {
@@ -28,6 +29,7 @@ export const store = configureStore({
     [profileApi.reducerPath]: profileApi.reducer,
     [friendsApi.reducerPath]: friendsApi.reducer,
     [friendsFeedApi.reducerPath]: friendsFeedApi.reducer,
+    [userProfileApi.reducerPath]: userProfileApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
@@ -37,7 +39,8 @@ export const store = configureStore({
       exercisesApi.middleware,
       profileApi.middleware,
       friendsApi.middleware,
-      friendsFeedApi.middleware
+      friendsFeedApi.middleware,
+      userProfileApi.middleware
     ),
 });
 

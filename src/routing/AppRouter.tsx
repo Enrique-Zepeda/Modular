@@ -12,6 +12,7 @@ import ProtectedRoute from "./ProtectedRoutes/ProtectedRoute";
 import FriendsPage from "@/pages/friends/FriendsPage";
 import NotificationsPage from "@/pages/dashboard/settings/NotificationsPage";
 import { DashboardPage } from "@/pages/dashboard/DashboardPage";
+import ProfilePage from "@/pages/profile/ProfilePage";
 
 /** ✅ NUEVO: FriendsPage */
 
@@ -153,6 +154,26 @@ export default function AppRouter() {
           <ProtectedRoute>
             <DashboardLayout>
               <NotificationsPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <ProfilePage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/u/:username"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <ProfilePage />
             </DashboardLayout>
           </ProtectedRoute>
         }
