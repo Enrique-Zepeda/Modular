@@ -86,6 +86,7 @@ export const rutinasApi = createApi({
 
     getProgramByName: builder.query<
       {
+        id: number;
         nombre: string;
         descripcion: string | null;
         ProgramasRutinas: {
@@ -111,6 +112,30 @@ export const rutinasApi = createApi({
       providesTags: (_r, _e, name) => [{ type: "Programas", id: name }],
     }),
     // ✅ FIN DEL BLOQUE CORREGIDO
+
+    // Mutación para clonar un programa para un usuario
+    cloneProgramForUser: builder.mutation<
+    { id: number; nombre: string }[], // El tipo de dato que esperamos de vuelta
+    number // El tipo de dato que le pasamos (el ID del programa)
+  >({
+    async queryFn(programId) {
+      try {
+        const { data, error } = await supabase.rpc("clone_program_for_user", {
+          p_id_programa: programId,
+        });
+
+        if (error) return { error };
+        return { data: (data as any) ?? [] };
+      } catch (error) {
+        return { error: { status: 500, data: error } as any };
+      }
+    },
+    // MUY IMPORTANTE: Cuando esta mutación tenga éxito, le decimos a RTK Query
+    // que los datos de la lista de rutinas del usuario están obsoletos y debe recargarlos.
+    invalidatesTags: [{ type: "Rutinas", id: "LIST" }],
+  }),
+
+
     /** Lista de rutinas del usuario autenticado (cache key = ownerUid) */
     getRutinas: builder.query<Rutina[], string | undefined>({
       async queryFn(ownerUid) {
@@ -521,6 +546,7 @@ export const {
   useReorderEjerciciosMutation,
   useReplaceExerciseSetsMutation,
   useGetProgramByNameQuery,
+  useCloneProgramForUserMutation,
 } = rutinasApi;
 
 // Aliases (mantener por compatibilidad; idealmente remover en limpieza futura)

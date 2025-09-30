@@ -5,12 +5,19 @@ import "@/lib/supabase/RecoveryBlocker";
 import AppRouter from "./routing/AppRouter";
 import { AuthProvider } from "./features/auth/components";
 
+// Se mantiene la importación de Toaster
+import { Toaster } from "react-hot-toast";
+
 function App() {
   return (
     <Provider store={store}>
       <BrowserRouter>
         <AuthProvider>
-          <AppRouter />
+          {/* ---> SE AGREGA UN FRAGMENTO PARA ENVOLVER A LOS DOS HIJOS */}
+          <>
+            <AppRouter />
+            <Toaster position="top-center" reverseOrder={false} />
+          </>
         </AuthProvider>
       </BrowserRouter>
     </Provider>
