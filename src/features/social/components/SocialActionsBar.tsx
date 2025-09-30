@@ -10,7 +10,7 @@ type Props = {
   /** si true, el hilo de comentarios aparece abierto desde el inicio */
   defaultOpen?: boolean;
 
-  /** ⬇️ NUEVOS: hidratan desde el feed para evitar N+1 */
+  /** ⬇️ Hidratan desde el feed (RPC v3) para evitar N+1 */
   initialLikesCount?: number;
   initialLikedByMe?: boolean;
   initialCommentsCount?: number;
@@ -26,9 +26,23 @@ export const SocialActionsBar = memo(function SocialActionsBar({
   const [open, setOpen] = useState<boolean>(defaultOpen);
   const [count, setCount] = useState<number>(Math.max(0, initialCommentsCount ?? 0));
 
-  // Si no vino un conteo inicial, hacemos un fetch único
+  /**
+   * 🔁 IMPORTANTE:
+   * Si el contador inicial de comentarios llega después del primer render,
+   * rehidratar el estado inmediatamente (sin esperar al fallback fetch).
+   */
   useEffect(() => {
-    if (initialCommentsCount != null) return;
+    if (typeof initialCommentsCount === "number") {
+      setCount(Math.max(0, initialCommentsCount));
+    }
+  }, [initialCommentsCount]);
+
+  /**
+   * Fallback: si NO llegó un valor inicial, hacemos un fetch único.
+   * (En la mayoría de casos, con el RPC v3 esto no correrá).
+   */
+  useEffect(() => {
+    if (typeof initialCommentsCount === "number") return; // ya hidratamos por props
     let mounted = true;
     void fetchCommentsCount(sessionId)
       .then((n) => mounted && setCount(n))

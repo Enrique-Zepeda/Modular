@@ -20,10 +20,11 @@ export const LikeButton = memo(function LikeButton({
   initialCount,
   initialLikedByMe,
 }: Props) {
-  const { count, likedByMe, loading, like, unlike } = useLikes(sessionId, {
-    count: initialCount,
-    likedByMe: initialLikedByMe,
-  });
+  // Solo pasamos "initial" si viene al menos uno de los dos valores
+  const hasInitial = typeof initialCount === "number" || typeof initialLikedByMe === "boolean";
+  const initialArg = hasInitial ? { count: initialCount, likedByMe: initialLikedByMe } : undefined;
+
+  const { count, likedByMe, loading, like, unlike } = useLikes(sessionId, initialArg);
 
   const onClick = useCallback(async () => {
     try {

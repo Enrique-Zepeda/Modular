@@ -12,34 +12,67 @@ type LikeState = {
 type Initial = { count?: number; likedByMe?: boolean } | undefined;
 
 export function useLikes(sessionId: number, initial?: Initial) {
+  // ¿tenemos algún valor inicial válido?
+  const hasInitial = Boolean(initial && (typeof initial.count === "number" || typeof initial.likedByMe === "boolean"));
+
   const [state, setState] = useState<LikeState>({
-    count: Math.max(0, initial?.count ?? 0),
-    likedByMe: !!initial?.likedByMe,
-    loading: initial == null, // si viene inicial, arrancamos sin load
+    count: hasInitial && typeof initial?.count === "number" ? Math.max(0, initial!.count!) : 0,
+    likedByMe: hasInitial && typeof initial?.likedByMe === "boolean" ? !!initial!.likedByMe : false,
+    loading: !hasInitial,
   });
 
   const ids = useMemo(() => [sessionId], [sessionId]);
 
-  // Carga inicial SOLO si no viene estado inicial
+  /**
+   * 🔁 NUEVO: si los props iniciales llegan DESPUÉS del primer render,
+   * hidratamos el estado inmediatamente y detenemos el loading.
+   */
+  useEffect(() => {
+    if (typeof initial?.count === "number" || typeof initial?.likedByMe === "boolean") {
+      setState((s) => ({
+        ...s,
+        count: typeof initial.count === "number" ? Math.max(0, initial.count) : s.count,
+        likedByMe: typeof initial.likedByMe === "boolean" ? !!initial.likedByMe : s.likedByMe,
+        loading: false,
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial?.count, initial?.likedByMe]); // solo reaccionamos a cambios reales en props
+
+  /**
+   * Carga inicial SOLO si no hubo iniciales válidos.
+   */
   useEffect(() => {
     let mounted = true;
-    if (initial) return; // ya tenemos valores
+    if (hasInitial) return;
+
     (async () => {
       try {
         const [counts, liked] = await Promise.all([fetchLikesCountBySessions(ids), fetchLikedByMe(sessionId)]);
         if (!mounted) return;
-        setState({ count: counts[sessionId] ?? 0, likedByMe: liked, loading: false });
+        setState({
+          count: counts[sessionId] ?? 0,
+          likedByMe: !!liked,
+          loading: false,
+        });
       } catch (e: any) {
         if (!mounted) return;
-        setState((s) => ({ ...s, loading: false, error: e?.message ?? "No se pudo cargar likes" }));
+        setState((s) => ({
+          ...s,
+          loading: false,
+          error: e?.message ?? "No se pudo cargar likes",
+        }));
       }
     })();
+
     return () => {
       mounted = false;
     };
-  }, [sessionId, initial]); // eslint-disable-line
+  }, [sessionId, hasInitial]); // eslint-disable-line
 
-  // Realtime (incrementa/decrementa conteo y marca liked_by_me si soy yo)
+  /**
+   * Realtime: mantener contador y bandera al día.
+   */
   useSocialRealtime(ids, {
     onLikeInsert: (row) => {
       if (row.id_sesion !== sessionId) return;

@@ -254,6 +254,8 @@ export function DashboardPage() {
                       readOnly={w.readOnly}
                       duracionSeg={w.duracionSeg}
                       onDeleted={(id) => setDeletedIds((prev) => new Set(prev).add(id))}
+                      /* 👇 ESTA LÍNEA ES LA CLAVE */
+                      socialInitial={w.socialInitial}
                     />
                   </div>
                 ))}
