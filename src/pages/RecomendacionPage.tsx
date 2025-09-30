@@ -163,14 +163,14 @@ export default function RecomendacionPage() {
           </Card>
 
           {/* Resultado */}
+{/* Resultado Unificado */}
           <div className="space-y-6">
 
-            {/* ---> 1. SECCIÓN DE RESULTADO MEJORADA Y UNIFICADA */}
             {resultado && (
-              <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-                <CardHeader className="bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-t-lg">
-                  <CardTitle className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5" />
+              <Card className="shadow-xl border-0 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"> {/* <--- Ajuste de color de fondo y borde aquí */}
+                <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-t-lg p-4"> {/* <--- Degradado de color y padding */}
+                  <CardTitle className="flex items-center gap-3 text-2xl font-semibold"> {/* <--- Ajuste de tamaño de fuente y peso */}
+                    <CheckCircle className="h-6 w-6" /> {/* <--- Ícono un poco más grande */}
                     Tu Programa Recomendado
                   </CardTitle>
                 </CardHeader>
@@ -178,13 +178,12 @@ export default function RecomendacionPage() {
 
                   {/* Estado: Cargando los detalles del programa */}
                   {loadingPrograma && (
-                    <div className="text-center py-4">
-                      {/* Mostramos el nombre que ya tenemos del primer API */}
-                      <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                    <div className="text-center py-6"> {/* <--- Más padding vertical */}
+                      <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3"> {/* <--- Ajuste de color y más margen */}
                         {resultado.replace(/_/g, ' ')}
                       </h3>
-                      <div className="flex items-center justify-center gap-2 text-gray-600 mt-4">
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                      <div className="flex items-center justify-center gap-2 text-indigo-600 dark:text-indigo-400 mt-4"> {/* <--- Color del texto del cargador */}
+                        <Loader2 className="h-5 w-5 animate-spin" /> {/* <--- Ícono un poco más grande */}
                         Cargando detalles y rutinas...
                       </div>
                     </div>
@@ -192,50 +191,62 @@ export default function RecomendacionPage() {
 
                   {/* Estado: Error al cargar los detalles */}
                   {errorPrograma && (
-                    <div className="flex items-center gap-2 text-red-600 justify-center py-4">
-                      <AlertCircle className="h-4 w-4" />
+                    <div className="flex items-center justify-center gap-3 text-red-600 dark:text-red-400 py-6"> {/* <--- Color del texto de error y más padding */}
+                      <AlertCircle className="h-6 w-6" /> {/* <--- Ícono un poco más grande */}
                       No fue posible cargar los detalles del programa.
                     </div>
                   )}
 
-                  {/* Estado: Éxito, los detalles del programa se cargaron */}
+                  {/* Estado: Éxito, los detalles del programa SÍ se cargaron */}
                   {programa && (
-                    <div className="space-y-4">
+                    <div className="space-y-6"> {/* <--- Más espacio vertical entre elementos */}
                       <div>
-                        <div className="flex items-center justify-between gap-4">
-                          <h2 className="text-2xl font-bold text-gray-900">{programa.nombre?.replace(/_/g, ' ')}</h2>
+                        <div className="flex items-center justify-between gap-4 mb-2"> {/* <--- Más margen inferior */}
+                          <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{programa.nombre?.replace(/_/g, ' ')}</h2> {/* <--- Título más grande y bold */}
                           <Button
                             onClick={handleCopyProgram}
                             disabled={isCloning}
-                            variant="outline"
-                            size="sm"
-                            className="text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+                            variant="default" // <--- CAMBIO: Usamos 'default' para un botón más visible
+                            size="lg" // <--- CAMBIO: Botón un poco más grande
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold flex items-center gap-2" // <--- Nuevos colores y flex para el ícono
                             title="Copiar programa a 'Mis Rutinas'"
                           >
                             {isCloning
-                              ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              : <PlusCircle className="mr-2 h-4 w-4" />
+                              ? <Loader2 className="h-5 w-5 animate-spin" /> // <--- Ícono más grande
+                              : <PlusCircle className="h-5 w-5" /> // <--- Ícono más grande
                             }
-                            Copiar
+                            Copiar Programa
                           </Button>
                         </div>
-                        <p className="text-gray-700 mt-1">{programa.descripcion}</p>
+                        <p className="text-lg text-gray-700 dark:text-gray-300">{programa.descripcion}</p> {/* <--- Texto de descripción más grande */}
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                      <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200 mt-6 mb-4 border-b pb-2 border-gray-200 dark:border-gray-600">Rutinas del Programa:</h3> {/* <--- Nuevo título para las rutinas */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2"> {/* <--- Más padding superior para las tarjetas de rutina */}
                         {(programa.ProgramasRutinas ?? []).map((item: any, idx: number) => (
-                          <Card key={idx} className="border border-gray-100 bg-white">
-                            <CardHeader>
-                              <CardTitle className="text-lg">
+                          <Card key={idx} className="border border-indigo-200 dark:border-indigo-700 bg-indigo-50 dark:bg-indigo-900/40 transform transition-transform hover:scale-103 shadow-md hover:shadow-lg"> {/* <--- Nuevos estilos para las tarjetas de rutina */}
+                            <CardHeader className="p-4">
+                              <CardTitle className="text-lg font-semibold text-indigo-800 dark:text-indigo-200">
                                 {item?.Rutinas?.nombre?.replace(/_/g, ' ') || 'Rutina'}
                               </CardTitle>
                             </CardHeader>
-                            <CardContent>
-                              <p className="text-gray-700">{item?.Rutinas?.descripcion}</p>
+                            <CardContent className="p-4 pt-0">
+                              <p className="text-gray-700 dark:text-gray-300 text-sm">{item?.Rutinas?.descripcion}</p>
                             </CardContent>
                           </Card>
                         ))}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Estado de "No Encontrado" */}
+                  {!loadingPrograma && !errorPrograma && !programa && (
+                    <div className="text-center py-8 text-gray-600 dark:text-gray-300"> {/* <--- Más padding y color de texto */}
+                      <AlertCircle className="h-10 w-10 mx-auto mb-4 text-amber-500 dark:text-amber-400" /> {/* <--- Ícono más grande y color */}
+                      <p className="font-bold text-lg">No se encontró el programa recomendado.</p> {/* <--- Mensaje más grande y bold */}
+                      <p className="text-base mt-2">
+                        Es posible que el programa ya no exista o haya sido modificado. Por favor, intenta generar una nueva recomendación.
+                      </p>
                     </div>
                   )}
 
