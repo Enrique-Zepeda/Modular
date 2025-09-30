@@ -2,26 +2,88 @@ import * as React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import { useProfileFriends } from "../hooks/useProfileFriends";
-import { Users } from "lucide-react";
+import { Users, UserMinus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase/client";
+import toast from "react-hot-toast";
 
 type Props = {
   username: string;
   open: boolean;
   onOpenChange: (o: boolean) => void;
   className?: string;
+  canManageFriends?: boolean;
+  /** 🔔 callback para notificar cambios al padre (ProfilePage) */
+  onFriendsChanged?: () => void;
 };
 
-export default function ProfileFriendsModal({ username, open, onOpenChange, className }: Props) {
+export default function ProfileFriendsModal({
+  username,
+  open,
+  onOpenChange,
+  className,
+  canManageFriends = false,
+  onFriendsChanged,
+}: Props) {
   const { friends, isLoading, isError, error, refetch } = useProfileFriends(username);
+  const [pendingId, setPendingId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (!open) return;
-    // refresh al abrir
     refetch();
   }, [open, refetch]);
+
+  const notifyChange = React.useCallback(() => {
+    onFriendsChanged?.();
+    // evento global para que otras vistas interesadas refresquen (opcional)
+    window.dispatchEvent(new CustomEvent("friends:changed"));
+  }, [onFriendsChanged]);
+
+  const handleUnfriend = async (friendId: string, friendHandle: string) => {
+    const other = Number(friendId);
+    if (!Number.isFinite(other)) {
+      toast.error("Id de usuario inválido.");
+      return;
+    }
+    setPendingId(friendId);
+    const t = toast.loading("Eliminando…");
+    try {
+      const { data: meId, error: meErr } = await supabase.rpc("current_usuario_id");
+      if (meErr) throw meErr;
+      if (!meId) throw new Error("No se pudo resolver tu usuario.");
+
+      const { error: delErr } = await supabase
+        .from("Amigos")
+        .delete()
+        .or(
+          `and(id_usuario1.eq.${meId},id_usuario2.eq.${other}),` + `and(id_usuario1.eq.${other},id_usuario2.eq.${meId})`
+        );
+
+      if (delErr) throw delErr;
+
+      toast.success(`Has eliminado a @${friendHandle}.`, { id: t });
+      await refetch();
+      notifyChange(); // ✅ avisa al padre y al global
+    } catch (e: any) {
+      toast.error(e?.message ?? "No se pudo eliminar.", { id: t });
+    } finally {
+      setPendingId(null);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -49,11 +111,12 @@ export default function ProfileFriendsModal({ username, open, onOpenChange, clas
               <ul className="divide-y divide-border">
                 {friends.map((f) => {
                   const initial = (f.nombre?.[0] || f.username?.[0] || "?").toUpperCase();
+                  const isPending = pendingId === f.id;
                   return (
-                    <li key={f.id} className="py-3">
+                    <li key={f.id} className="py-3 flex items-center gap-3">
                       <Link
                         to={`/u/${f.username}`}
-                        className="flex items-center gap-3 group"
+                        className="flex items-center gap-3 min-w-0 group"
                         onClick={() => onOpenChange(false)}
                       >
                         <Avatar className="size-10 ring-1 ring-border/50">
@@ -67,6 +130,43 @@ export default function ProfileFriendsModal({ username, open, onOpenChange, clas
                           <div className="text-xs text-muted-foreground truncate">@{f.username}</div>
                         </div>
                       </Link>
+
+                      <div className="flex-1" />
+
+                      {canManageFriends && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1 text-destructive hover:text-destructive"
+                              disabled={isPending}
+                              onClick={(e) => e.stopPropagation()}
+                              aria-label={`Eliminar a @${f.username}`}
+                            >
+                              <UserMinus className="h-4 w-4" />
+                              Eliminar
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Eliminar de amigos</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Quitarás a <strong>@{f.username}</strong> de tu lista de amigos.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                onClick={() => handleUnfriend(f.id, f.username)}
+                              >
+                                Confirmar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
                     </li>
                   );
                 })}

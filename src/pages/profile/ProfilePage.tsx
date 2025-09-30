@@ -1,4 +1,3 @@
-// FILE: src/pages/profile/ProfilePage.tsx
 import * as React from "react";
 import { useParams } from "react-router-dom";
 import {
@@ -15,7 +14,6 @@ export default function ProfilePage() {
   const { username } = useParams<{ username?: string }>();
   const isSelf = !username;
 
-  // Estado del modal de amigos (solo existe aquí)
   const [openFriends, setOpenFriends] = React.useState(false);
 
   // Card básica
@@ -25,8 +23,24 @@ export default function ProfilePage() {
 
   // KPIs (públicos, v2)
   const targetUsername = isSelf ? my.data?.username ?? "" : username ?? "";
-  const summaryQ = useGetProfileSummaryByUsernameQuery({ username: targetUsername }, { skip: !targetUsername });
+  const summaryQ = useGetProfileSummaryByUsernameQuery(
+    { username: targetUsername },
+    {
+      skip: !targetUsername,
+      // 👇 asegura refresco al montar, cambiar arg, recuperar foco o red conectividad
+      refetchOnMountOrArgChange: true,
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
+    }
+  );
   const summary = summaryQ.data ?? null;
+
+  // 🔔 Escuchar cambios globales de amistades (emitidos desde modal/búsqueda)
+  React.useEffect(() => {
+    const handler = () => summaryQ.refetch();
+    window.addEventListener("friends:changed", handler);
+    return () => window.removeEventListener("friends:changed", handler);
+  }, [summaryQ]);
 
   return (
     <div className="space-y-6">
@@ -41,7 +55,6 @@ export default function ProfilePage() {
         avatarUrl={profile?.url_avatar ?? null}
       />
 
-      {/* Hacemos la tarjeta "Amigos" clickeable desde aquí */}
       <ProfileStats
         summary={summary}
         loading={summaryQ.isLoading}
@@ -49,7 +62,6 @@ export default function ProfilePage() {
         onFriendsClick={() => setOpenFriends(true)}
       />
 
-      {/* Último entrenamiento COMPLETO (sin likes/comentarios) */}
       {targetUsername && (
         <LastWorkoutSummaryCard
           username={targetUsername}
@@ -58,9 +70,15 @@ export default function ProfilePage() {
         />
       )}
 
-      {/* Modal de amistades — solo se renderiza aquí */}
       {targetUsername && (
-        <ProfileFriendsModal username={targetUsername} open={openFriends} onOpenChange={setOpenFriends} />
+        <ProfileFriendsModal
+          username={targetUsername}
+          open={openFriends}
+          onOpenChange={setOpenFriends}
+          canManageFriends={isSelf}
+          // ✅ cuando cambia la lista, refrescamos el summary (contador)
+          onFriendsChanged={() => summaryQ.refetch()}
+        />
       )}
     </div>
   );
