@@ -14,18 +14,21 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { CalendarDays, Trash2, TrendingUp, Dumbbell, Heart, Timer } from "lucide-react";
+import { CalendarDays, Trash2, TrendingUp, Dumbbell, Timer } from "lucide-react";
 import { useDeleteWorkoutSessionMutation } from "@/features/workouts/api/workoutsApi";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { diffSecondsSafe, formatDurationShort } from "@/lib/duration";
+
+/** 👇 Social (likes + comentarios, realtime) */
+import { SocialActionsBar } from "@/features/social/components/SocialActionsBar";
 
 type ExerciseItem = {
   id?: number | string | null;
   nombre?: string | null;
   grupo_muscular?: string | null;
   equipamento?: string | null;
-  ejemplo?: string | null; // URL imagen
+  ejemplo?: string | null;
   sets_done?: number | null;
   volume?: number | string | null;
 };
@@ -43,13 +46,11 @@ type Props = {
   className?: string;
   dayHeader?: string | null;
   sensacionFinal?: string | null;
-
-  // 👇 NUEVO: duración, si viene de la API la usamos; si no, calculamos con las fechas
   duracionSeg?: number | null;
-
   readOnly?: boolean;
   isMine?: boolean;
   onDeleted?: (idSesion: number) => void;
+  socialInitial?: { likesCount: number; commentsCount: number; likedByMe: boolean };
 };
 
 const LOCAL_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
@@ -102,10 +103,11 @@ export function WorkoutCard({
   className,
   dayHeader,
   sensacionFinal,
-  duracionSeg, // 👈 puede venir null/undefined
+  duracionSeg,
   readOnly = false,
   isMine = false,
   onDeleted,
+  socialInitial,
 }: Props) {
   const endTs = endedAt || startedAt;
   const dayLabel = labelForDay(endTs);
@@ -118,9 +120,6 @@ export function WorkoutCard({
 
   const [openConfirm, setOpenConfirm] = useState(false);
   const [deleteWorkout, { isLoading: deleting }] = useDeleteWorkoutSessionMutation();
-
-  const [isLiked, setIsLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(Math.floor(Math.random() * 15) + 1);
 
   const canDelete = isMine && !readOnly;
 
@@ -138,7 +137,6 @@ export function WorkoutCard({
 
   const sensationText = (sensacionFinal && sensacionFinal.trim()) || "Sin sensaciones";
 
-  // 👇 Calcular duración si no viene de props
   const durationSeconds = useMemo(() => {
     if (duracionSeg != null) return Math.max(0, Math.floor(duracionSeg));
     return diffSecondsSafe(endedAt, startedAt);
@@ -166,7 +164,6 @@ export function WorkoutCard({
         >
           <CardHeader className="relative pb-5 z-10">
             <div className="flex items-start justify-between gap-4">
-              {/* Usuario + fecha */}
               <div className="flex items-center gap-4 min-w-0 flex-1">
                 <div className="relative">
                   <Avatar className="h-12 w-12 ring-2 ring-border/30">
@@ -191,7 +188,6 @@ export function WorkoutCard({
                 </div>
               </div>
 
-              {/* Borrar (solo mío) */}
               {canDelete && (
                 <Button
                   variant="ghost"
@@ -225,7 +221,6 @@ export function WorkoutCard({
                   {sensationText}
                 </Badge>
 
-                {/* 👇 NUEVO: Badge de duración (neutro/secondary, discreto) */}
                 {durationLabel && (
                   <Badge variant="secondary" className="rounded-2xl px-3 py-1.5 text-xs font-medium">
                     <Timer className="h-3.5 w-3.5 mr-1.5" />
@@ -300,23 +295,15 @@ export function WorkoutCard({
               </div>
             )}
 
-            {!readOnly && (
-              <div className="mt-6 pt-4 border-t border-border/30">
-                <div className="flex items-center gap-4">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setIsLiked((v) => !v);
-                      setLikesCount((prev) => (isLiked ? prev - 1 : prev + 1));
-                    }}
-                  >
-                    <Heart className={cn("h-4 w-4 mr-2", isLiked && "fill-current text-red-500")} />
-                    <span className="text-sm font-medium">{likesCount}</span>
-                  </Button>
-                </div>
-              </div>
-            )}
+            {/* 👇 Acciones sociales DENTRO de la card (abierto por defecto) */}
+            <div className="mt-6 pt-4 border-t border-border/30">
+              <SocialActionsBar
+                sessionId={idSesion}
+                initialLikesCount={socialInitial?.likesCount}
+                initialLikedByMe={socialInitial?.likedByMe}
+                initialCommentsCount={socialInitial?.commentsCount}
+              />
+            </div>
           </CardContent>
 
           {canDelete && (

@@ -42,7 +42,7 @@ export const friendsApi = createApi({
           const p_before = args?.before ?? null;
 
           // RPC que devuelve duracion_seg al final
-          const { data, error } = await supabase.rpc("feed_friends_workouts_v2", {
+          const { data, error } = await supabase.rpc("feed_friends_workouts_v3", {
             p_limit,
             p_before,
           });

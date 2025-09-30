@@ -10,7 +10,7 @@ import { supabase } from "@/lib/supabase/client";
 import { normalizeSensation } from "@/features/workouts/utils/sensation";
 import { diffSecondsSafe } from "@/lib/duration";
 import { useListFriendsFeedRichQuery } from "@/features/friends/api/friendsFeedApi";
-
+import { useFriendsFeedRealtime } from "@/features/friends/hooks/useFriendsFeedRealtime";
 // Título seguro
 const safeTitle = (v: unknown): string | null => {
   if (typeof v !== "string") return null;
@@ -25,6 +25,13 @@ export function DashboardPage() {
 
   console.debug("[DBG] myWorkouts raw sample:", Array.isArray(myWorkouts) ? myWorkouts.slice(0, 2) : myWorkouts);
   console.debug("[DBG] friendsFeed raw sample:", Array.isArray(friendsFeed) ? friendsFeed.slice(0, 2) : friendsFeed);
+
+  const friendSessionIds = useMemo(
+    () => (Array.isArray(friendsFeed) ? friendsFeed.map((w: any) => Number(w.id_workout)).filter(Boolean) : []),
+    [friendsFeed]
+  );
+
+  useFriendsFeedRealtime(friendSessionIds, { limit: 30 });
 
   // 2) Resolver mi id_usuario (entero)
   const [myUsuarioId, setMyUsuarioId] = useState<number | null>(null);
@@ -88,6 +95,11 @@ export function DashboardPage() {
         duracionSeg: dSeg ?? undefined, // 👈 lo pasamos a la card
         endedSort: String(w.ended_at ?? w.started_at),
         __score: titulo !== "Entrenamiento" ? 2 : 0,
+        socialInitial: {
+          likesCount: Number(w.likes_count ?? 0),
+          commentsCount: Number(w.comments_count ?? 0),
+          likedByMe: !!w.liked_by_me,
+        },
       };
     });
 
@@ -128,6 +140,11 @@ export function DashboardPage() {
         duracionSeg: dSeg ?? undefined, // 👈 lo pasamos a la card
         endedSort: String(w.fecha),
         __score: titulo !== "Entrenamiento" ? 3 : 1,
+        socialInitial: {
+          likesCount: Number(w.likes_count ?? 0),
+          commentsCount: Number(w.comments_count ?? 0),
+          likedByMe: !!w.liked_by_me,
+        },
       };
     });
 
@@ -221,29 +238,24 @@ export function DashboardPage() {
             {!isLoading && (
               <AnimatePresence initial={false}>
                 {visibleItems.map((w) => (
-                  <WorkoutCard
-                    key={w.key}
-                    idSesion={w.idSesion}
-                    titulo={w.titulo}
-                    startedAt={w.startedAt}
-                    endedAt={w.endedAt}
-                    totalSets={w.totalSets}
-                    totalVolume={w.totalVolume}
-                    username={w.username}
-                    avatarUrl={w.avatarUrl}
-                    ejercicios={w.ejercicios}
-                    sensacionFinal={w.sensacionFinal}
-                    isMine={w.isMine}
-                    readOnly={w.readOnly}
-                    duracionSeg={w.duracionSeg} // 👈 PASAMOS duración
-                    onDeleted={(id) =>
-                      setDeletedIds((prev) => {
-                        const next = new Set(prev);
-                        next.add(id);
-                        return next;
-                      })
-                    }
-                  />
+                  <div key={w.key} className="space-y-2">
+                    <WorkoutCard
+                      idSesion={w.idSesion}
+                      titulo={w.titulo}
+                      startedAt={w.startedAt}
+                      endedAt={w.endedAt}
+                      totalSets={w.totalSets}
+                      totalVolume={w.totalVolume}
+                      username={w.username}
+                      avatarUrl={w.avatarUrl}
+                      ejercicios={w.ejercicios}
+                      sensacionFinal={w.sensacionFinal}
+                      isMine={w.isMine}
+                      readOnly={w.readOnly}
+                      duracionSeg={w.duracionSeg}
+                      onDeleted={(id) => setDeletedIds((prev) => new Set(prev).add(id))}
+                    />
+                  </div>
                 ))}
               </AnimatePresence>
             )}

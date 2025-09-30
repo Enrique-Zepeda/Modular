@@ -16,9 +16,12 @@ export type FriendWorkoutCard = {
   url_avatar: string | null;
   total_series: number | null;
   total_kg: number | null;
-  id_rutina: number | null; // viene en v2
-  rutina_nombre: string | null; // viene en v2
-  duracion_seg?: number | null; // 👈 NUEVO (v2) — usado por DashboardPage
+  id_rutina: number | null;
+  rutina_nombre: string | null;
+  duracion_seg?: number | null;
+  likes_count: number;
+  comments_count: number;
+  liked_by_me: boolean;
 };
 
 export type FriendWorkoutExercise = {
@@ -49,7 +52,7 @@ export const friendsFeedApi = createApi({
       async queryFn(args) {
         const { limit = 20, before = null as any } = args || {};
         // 🔁 Usar la versión v2 que incluye `duracion_seg`, `id_rutina`, `rutina_nombre`
-        const { data, error } = await supabase.rpc("feed_friends_workouts_v2", {
+        const { data, error } = await supabase.rpc("feed_friends_workouts_v3", {
           p_limit: limit,
           p_before: before,
         });
@@ -70,7 +73,7 @@ export const friendsFeedApi = createApi({
           const { limit = 20, before = null as any } = args || {};
 
           // 1) Base (ahora con v2)
-          const baseRes = await supabase.rpc("feed_friends_workouts_v2", {
+          const baseRes = await supabase.rpc("feed_friends_workouts_v3", {
             p_limit: limit,
             p_before: before,
           });
