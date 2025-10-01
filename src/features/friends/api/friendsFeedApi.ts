@@ -103,22 +103,23 @@ export const friendsFeedApi = createApi({
             .from("EntrenamientoSets")
             .select(
               `
-              id_sesion,
-              id_ejercicio,
-              idx,
-              kg,
-              reps,
-              done,
-              Ejercicios:Ejercicios (
-                id,
-                nombre,
-                grupo_muscular,
-                equipamento,
-                ejemplo
-              )
-            `
+    id_sesion,
+    id_ejercicio,
+    idx,
+    kg,
+    reps,
+    done,
+    Ejercicios:Ejercicios (
+      id,
+      nombre,
+      grupo_muscular,
+      equipamento,
+      ejemplo
+    )
+  `
             )
-            .in("id_sesion", sessionIds);
+            .in("id_sesion", sessionIds)
+            .eq("done", true); // ⬅️ SOLO sets marcados como hechos
 
           if (setsRes.error) throw setsRes.error;
 
@@ -136,6 +137,7 @@ export const friendsFeedApi = createApi({
           }
 
           for (const r of rows) {
+            if (!r?.done) continue; // ⬅️ Guard de seguridad
             const sId = Number(r.id_sesion);
             const bucket = bySesion.get(sId);
             if (!bucket) continue;
@@ -148,27 +150,27 @@ export const friendsFeedApi = createApi({
               ejemplo: string | null;
             } | null;
 
-            bucket.total_series_done += 1;
+            bucket.total_series_done += 1; // totales de la sesión (si los usas)
             const kg = Number(r.kg ?? 0);
             const reps = Number(r.reps ?? 0);
             bucket.total_kg_done += Number.isFinite(kg * reps) ? kg * reps : 0;
 
             if (ex) {
-              const found = bucket.ejercicios.find((e) => e.id === ex.id);
+              const found = bucket.ejercicios.find((e) => e.id === ex?.id);
               if (!found) {
                 bucket.ejercicios.push({
-                  id: ex.id,
-                  nombre: ex.nombre,
-                  grupo_muscular: ex.grupo_muscular,
-                  equipamento: ex.equipamento,
-                  ejemplo: ex.ejemplo,
-                  sets_done: 1,
+                  id: ex?.id ?? r.id_ejercicio,
+                  nombre: ex?.nombre ?? null,
+                  grupo_muscular: ex?.grupo_muscular ?? null,
+                  equipamento: ex?.equipamento ?? null,
+                  ejemplo: ex?.ejemplo ?? null,
+                  sets_done: 1, // ✅ solo hechos
                   volume: Number.isFinite(kg * reps) ? kg * reps : 0,
                 });
               } else {
-                found.sets_done += 1;
+                found.sets_done += 1; // ✅ solo hechos
                 const add = Number.isFinite(kg * reps) ? kg * reps : 0;
-                found.volume = Number(found.volume ?? 0) + add;
+                found.volume = Number(found.volume ?? 0) + add; // ✅ solo hechos
               }
             }
           }
