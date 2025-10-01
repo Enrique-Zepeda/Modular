@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Palette, Shield, BellIcon, Settings } from "lucide-react";
+import { User, Palette, Shield, Settings } from "lucide-react";
 import { AppearanceCard, ChangePasswordForm, Perfil } from "@/features/settings/components";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

@@ -226,7 +226,7 @@ export function WorkoutCard({
                 >
                   <Dumbbell className="h-4 w-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />
                   <span className="font-bold text-blue-700 dark:text-blue-300">{totalSets}</span>
-                  <span className="text-xs text-blue-600/80 dark:text-blue-400/80 font-semibold">sets</span>
+                  <span className="text-xs text-blue-600/80 dark:text-blue-400/80 font-semibold">sets realizados</span>
                 </div>
 
                 <div

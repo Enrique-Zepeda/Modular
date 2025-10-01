@@ -1,3 +1,4 @@
+export * from "./useBmi";
 export * from "./useMainExercise";
 export * from "./useMuscleVolumeDistribution";
 export * from "./useProfileFriends";

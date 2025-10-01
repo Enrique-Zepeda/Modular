@@ -14,6 +14,7 @@ import {
   ProfileStats,
   ProfileWorkoutsList,
 } from "@/features/profile/components";
+import BmiBadge from "@/features/profile/components/BmiBadge";
 
 // pequeño helper para color de fondo translúcido a partir de hex
 function hexToRgba(hex: string, alpha = 0.12) {
@@ -101,6 +102,9 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      {/* ✅ Solo mostrar el badge en MI perfil */}
+      {isSelf && <BmiBadge isSelf />}
 
       <ProfileCard
         variant="full"
