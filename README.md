@@ -113,3 +113,27 @@ VITE_SUPABASE_ANON_KEY=your_anon_key
 > ⚠️ El archivo `.env` ya está en el `.gitignore` y **no se subirá al repositorio**.
 
 ---
+
+
+Pruebas de python
+
+1.  **Crea y activa el ambiente virtual:**
+    ```bash
+    # Comando para crear el .venv
+    python -m venv .venv
+
+    # Comando para activarlo en Windows
+    .\.venv\Scripts\activate
+    ```
+
+2.  **Instala las dependencias:**
+    Este comando leerá el archivo `requirements.txt` e instalará todo lo necesario.
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+3.  **Inicia el servidor:**
+    ```bash
+    python python/api.py
+    ```
+El servidor estará corriendo en `http://127.0.0.1:5000`.

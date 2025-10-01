@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, Calendar, Dumbbell, User, Settings, LogOut } from "lucide-react";
+import { Home, Calendar, Dumbbell, User, Settings, LogOut, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppDispatch } from "@/hooks/useStore";
 import { logoutUser } from "@/features/auth/thunks";
@@ -10,7 +10,8 @@ import LogoutConfirmDialog from "../ui/logout-confirm-dialog";
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Rutinas", href: "/dashboard/routines", icon: Calendar },
-  { name: "Ejercicios", href: "/dashboard/exercises", icon: Dumbbell },
+  { name: "Ejercicios", href: "/dashboard/ejercicios", icon: Dumbbell },
+  { name: "Recomendación de Rutina", href: "/recomendacion", icon: Sparkles },
   { name: "Perfil", href: "/dashboard/profile", icon: User },
   { name: "Configuración", href: "/dashboard/settings", icon: Settings },
 ];
@@ -29,7 +30,7 @@ export default function AppSidebar() {
       {/* Header */}
       <div className="flex items-center gap-2 px-6 py-4 border-b">
         <Dumbbell className="h-6 w-6 text-primary" />
-        <span className="font-bold text-lg">FitTracker</span>
+        <span className="font-bold text-lg">GymApp</span>
       </div>
 
       {/* Navigation */}

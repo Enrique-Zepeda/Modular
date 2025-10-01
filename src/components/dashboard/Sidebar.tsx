@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { logoutUser } from "@/features/auth/thunks";
 import { useAppDispatch } from "@/hooks/useStore";
+
 import {
   Home,
   Calendar,
@@ -11,23 +12,24 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Search,
+  Sparkles,
   Bell,
   User,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import LogoutConfirmDialog from "../ui/logout-confirm-dialog";
-
+import LogoPng from "../media/LogoGymApp.png";
 /** ✅ Importa el buscador del sidebar */
 import SidebarFriendSearch from "./SidebarFriendSearch";
 import { useGetMyProfileQuery } from "@/features/profile/api/userProfileApi";
-import ProfileCard from "@/features/profile/components/ProfileCard";
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: Home },
+  { name: "Home", href: "/dashboard", icon: Home },
   { name: "Rutinas", href: "/dashboard/routines", icon: Calendar },
+  { name: "Recomendación de Rutina", href: "/recomendacion", icon: Sparkles },
   { name: "Ejercicios", href: "/dashboard/ejercicios", icon: Dumbbell },
-  { name: "Notificaciones", href: "/dashboard/notifications", icon: Bell },
+  { name: "Solicitudes", href: "/dashboard/notifications", icon: Bell },
   { name: "Perfil", href: "/profile", icon: User },
   { name: "Configuración", href: "/dashboard/settings", icon: Settings },
 ];
@@ -54,11 +56,16 @@ export default function Sidebar() {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
         {!isCollapsed && (
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <Dumbbell className="h-4 w-4 text-primary-foreground" />
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-md bg-transparent">
+              <img
+                src={LogoPng}
+                alt="GymApp"
+                className="h-[88px] w-[88px] object-contain shrink-0 select-none"
+                draggable={false}
+              />
             </div>
-            <span className="font-semibold text-foreground">FitTracker</span>
+            <span className="font-semibold text-foreground">GymApp</span>
           </div>
         )}
         <Button

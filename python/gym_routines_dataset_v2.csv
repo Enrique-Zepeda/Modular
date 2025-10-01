@@ -1,0 +1,100 @@
+Objetivo,Nivel,Dias,Tiempo,Equipo_Disponible,Edad,Sexo,Rutina
+Ganar Musculo,Principiante,3,60,Mancuernas,22,Masculino,Full-Body Hipertrofia Basico
+Perder Grasa,Principiante,4,45,Solo_cuerpo,35,Femenino,Circuito Quema-Grasa en Casa
+Mantenerse,Intermedio,3,60,Gym_Completo,41,Masculino,Acondicionamiento Funcional Total
+Ganar Musculo,Avanzado,5,90,Gym_Completo,28,Masculino,Push-Pull-Legs Avanzado
+Perder Grasa,Intermedio,5,60,Gym_Completo,31,Femenino,HIIT & Fuerza
+Ganar Musculo,Intermedio,4,75,Gym_Completo,25,Masculino,Torso-Pierna Intermedio
+Mantenerse,Principiante,3,45,Solo_cuerpo,52,Femenino,Flexibilidad y Movilidad
+Perder Grasa,Avanzado,5,45,Mancuernas,29,Masculino,MetCon con Mancuernas
+Ganar Musculo,Principiante,4,60,Gym_Completo,19,Masculino,Rutina de Volumen para Novatos
+Mantenerse,Avanzado,3,60,Gym_Completo,45,Femenino,Mantenimiento Avanzado
+Perder Grasa,Principiante,3,50,Mancuernas,24,Femenino,Cardio con Pesas Ligera
+Ganar Musculo,Intermedio,5,60,Gym_Completo,33,Masculino,Weider Dividida
+Mantenerse,Intermedio,4,60,Mancuernas,38,Masculino,Acondicionamiento con Mancuernas
+Perder Grasa,Principiante,3,45,Solo_cuerpo,28,Femenino,Yoga para Quemar Grasa
+Ganar Musculo,Avanzado,4,90,Gym_Completo,26,Femenino,Potencia y Fuerza (Powerlifting)
+Perder Grasa,Intermedio,4,60,Solo_cuerpo,36,Masculino,Calistenia para Definicion
+Mantenerse,Principiante,2,30,Solo_cuerpo,60,Masculino,Activacion para Mayores
+Ganar Musculo,Principiante,3,75,Gym_Completo,21,Femenino,Gluteo y Pierna (Principiante)
+Perder Grasa,Avanzado,6,45,Gym_Completo,24,Femenino,Cardio Avanzado y Abs
+Mantenerse,Intermedio,3,50,Mancuernas,48,Femenino,Tonificacion General
+Ganar Musculo,Intermedio,4,60,Mancuernas,30,Masculino,Hipertrofia con Mancuernas
+Perder Grasa,Principiante,4,45,Solo_cuerpo,20,Masculino,Rutina Cardio en Casa
+Mantenerse,Avanzado,4,75,Gym_Completo,39,Masculino,Cross-Training
+Ganar Musculo,Avanzado,5,75,Gym_Completo,32,Masculino,Culturismo Clasico
+Perder Grasa,Intermedio,5,60,Gym_Completo,27,Femenino,Definicion Muscular
+Ganar Musculo,Principiante,3,60,Mancuernas,23,Femenino,Full-Body para Chicas
+Mantenerse,Principiante,3,45,Solo_cuerpo,45,Masculino,Estiramientos y Core
+Perder Grasa,Avanzado,4,60,Solo_cuerpo,33,Masculino,HIIT Calistenia
+Ganar Musculo,Intermedio,4,80,Gym_Completo,29,Femenino,Body-Sculpting
+Mantenerse,Intermedio,3,60,Mancuernas,37,Femenino,Yoga con Pesas
+Perder Grasa,Principiante,5,40,Solo_cuerpo,26,Masculino,Cardio Intenso 5 dias
+Ganar Musculo,Avanzado,6,90,Gym_Completo,30,Masculino,Volumen Extremo
+Mantenerse,Avanzado,3,60,Gym_Completo,50,Masculino,Fuerza y Movilidad
+Perder Grasa,Intermedio,4,50,Mancuernas,34,Femenino,Circuito Metabolico
+Ganar Musculo,Principiante,4,60,Gym_Completo,18,Masculino,Iniciacion al Gym
+Mantenerse,Principiante,2,45,Solo_cuerpo,55,Femenino,Pilates en Casa
+Perder Grasa,Avanzado,5,60,Gym_Completo,28,Femenino,Preparacion Bikini Fitness
+Ganar Musculo,Intermedio,3,75,Gym_Completo,35,Masculino,Fuerza Basica (5x5)
+Mantenerse,Intermedio,4,60,Mancuernas,42,Masculino,Resistencia Muscular
+Perder Grasa,Principiante,3,40,Solo_cuerpo,31,Masculino,Tabata en Casa
+Ganar Musculo,Avanzado,5,90,Gym_Completo,27,Masculino,Arnold Split
+Mantenerse,Avanzado,3,75,Mancuernas,46,Femenino,Entrenamiento Hibrido
+Perder Grasa,Intermedio,5,50,Gym_Completo,29,Femenino,Cardio y Tono
+Ganar Musculo,Principiante,3,60,Solo_cuerpo,20,Femenino,Calistenia para principiantes
+Mantenerse,Principiante,3,60,Mancuernas,33,Masculino,Mantenimiento con Mancuernas
+Perder Grasa,Avanzado,4,60,Mancuernas,31,Masculino,Complejos de Barra/Mancuerna
+Ganar Musculo,Intermedio,4,70,Gym_Completo,26,Femenino,Hipertrofia Femenina
+Mantenerse,Intermedio,3,45,Solo_cuerpo,40,Femenino,Barre Fitness
+Perder Grasa,Principiante,4,45,Mancuernas,22,Masculino,Quema Grasa con Pesas
+Ganar Musculo,Avanzado,4,80,Gym_Completo,34,Masculino,Fuerza Funcional Avanzada
+Mantenerse,Avanzado,4,60,Gym_Completo,43,Masculino,Movilidad y Fuerza
+Perder Grasa,Intermedio,3,60,Solo_cuerpo,38,Femenino,Baile Fitness
+Ganar Musculo,Principiante,4,60,Gym_Completo,24,Masculino,Rutina Basica de Gym
+Mantenerse,Principiante,3,30,Solo_cuerpo,65,Femenino,Ejercicios de bajo impacto
+Perder Grasa,Avanzado,5,50,Gym_Completo,25,Femenino,HIIT en Cinta y Pesas
+Ganar Musculo,Intermedio,5,75,Gym_Completo,28,Masculino,Push-Pull-Legs Intermedio
+Mantenerse,Intermedio,3,60,Mancuernas,44,Femenino,Full-body Toning
+Perder Grasa,Principiante,3,45,Solo_cuerpo,29,Masculino,Cardio para principiantes
+Ganar Musculo,Avanzado,5,90,Gym_Completo,29,Femenino,Powerbuilding Femenino
+Mantenerse,Avanzado,3,60,Solo_cuerpo,51,Masculino,Calistenia Avanzada
+Perder Grasa,Intermedio,4,60,Mancuernas,32,Masculino,Circuito de Fuerza-Resistencia
+Ganar Musculo,Principiante,3,60,Mancuernas,21,Masculino,Volumen con Mancuernas
+Mantenerse,Principiante,4,45,Solo_cuerpo,37,Femenino,Yoga Vinyasa
+Perder Grasa,Avanzado,6,40,Gym_Completo,27,Masculino,Doble Sesion Cardio-Pesas
+Ganar Musculo,Intermedio,4,75,Gym_Completo,30,Femenino,Enfoque Gluteo y Hombro
+Mantenerse,Intermedio,3,50,Solo_cuerpo,47,Masculino,Core y Estabilidad
+Perder Grasa,Principiante,4,50,Mancuernas,25,Femenino,Cardio de Bajo Impacto con Pesas
+Ganar Musculo,Avanzado,5,80,Gym_Completo,36,Masculino,Entrenamiento de Atleta
+Mantenerse,Avanzado,4,75,Gym_Completo,49,Femenino,Anti-Aging Fitness
+Perder Grasa,Intermedio,5,60,Gym_Completo,30,Masculino,Definicion Extrema
+Ganar Musculo,Principiante,3,60,Gym_Completo,20,Masculino,Basicos de Fuerza
+Mantenerse,Principiante,3,45,Mancuernas,58,Masculino,Acondicionamiento para Veteranos
+Perder Grasa,Avanzado,5,45,Solo_cuerpo,26,Femenino,Insanity-style workout
+Ganar Musculo,Intermedio,4,60,Solo_cuerpo,28,Masculino,Progresiones en Calistenia
+Mantenerse,Intermedio,3,60,Gym_Completo,35,Femenino,Mantenimiento con Maquinas
+Perder Grasa,Principiante,3,40,Solo_cuerpo,42,Masculino,Caminata y Trote
+Ganar Musculo,Avanzado,4,90,Gym_Completo,31,Femenino,Fuerza y Estetica
+Mantenerse,Avanzado,3,60,Mancuernas,53,Femenino,Fuerza para la Longevidad
+Perder Grasa,Intermedio,4,55,Gym_Completo,28,Masculino,Rutina de Boxeo Fitness
+Ganar Musculo,Principiante,4,70,Gym_Completo,22,Femenino,Iniciacion Woman Fitness
+Mantenerse,Principiante,2,30,Solo_cuerpo,70,Masculino,Movilidad Articular Senior
+Perder Grasa,Avanzado,5,60,Gym_Completo,33,Femenino,Ciclismo Indoor y Pesas
+Ganar Musculo,Intermedio,5,75,Gym_Completo,27,Masculino,Classic Physique
+Mantenerse,Intermedio,4,60,Solo_cuerpo,39,Femenino,Calistenia y Yoga
+Perder Grasa,Principiante,3,50,Mancuernas,26,Masculino,Full Body Fat Burn
+Ganar Musculo,Avanzado,5,90,Gym_Completo,25,Masculino,Powerbuilding Hibrido
+Mantenerse,Avanzado,3,45,Solo_cuerpo,48,Masculino,Flexibilidad y Handstands
+Perder Grasa,Intermedio,5,45,Gym_Completo,34,Femenino,Escaladora y Abs
+Ganar Musculo,Principiante,3,60,Gym_Completo,19,Femenino,Mi Primera Rutina de Gym
+Mantenerse,Principiante,3,45,Mancuernas,54,Femenino,Tonificacion Suave
+Perder Grasa,Avanzado,4,75,Mancuernas,30,Masculino,CrossFit-style WODs
+Ganar Musculo,Intermedio,4,70,Mancuernas,31,Masculino,Hipertrofia solo con mancuernas
+Mantenerse,Intermedio,3,60,Solo_cuerpo,41,Masculino,Animal Flow
+Perder Grasa,Principiante,4,40,Solo_cuerpo,23,Femenino,Rutina de Baile
+Ganar Musculo,Avanzado,6,80,Gym_Completo,28,Masculino,Split de Doble Frecuencia
+Mantenerse,Avanzado,4,60,Gym_Completo,47,Femenino,Levantamiento Olimpico
+Perder Grasa,Intermedio,4,60,Gym_Completo,29,Masculino,Circuito en Maquinas
+Ganar Musculo,Principiante,4,60,Mancuernas,27,Masculino,Basico con Mancuernas
+Mantenerse,Principiante,3,50,Solo_cuerpo,62,Femenino,Fortalecimiento de Espalda

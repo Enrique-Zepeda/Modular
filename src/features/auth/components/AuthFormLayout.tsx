@@ -1,5 +1,5 @@
 import { ThemeToggleButton } from "@/features/theme/components/ThemeToggleButton";
-import { Dumbbell } from "lucide-react";
+import LogoPng from "../../../components/media/LogoGymApp.png";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { ReactNode, FormEvent } from "react";
@@ -45,10 +45,19 @@ export const AuthFormLayout = ({
         <div className="text-center space-y-2">
           <div className="flex justify-center">
             <div className="p-3 bg-primary/10 rounded-full">
-              <Dumbbell className="h-8 w-8 text-primary" />
+              <div className="flex justify-center">
+                <div className="p-3 rounded-full !bg-transparent">
+                  <img
+                    src={LogoPng}
+                    alt="GymApp"
+                    className="h-[96px] w-[96px] object-contain shrink-0 select-none"
+                    draggable={false}
+                  />
+                </div>
+              </div>
             </div>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">FitTracker</h1>
+          <h1 className="text-2xl font-bold tracking-tight">GymApp</h1>
           <p className="text-sm text-muted-foreground">Transforma tu viaje fitness</p>
         </div>
 
