@@ -1,3 +1,5 @@
+import type React from "react";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Activity, Clock, Users, History, Dumbbell } from "lucide-react";
@@ -11,6 +13,16 @@ function formatHM(totalSec: number) {
 function formatKg(n: number) {
   const fixed = Number.isInteger(n) ? n : Number(n.toFixed(1));
   return `${fixed.toLocaleString()} kg`;
+}
+
+function formatDate(dateString: string | null) {
+  if (!dateString) return "—";
+  const date = new Date(dateString);
+  return date.toLocaleDateString("es-ES", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 type StatProps = {
@@ -37,18 +49,25 @@ function Stat({ icon, label, value, onClick }: StatProps) {
             }
           : undefined
       }
-      className={`bg-muted/30 border-muted/40 ${
+      className={`border-2 border-border/60 bg-gradient-to-br from-card/95 to-card/90 shadow-md relative overflow-hidden ${
         clickable
-          ? "cursor-pointer hover:bg-accent/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          : ""
+          ? "cursor-pointer hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 hover:scale-[1.02] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          : "hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
       }`}
       aria-label={clickable ? label : undefined}
     >
-      <CardContent className="p-4 flex items-center gap-3">
-        <div className="shrink-0">{icon}</div>
-        <div className="flex flex-col min-w-0">
-          <span className="text-xs text-muted-foreground">{label}</span>
-          <span className="text-lg font-semibold truncate">{value}</span>
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
+
+      <CardContent className="p-5 flex flex-col gap-3 relative">
+        <div className="flex items-center justify-between">
+          <div className="p-2.5 bg-primary/15 rounded-lg ring-2 ring-primary/20 shadow-sm">{icon}</div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</span>
+          <span className="text-3xl font-extrabold truncate bg-gradient-to-br from-foreground to-foreground/80 bg-clip-text">
+            {value}
+          </span>
         </div>
       </CardContent>
     </Card>
@@ -58,8 +77,8 @@ function Stat({ icon, label, value, onClick }: StatProps) {
 export default function ProfileStats({
   summary,
   loading,
-  hideLastPanel = false, // permite ocultar el panel simple del último entrenamiento
-  onFriendsClick, // 👈 NUEVO: handler para abrir el modal
+  hideLastPanel = false,
+  onFriendsClick,
 }: {
   summary: ProfileSummary | null;
   loading?: boolean;
@@ -68,9 +87,9 @@ export default function ProfileStats({
 }) {
   if (loading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-20 w-full" />
+          <Skeleton key={i} className="h-32 w-full rounded-xl" />
         ))}
       </div>
     );
@@ -78,38 +97,48 @@ export default function ProfileStats({
 
   if (!summary) {
     return (
-      <Card className="bg-muted/30 border-muted/40">
-        <CardContent className="p-6 text-sm text-muted-foreground">No encontramos este perfil.</CardContent>
+      <Card className="border-2 border-border/60 bg-gradient-to-br from-card/95 to-card/90">
+        <CardContent className="p-8 text-center">
+          <p className="text-sm text-muted-foreground">No se encontró información del perfil.</p>
+        </CardContent>
       </Card>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-        <Stat icon={<Activity className="h-5 w-5" />} label="Entrenamientos" value={summary.workouts_count} />
-        <Stat icon={<Clock className="h-5 w-5" />} label="Tiempo total" value={formatHM(summary.total_duration_sec)} />
-        <Stat icon={<Dumbbell className="h-5 w-5" />} label="Volumen total" value={formatKg(summary.total_volume_kg)} />
-        {/* 👇 Esta es la tarjeta clickeable */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Stat
-          icon={<Users className="h-5 w-5" />}
+          icon={<Activity className="h-5 w-5 text-primary" />}
+          label="Entrenamientos"
+          value={summary.workouts_count}
+        />
+        <Stat
+          icon={<Clock className="h-5 w-5 text-primary" />}
+          label="Tiempo total"
+          value={formatHM(summary.total_duration_sec)}
+        />
+        <Stat
+          icon={<Dumbbell className="h-5 w-5 text-primary" />}
+          label="Volumen total"
+          value={formatKg(summary.total_volume_kg)}
+        />
+        <Stat
+          icon={<Users className="h-5 w-5 text-primary" />}
           label="Amigos"
           value={summary.friends_count}
           onClick={onFriendsClick}
         />
         <Stat
-          icon={<History className="h-5 w-5" />}
+          icon={<History className="h-5 w-5 text-primary" />}
           label="Último entrenamiento"
-          value={summary.last_ended_at ? new Date(summary.last_ended_at).toLocaleString() : "—"}
+          value={formatDate(summary.last_ended_at)}
         />
       </div>
 
       {!hideLastPanel && summary.last_workout_id && (
         <Card className="bg-muted/30 border-muted/40">
-          <CardContent className="p-4 text-sm text-muted-foreground">
-            {/* Panel simple antiguo; ahora lo solemos ocultar y usar LastWorkoutCard */}
-            ID sesión: {summary.last_workout_id}
-          </CardContent>
+          <CardContent className="p-4 text-sm text-muted-foreground">ID sesión: {summary.last_workout_id}</CardContent>
         </Card>
       )}
     </div>

@@ -57,7 +57,6 @@ export default function ProfileWorkoutsList({ username, avatarUrl, isMine = fals
     [trigger, username]
   );
 
-  // primera carga / cambio de usuario
   React.useEffect(() => {
     setItems([]);
     setPage(0);
@@ -68,9 +67,9 @@ export default function ProfileWorkoutsList({ username, avatarUrl, isMine = fals
 
   if (isLoading) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-4">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-32 w-full" />
+          <Skeleton key={i} className="h-40 w-full rounded-xl" />
         ))}
       </div>
     );
@@ -78,22 +77,26 @@ export default function ProfileWorkoutsList({ username, avatarUrl, isMine = fals
 
   if (error) {
     return (
-      <Card className="bg-muted/30 border-muted/40">
-        <CardContent className="p-6 text-sm text-destructive">{error}</CardContent>
+      <Card className="border-2 border-destructive/40 bg-gradient-to-br from-destructive/5 to-destructive/10">
+        <CardContent className="p-8 text-center">
+          <p className="text-sm text-destructive font-medium">{error}</p>
+        </CardContent>
       </Card>
     );
   }
 
   if (items.length === 0) {
     return (
-      <Card className="bg-muted/30 border-muted/40">
-        <CardContent className="p-6 text-sm text-muted-foreground">Aún no hay entrenamientos para mostrar.</CardContent>
+      <Card className="border-2 border-border/60 bg-gradient-to-br from-card/95 to-card/90">
+        <CardContent className="p-8 text-center">
+          <p className="text-sm text-muted-foreground">Aún no hay entrenamientos para mostrar.</p>
+        </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {items.map((w) => (
         <WorkoutCard
           key={w.id_sesion}
@@ -110,7 +113,7 @@ export default function ProfileWorkoutsList({ username, avatarUrl, isMine = fals
             nombre: e.nombre,
             sets_done: e.sets,
             volume: e.volumen_kg,
-            ejemplo: e.ejemplo ?? undefined, // 👈 pasamos gif/url al card
+            ejemplo: e.ejemplo ?? undefined,
           }))}
           sensacionFinal={w.sensacion}
           duracionSeg={w.duracion_seg}
@@ -126,7 +129,7 @@ export default function ProfileWorkoutsList({ username, avatarUrl, isMine = fals
         />
       ))}
       {hasMore && (
-        <div className="pt-2">
+        <div className="pt-4">
           <Button
             variant="secondary"
             onClick={() => {
@@ -135,9 +138,9 @@ export default function ProfileWorkoutsList({ username, avatarUrl, isMine = fals
               loadPage(next);
             }}
             disabled={isFetchingMore}
-            className="w-full"
+            className="w-full h-12 text-base font-semibold rounded-xl border-2 border-border/60 hover:border-primary/40 hover:shadow-md transition-all duration-200"
           >
-            {isFetchingMore ? "Cargando…" : "Cargar más"}
+            {isFetchingMore ? "Cargando…" : "Cargar más entrenamientos"}
           </Button>
         </div>
       )}

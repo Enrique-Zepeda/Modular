@@ -1,4 +1,3 @@
-import * as React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMuscleVolumeDistribution } from "@/features/profile/hooks/useMuscleVolumeDistribution";
@@ -19,41 +18,43 @@ const COLORS = [
 
 export default function ProfileMuscleDistribution({
   username,
-  recentDays = 60, // cambia a 0 o 36500 para histórico total
+  recentDays = 60,
 }: {
   username: string;
   recentDays?: number;
 }) {
   const { data, total, isLoading } = useMuscleVolumeDistribution(username, recentDays);
 
-  if (isLoading) return <Skeleton className="h-64 w-full" />;
+  if (isLoading) return <Skeleton className="h-80 w-full rounded-xl" />;
 
   if (!data.length || total <= 0) {
     return (
-      <Card className="bg-muted/30 border-muted/40">
-        <CardContent className="p-4 text-sm text-muted-foreground">
-          Aún no hay datos suficientes para la distribución de volumen.
+      <Card className="border-2 border-border/60 bg-gradient-to-br from-card/95 to-card/90">
+        <CardContent className="p-6 text-center">
+          <p className="text-sm text-muted-foreground">Aún no hay datos suficientes para la distribución de volumen.</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-muted/30 border-muted/40">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <div className="text-sm text-muted-foreground">Distribución de volumen por grupo muscular</div>
+    <Card className="border-2 border-border/60 bg-gradient-to-br from-card/95 to-card/90 shadow-sm">
+      <CardContent className="p-6">
+        <div className="mb-6 space-y-2">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+            Distribución de volumen
+          </h3>
+          <div className="flex items-center justify-between">
             <div className="text-xs text-muted-foreground">
               {recentDays > 0 ? `Últimos ${recentDays} días` : "Histórico"}
             </div>
-          </div>
-          <div className="text-xs text-muted-foreground">
-            Total: <span className="font-medium">{Math.round(total).toLocaleString()} kg</span>
+            <div className="text-sm font-semibold">
+              Total: <span className="text-primary">{Math.round(total).toLocaleString()} kg</span>
+            </div>
           </div>
         </div>
 
-        <div className="h-64 w-full">
+        <div className="h-80 w-full px-4">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -61,7 +62,7 @@ export default function ProfileMuscleDistribution({
                 dataKey="value"
                 nameKey="name"
                 innerRadius="55%"
-                outerRadius="85%"
+                outerRadius="75%"
                 isAnimationActive
                 label={({ name, percent }) => `${name} ${Math.round((percent ?? 0) * 100)}%`}
               >

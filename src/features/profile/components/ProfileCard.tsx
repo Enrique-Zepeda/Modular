@@ -45,18 +45,21 @@ export default function ProfileCard({
       </Card>
     );
   }
-  // Variante full: por ahora contenedor simple (se completará en pasos siguientes)
+
   return (
-    <Card className={cn(className)}>
-      <CardContent className="p-6">
-        <div className="flex items-center gap-4">
-          <Avatar className="h-16 w-16">
+    <Card className={cn("border-2 border-border/60 bg-gradient-to-br from-card/95 to-card/90", className)}>
+      <CardContent className="p-8">
+        <div className="flex items-center gap-6">
+          <Avatar className="h-24 w-24 border-4 border-primary/20 ring-4 ring-primary/10 shadow-xl shadow-primary/5">
             <AvatarImage src={avatarUrl ?? undefined} alt={displayName ?? "Usuario"} />
-            <AvatarFallback className="text-lg">{initials}</AvatarFallback>
+            <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+              {initials}
+            </AvatarFallback>
           </Avatar>
-          <div>
-            <div className="text-xl font-semibold">{displayName ?? "Usuario"}</div>
-            <div className="text-sm text-muted-foreground">{username ? `@${username}` : ""}</div>
+
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="text-2xl font-bold tracking-tight truncate">{displayName ?? "Usuario"}</div>
+            <div className="text-base text-muted-foreground truncate">{username ? `@${username}` : ""}</div>
           </div>
         </div>
       </CardContent>
