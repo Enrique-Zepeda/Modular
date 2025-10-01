@@ -70,8 +70,14 @@ export const workoutsApi = createApi({
           duracion_seg: number | null;
           total_sets: number;
           total_volume_kg: number;
-          sensacion: string | null;
-          ejercicios: Array<UserWorkoutExercise>; // 👈 ahora incluye ejemplo
+          sensacion: string | null; // ← ahora viene de RPE sets si existe
+          ejercicios: Array<{
+            id_ejercicio: number;
+            nombre: string;
+            sets: number;
+            volumen_kg: number;
+            ejemplo?: string | null;
+          }>;
         }>;
         hasMore: boolean;
       },
@@ -82,6 +88,48 @@ export const workoutsApi = createApi({
           const { supabase } = await import("@/lib/supabase/client");
           const uname = username.replace(/^@+/, "").trim();
           if (!uname) return { data: { items: [], hasMore: false } };
+
+          // Helpers locales: RPE → score (1..5) → label
+          const scoreToLabel = (n: number) => {
+            const s = Math.min(5, Math.max(1, Math.round(n)));
+            return (["Fácil", "Moderado", "Difícil", "Muy difícil", "Al fallo"] as const)[s - 1];
+          };
+          const rpeToScore = (val: unknown): number | null => {
+            if (val == null) return null;
+            if (typeof val === "number" && Number.isFinite(val)) {
+              // Mapea 1..10 a 1..5
+              if (val <= 4) return 1;
+              if (val <= 6) return 2;
+              if (val <= 8) return 3;
+              if (val === 9) return 4;
+              return 5; // 10 → al fallo
+            }
+            if (typeof val === "string") {
+              const x = val
+                .normalize("NFD")
+                .replace(/\p{Diacritic}/gu, "")
+                .toLowerCase()
+                .trim();
+              if (x.includes("fallo")) return 5;
+              if (x.includes("muy") && x.includes("dificil")) return 4;
+              if (x === "dificil") return 3;
+              if (x === "moderado") return 2;
+              if (x === "facil") return 1; // 👈 FIX aquí
+              // intenta extraer número si viniera "RPE 8"
+              const m = x.match(/(\d+(\.\d+)?)/);
+              if (m) {
+                const n = Number(m[1]);
+                if (Number.isFinite(n)) {
+                  if (n <= 4) return 1;
+                  if (n <= 6) return 2;
+                  if (n <= 8) return 3;
+                  if (n === 9) return 4;
+                  return 5;
+                }
+              }
+            }
+            return null;
+          };
 
           // 1) auth_uid por username
           const { data: urow, error: uerr } = await supabase
@@ -98,7 +146,7 @@ export const workoutsApi = createApi({
           // 2) Sesiones finalizadas
           const { data: sessions, error: serr } = await supabase
             .from("Entrenamientos")
-            .select("id_sesion, started_at, ended_at, duracion_seg, sensacion_global, id_rutina")
+            .select("id_sesion, started_at, ended_at, duracion_seg, id_rutina") // sensacion_global puede venir null
             .eq("owner_uid", urow.auth_uid)
             .not("ended_at", "is", null)
             .order("ended_at", { ascending: false })
@@ -116,7 +164,6 @@ export const workoutsApi = createApi({
                   : s.started_at && s.ended_at
                   ? Math.max(0, Math.floor((new Date(s.ended_at).getTime() - new Date(s.started_at).getTime()) / 1000))
                   : null,
-              sensacion: typeof s.sensacion_global === "number" ? String(s.sensacion_global) : null,
               id_rutina: s.id_rutina ?? null,
             })) ?? [];
 
@@ -124,17 +171,24 @@ export const workoutsApi = createApi({
             return { data: { items: [], hasMore: false } };
           }
 
-          // 3) Sets/volumen por sesión + ejercicio
+          // 3) Sets de todas las sesiones
           const sesionIds = itemsRaw.map((i) => i.id_sesion);
           const { data: sets, error: setErr } = await supabase
             .from("EntrenamientoSets")
-            .select("id_sesion, id_ejercicio, reps, kg") // ⛏ usamos 'kg'
-            .in("id_sesion", sesionIds);
+            .select("id_sesion, id_ejercicio, reps, kg, rpe, done")
+            .in("id_sesion", sesionIds)
+            .eq("done", true);
           if (setErr) return { error: setErr as any };
 
+          // agregados por sesión y ejercicio (y RPE)
           const perSession: Map<
             number,
-            { totalSets: number; totalVolume: number; perExercise: Map<number, { sets: number; volume: number }> }
+            {
+              totalSets: number;
+              totalVolume: number;
+              rpeScores: number[];
+              perExercise: Map<number, { sets: number; volume: number }>;
+            }
           > = new Map();
           const exerciseIds = new Set<number>();
 
@@ -143,10 +197,17 @@ export const workoutsApi = createApi({
             const eid = Number((row as any).id_ejercicio);
             const reps = Number((row as any).reps ?? 0);
             const peso = Number((row as any).kg ?? 0);
+            const rpeScore = rpeToScore((row as any).rpe);
 
             if (Number.isFinite(eid)) exerciseIds.add(eid);
 
-            const agg = perSession.get(sid) ?? { totalSets: 0, totalVolume: 0, perExercise: new Map() };
+            const agg = perSession.get(sid) ?? {
+              totalSets: 0,
+              totalVolume: 0,
+              rpeScores: [],
+              perExercise: new Map<number, { sets: number; volume: number }>(),
+            };
+
             agg.totalSets += 1;
             if (Number.isFinite(reps) && Number.isFinite(peso)) {
               agg.totalVolume += reps * peso;
@@ -155,22 +216,21 @@ export const workoutsApi = createApi({
               e.volume += reps * peso;
               agg.perExercise.set(eid, e);
             }
+            if (rpeScore != null) agg.rpeScores.push(rpeScore);
+
             perSession.set(sid, agg);
           }
 
-          // 4) Nombres + ejemplo (gif) de ejercicios
+          // 4) Nombres + gif de ejercicios
           const exInfo = new Map<number, { nombre: string; ejemplo: string | null }>();
           if (exerciseIds.size > 0) {
             const { data: ejercicios, error: exErr } = await supabase
               .from("Ejercicios")
               .select("id, nombre, ejemplo")
               .in("id", Array.from(exerciseIds));
-
             if (exErr) return { error: exErr as any };
-
             for (const e of ejercicios ?? []) {
-              const id = Number((e as any).id);
-              exInfo.set(id, {
+              exInfo.set(Number((e as any).id), {
                 nombre: (e as any).nombre ?? "Ejercicio",
                 ejemplo: (e as any).ejemplo ?? null,
               });
@@ -192,8 +252,17 @@ export const workoutsApi = createApi({
 
           const items = itemsRaw.map((r) => {
             const agg = perSession.get(r.id_sesion);
-            const ejercicios: UserWorkoutExercise[] = [];
+            const ejercicios: Array<{
+              id_ejercicio: number;
+              nombre: string;
+              sets: number;
+              volumen_kg: number;
+              ejemplo?: string | null;
+            }> = [];
+            let sensacion: string | null = null;
+
             if (agg) {
+              // ejercicios
               for (const [eid, v] of agg.perExercise.entries()) {
                 const info = exInfo.get(eid);
                 ejercicios.push({
@@ -201,11 +270,18 @@ export const workoutsApi = createApi({
                   nombre: info?.nombre ?? "Ejercicio",
                   sets: v.sets,
                   volumen_kg: Math.round(v.volume * 10) / 10,
-                  ejemplo: info?.ejemplo ?? null, // 👈 pasamos gif/url
+                  ejemplo: info?.ejemplo ?? null,
                 });
               }
               ejercicios.sort((a, b) => b.volumen_kg - a.volumen_kg || a.nombre.localeCompare(b.nombre));
+
+              // sensación por sesión (media de RPE → label)
+              if (agg.rpeScores.length) {
+                const mean = agg.rpeScores.reduce((a, b) => a + b, 0) / agg.rpeScores.length;
+                sensacion = scoreToLabel(mean);
+              }
             }
+
             return {
               id_sesion: r.id_sesion,
               titulo: r.id_rutina != null ? rutinaNames.get(Number(r.id_rutina)) ?? "Entrenamiento" : "Entrenamiento",
@@ -214,7 +290,7 @@ export const workoutsApi = createApi({
               duracion_seg: r.duracion_seg,
               total_sets: agg?.totalSets ?? 0,
               total_volume_kg: Math.round((agg?.totalVolume ?? 0) * 10) / 10,
-              sensacion: r.sensacion,
+              sensacion,
               ejercicios,
             };
           });
@@ -226,6 +302,7 @@ export const workoutsApi = createApi({
       },
       providesTags: (_res, _err, args) => [{ type: "WorkoutsByUser" as const, id: args.username }],
     }),
+
     /** Crear sesión con sets (RPC transaccional) */
     createWorkoutSession: builder.mutation<CreateWorkoutResult, CreateWorkoutInput>({
       async queryFn(payload) {

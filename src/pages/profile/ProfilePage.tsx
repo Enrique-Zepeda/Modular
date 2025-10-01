@@ -9,6 +9,15 @@ import ProfileCard from "@/features/profile/components/ProfileCard";
 import ProfileStats from "@/features/profile/components/ProfileStats";
 import ProfileFriendsModal from "@/features/profile/components/ProfileFriendsModal";
 import ProfileWorkoutsList from "@/features/profile/components/ProfileWorkoutsList";
+import { useTrainingProfile } from "@/features/profile/hooks/useTrainingProfile";
+
+// pequeño helper para color de fondo translúcido a partir de hex
+function hexToRgba(hex: string, alpha = 0.12) {
+  const m = hex.replace("#", "").match(/^([a-f0-9]{2})([a-f0-9]{2})([a-f0-9]{2})$/i);
+  if (!m) return `rgba(0,0,0,${alpha})`;
+  const [r, g, b] = m.slice(1).map((h) => parseInt(h, 16));
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 export default function ProfilePage() {
   const { username } = useParams<{ username?: string }>();
@@ -34,6 +43,9 @@ export default function ProfilePage() {
   );
   const summary = summaryQ.data ?? null;
 
+  // Perfil de entrenamiento (badge global)
+  const training = useTrainingProfile(targetUsername);
+
   // Refrescar KPIs si cambian amistades (contador)
   React.useEffect(() => {
     const handler = () => summaryQ.refetch();
@@ -54,6 +66,24 @@ export default function ProfilePage() {
         avatarUrl={profile?.url_avatar ?? null}
       />
 
+      {/* Badge de “Perfil de entrenamiento” (visible, no intrusivo) */}
+      {training.badge && (
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground">Perfil de entrenamiento:</span>
+          <span
+            className="text-xs font-semibold px-2.5 py-1 rounded-full border"
+            style={{
+              color: training.badge.color,
+              background: hexToRgba(training.badge.color, 0.12),
+              borderColor: training.badge.color,
+            }}
+            title={`Promedio: ${training.badge.avgScore} (${training.badge.samples} sesiones)`}
+          >
+            {training.badge.title}
+          </span>
+        </div>
+      )}
+
       <ProfileStats
         summary={summary}
         loading={summaryQ.isLoading}
@@ -61,7 +91,7 @@ export default function ProfilePage() {
         onFriendsClick={() => setOpenFriends(true)}
       />
 
-      {/* ✅ Usa el mismo WorkoutCard del feature de workouts */}
+      {/* Lista de TODOS los entrenamientos */}
       {targetUsername && (
         <ProfileWorkoutsList username={targetUsername} avatarUrl={profile?.url_avatar ?? null} isMine={isSelf} />
       )}

@@ -28,8 +28,8 @@ const navigation = [
   { name: "Rutinas", href: "/dashboard/routines", icon: Calendar },
   { name: "Ejercicios", href: "/dashboard/ejercicios", icon: Dumbbell },
   { name: "Notificaciones", href: "/dashboard/notifications", icon: Bell },
-  { name: "Configuración", href: "/dashboard/settings", icon: Settings },
   { name: "Perfil", href: "/profile", icon: User },
+  { name: "Configuración", href: "/dashboard/settings", icon: Settings },
 ];
 
 export default function Sidebar() {
@@ -111,17 +111,7 @@ export default function Sidebar() {
           );
         })}
       </nav>
-      {me && (
-        <div className="p-2 border-t">
-          <ProfileCard
-            variant="compact"
-            displayName={me.nombre ?? me.username}
-            username={me.username}
-            avatarUrl={me.url_avatar}
-            className="shadow-none"
-          />
-        </div>
-      )}
+
       {/* User Section */}
       <div className="p-2 border-t">
         <Button
