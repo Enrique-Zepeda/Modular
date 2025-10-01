@@ -1,9 +1,10 @@
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dumbbell } from "lucide-react";
 import { motion } from "framer-motion";
 
+import type { Exercise } from "@/types/exercises";
 import { usePaginatedExercises } from "../../features/exercises/hooks/usePaginatedExercises";
 import { ITEMS_PER_PAGE } from "../../features/exercises/utils/constants";
 
@@ -11,7 +12,7 @@ import {
   useGetMuscleGroupsQuery,
   useGetEquipmentTypesQuery,
   useGetDifficultyLevelsQuery,
-} from "../../features/exercises/api/exercisesApi"; // o api
+} from "../../features/exercises/api/exercisesApi";
 import {
   ExercisesHeader,
   AdvancedFilters,
@@ -23,8 +24,17 @@ import {
   SearchBar,
 } from "../../features/exercises/components";
 import { useExercisesCatalogFilters } from "../../features/exercises/hooks";
+import ExerciseDetailDialog from "@/features/exercises/components/ExerciseDetailDialog";
 
 export default function ExerciseListPage() {
+  // Estado y handler del modal
+  const [selected, setSelected] = useState<Exercise | null>(null);
+  const [open, setOpen] = useState(false);
+  const handleSelect = useCallback((ex: Exercise) => {
+    setSelected(ex);
+    setOpen(true);
+  }, []);
+
   const filters = useExercisesCatalogFilters();
   const { data: muscleGroupsResponse, isLoading: isLoadingMuscleGroups } = useGetMuscleGroupsQuery();
   const { data: equipmentResponse, isLoading: isLoadingEquipment } = useGetEquipmentTypesQuery();
@@ -121,7 +131,8 @@ export default function ExerciseListPage() {
               </div>
             ) : exercises.length > 0 ? (
               <>
-                <ExerciseGrid items={exercises} />
+                {/* ✅ Pasamos onSelect para abrir el modal */}
+                <ExerciseGrid items={exercises} onSelect={handleSelect} />
                 <LoadMore visible={hasMore} disabled={isFetching} onClick={loadMore} />
               </>
             ) : (
@@ -130,6 +141,9 @@ export default function ExerciseListPage() {
           </div>
         </div>
       </div>
+
+      {/* ✅ Modal de detalle (controlado) */}
+      <ExerciseDetailDialog exercise={selected} open={open} onOpenChange={setOpen} />
     </div>
   );
 }
