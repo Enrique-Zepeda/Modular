@@ -44,16 +44,15 @@ export const AuthFormLayout = ({
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
           <div className="flex justify-center">
-            <div className="p-3 bg-primary/10 rounded-full">
-              <div className="flex justify-center">
-                <div className="p-3 rounded-full !bg-transparent">
-                  <img
-                    src={LogoPng}
-                    alt="GymApp"
-                    className="h-[96px] w-[96px] object-contain shrink-0 select-none"
-                    draggable={false}
-                  />
-                </div>
+            <div className="flex justify-center">
+              <div className="p-3 rounded-full !bg-transparent">
+                <img
+                  src={LogoPng}
+                  alt="GymApp"
+                  // 👇 LÍNEA MODIFICADA: Aumentamos el tamaño del logo
+                  className="h-[128px] w-[128px] object-contain shrink-0 select-none"
+                  draggable={false}
+                />
               </div>
             </div>
           </div>
