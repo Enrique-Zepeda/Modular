@@ -1,79 +1,50 @@
-import { memo, useCallback } from "react";
-import { Heart } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { useLikes } from "../hooks/useLikes";
-import { toast } from "react-hot-toast";
+import { Heart } from "lucide-react";
+import { useLikeLive } from "../hooks/useLikeLive";
 
 type Props = {
   sessionId: number;
-  className?: string;
-  size?: "sm" | "default" | "lg" | "icon";
+  /** Hidratación del feed (si la tienes desde feed_friends_workouts_v3) */
   initialCount?: number;
   initialLikedByMe?: boolean;
 };
 
-export const LikeButton = memo(function LikeButton({
-  sessionId,
-  className,
-  size = "sm",
-  initialCount,
-  initialLikedByMe,
-}: Props) {
-  // Solo pasamos "initial" si viene al menos uno de los dos valores
-  const hasInitial = typeof initialCount === "number" || typeof initialLikedByMe === "boolean";
-  const initialArg = hasInitial ? { count: initialCount, likedByMe: initialLikedByMe } : undefined;
+export function LikeButton({ sessionId, initialCount, initialLikedByMe }: Props) {
+  const [myUid, setMyUid] = useState<string | null>(null);
 
-  const { count, likedByMe, loading, like, unlike } = useLikes(sessionId, initialArg);
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      setMyUid(data.user?.id ?? null);
+    })();
+  }, []);
 
-  const onClick = useCallback(async () => {
-    try {
-      if (likedByMe) {
-        await unlike();
-      } else {
-        await like();
-      }
-    } catch (e: any) {
-      toast.error(e?.message ?? "No se pudo actualizar el like");
-    }
-  }, [likedByMe, like, unlike]);
+  // El hook arranca con los valores iniciales (no hace NINGUNA consulta por author_uid hasta que myUid sea UUID válido)
+  const { likedByMe, count, toggle } = useLikeLive(sessionId, myUid, {
+    initialLiked: initialLikedByMe,
+    initialCount: initialCount,
+  });
 
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      size={size}
-      className={cn(
-        "gap-2.5 transition-all duration-200 group px-4 py-2.5 h-auto border-2 rounded-xl font-bold shadow-sm",
-        "focus-visible:ring-2 focus-visible:ring-offset-2",
-        likedByMe
-          ? "bg-gradient-to-br from-rose-500 via-pink-500 to-pink-600 text-white border-rose-500 hover:from-rose-600 hover:via-pink-600 hover:to-pink-700 hover:border-rose-600 shadow-lg hover:shadow-xl hover:shadow-rose-500/30 hover:scale-105 focus-visible:ring-rose-500"
-          : "hover:bg-gradient-to-br hover:from-rose-50 hover:to-pink-50 dark:hover:from-rose-950/30 dark:hover:to-pink-950/30 border-border/80 hover:border-rose-400 dark:hover:border-rose-600 hover:shadow-md hover:shadow-rose-500/10 hover:scale-105 active:scale-95 focus-visible:ring-rose-400",
-        className
-      )}
-      onClick={onClick}
-      disabled={loading}
-      aria-pressed={likedByMe}
-      aria-label={likedByMe ? "Quitar Me gusta" : "Dar Me gusta"}
-    >
-      <Heart
-        className={cn(
-          "h-4 w-4 transition-all duration-200",
+    <div className="inline-flex items-center gap-2">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => void toggle()}
+        aria-pressed={likedByMe}
+        aria-label={likedByMe ? "Quitar me gusta" : "Dar me gusta"}
+        className={`h-8 w-8 p-0 rounded-lg transition-all ${
           likedByMe
-            ? "fill-white scale-110 drop-shadow-sm"
-            : "fill-transparent group-hover:fill-rose-500/30 group-hover:scale-110 text-rose-600 dark:text-rose-400"
-        )}
-        aria-hidden="true"
-      />
-
-      <span
-        className={cn(
-          "text-xs font-bold tabular-nums min-w-[2ch]",
-          likedByMe ? "text-white drop-shadow-sm" : "text-rose-700 dark:text-rose-300"
-        )}
+            ? "text-red-500 hover:bg-red-500/10 focus-visible:ring-2 focus-visible:ring-red-500"
+            : "text-muted-foreground hover:bg-muted/60"
+        }`}
       >
-        {count}
-      </span>
-    </Button>
+        <Heart className="h-4 w-4" fill={likedByMe ? "currentColor" : "none"} />
+      </Button>
+      <span className="text-sm tabular-nums">{count}</span>
+    </div>
   );
-});
+}

@@ -1,16 +1,12 @@
-import { memo, useEffect, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { LikeButton } from "./LikeButton";
 import { CommentsTrigger } from "./CommentsTrigger";
 import { CommentsThread } from "./CommentsThread";
-import { fetchCommentsCount } from "../api/socialApi";
+import { useCommentsCountState } from "../hooks/useCommentsCount";
 
 type Props = {
-  /** id de la sesión de entrenamiento (Entrenamientos.id_sesion) */
   sessionId: number;
-  /** si true, el hilo de comentarios aparece abierto desde el inicio */
   defaultOpen?: boolean;
-
-  /** ⬇️ Hidratan desde el feed (RPC v3) para evitar N+1 */
   initialLikesCount?: number;
   initialLikedByMe?: boolean;
   initialCommentsCount?: number;
@@ -24,52 +20,25 @@ export const SocialActionsBar = memo(function SocialActionsBar({
   initialCommentsCount,
 }: Props) {
   const [open, setOpen] = useState<boolean>(defaultOpen);
-  const [count, setCount] = useState<number>(Math.max(0, initialCommentsCount ?? 0));
 
-  /**
-   * 🔁 IMPORTANTE:
-   * Si el contador inicial de comentarios llega después del primer render,
-   * rehidratar el estado inmediatamente (sin esperar al fallback fetch).
-   */
-  useEffect(() => {
-    if (typeof initialCommentsCount === "number") {
-      setCount(Math.max(0, initialCommentsCount));
+  // Conteo en vivo con "ready"
+  const { count: liveCount, ready } = useCommentsCountState(sessionId);
+
+  const commentsCount = useMemo(() => {
+    if (!ready) {
+      return Math.max(0, typeof initialCommentsCount === "number" ? initialCommentsCount : 0);
     }
-  }, [initialCommentsCount]);
-
-  /**
-   * Fallback: si NO llegó un valor inicial, hacemos un fetch único.
-   * (En la mayoría de casos, con el RPC v3 esto no correrá).
-   */
-  useEffect(() => {
-    if (typeof initialCommentsCount === "number") return; // ya hidratamos por props
-    let mounted = true;
-    void fetchCommentsCount(sessionId)
-      .then((n) => mounted && setCount(n))
-      .catch(() => {})
-      .finally(() => {});
-    return () => {
-      mounted = false;
-    };
-  }, [sessionId, initialCommentsCount]);
+    return Math.max(0, liveCount ?? 0);
+  }, [ready, liveCount, initialCommentsCount]);
 
   return (
     <div className="space-y-5 w-full">
       <div className="flex items-center gap-3 flex-wrap">
         <LikeButton sessionId={sessionId} initialCount={initialLikesCount} initialLikedByMe={initialLikedByMe} />
-        <CommentsTrigger count={count} onOpen={() => setOpen(true)} />
+        <CommentsTrigger count={commentsCount} onOpen={() => setOpen(true)} />
       </div>
-      {open ? (
-        <CommentsThread
-          sessionId={sessionId}
-          onClose={() => {
-            setOpen(false);
-            void fetchCommentsCount(sessionId)
-              .then(setCount)
-              .catch(() => {});
-          }}
-        />
-      ) : null}
+
+      {open ? <CommentsThread sessionId={sessionId} onClose={() => setOpen(false)} /> : null}
     </div>
   );
 });

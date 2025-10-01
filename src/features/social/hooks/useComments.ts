@@ -1,170 +1,162 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { SocialComment } from "@/types/social";
-import { createComment, deleteComment, fetchComments } from "../api/socialApi";
 import { supabase } from "@/lib/supabase/client";
+import type { SocialComment } from "@/types/social";
+import { emitCommentsChanged } from "../lib/socialEvents";
 
-/**
- * Hook para manejar comentarios con:
- * - carga paginada (desc por created_at),
- * - add/remove con optimismo,
- * - realtime (INSERT/DELETE/UPDATE).
- */
+const PAGE_SIZE = 20;
+
+type State = {
+  items: SocialComment[];
+  loading: boolean;
+  error: unknown;
+  page: number;
+  hasMore: boolean;
+};
+
+function uniqueMerge(prev: SocialComment[], next: SocialComment[]) {
+  const map = new Map<number, SocialComment>();
+  for (const c of [...prev, ...next]) map.set(c.id_comment, c);
+  return Array.from(map.values()).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+}
+
+async function fetchPage(sessionId: number, page: number) {
+  const from = page * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+  const { data, error } = await supabase
+    .from("SocialComments")
+    .select("*")
+    .eq("id_sesion", sessionId)
+    .order("created_at", { ascending: false })
+    .range(from, to);
+  if (error) throw error;
+  return data as SocialComment[];
+}
+
 export function useComments(sessionId: number) {
-  const PAGE_SIZE = 20;
+  const [state, setState] = useState<State>({
+    items: [],
+    loading: true,
+    error: null,
+    page: 0,
+    hasMore: true,
+  });
 
-  const [items, setItems] = useState<SocialComment[]>([]);
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState<boolean>(true);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Evita duplicados cuando llega el mismo registro por realtime + respuesta HTTP
   const seen = useRef<Set<number>>(new Set());
+  const mounted = useRef(true);
 
-  // ===== Carga inicial =====
+  // Carga inicial
   useEffect(() => {
-    let mounted = true;
-    setLoading(true);
-    setError(null);
-    setItems([]);
-    setCursor(null);
-    setHasMore(true);
-    seen.current.clear();
-
+    mounted.current = true;
+    setState((s) => ({ ...s, loading: true, error: null, items: [], page: 0, hasMore: true }));
     (async () => {
       try {
-        const { items: first, nextCursor } = await fetchComments({
-          sessionId,
-          limit: PAGE_SIZE,
-          cursor: null,
-        });
-        if (!mounted) return;
-
-        first.forEach((c) => seen.current.add(c.id_comment));
-        setItems(first);
-        setCursor(nextCursor);
-        setHasMore(Boolean(nextCursor));
-      } catch (e: any) {
-        if (!mounted) return;
-        setError(e?.message ?? "No se pudieron cargar los comentarios");
-      } finally {
-        if (mounted) setLoading(false);
+        const first = await fetchPage(sessionId, 0);
+        if (!mounted.current) return;
+        setState((s) => ({
+          ...s,
+          items: first,
+          loading: false,
+          page: 0,
+          hasMore: first.length === PAGE_SIZE,
+        }));
+      } catch (e) {
+        if (!mounted.current) return;
+        setState((s) => ({ ...s, loading: false, error: e }));
       }
     })();
-
     return () => {
-      mounted = false;
+      mounted.current = false;
     };
   }, [sessionId]);
 
-  // ===== Realtime =====
+  // Realtime (si existe)
   useEffect(() => {
-    const channel = supabase.channel(`comments:${sessionId}`);
-
-    // INSERT
-    channel.on(
-      "postgres_changes",
-      { event: "INSERT", schema: "public", table: "SocialComments", filter: `id_sesion=eq.${sessionId}` },
-      (payload) => {
-        const row = payload.new as SocialComment;
-        if (!row || seen.current.has(row.id_comment)) return;
-        seen.current.add(row.id_comment);
-        // La lista está en orden DESC ⇒ los nuevos van adelante
-        setItems((prev) => [row, ...prev]);
-      }
-    );
-
-    // DELETE
-    channel.on(
-      "postgres_changes",
-      { event: "DELETE", schema: "public", table: "SocialComments", filter: `id_sesion=eq.${sessionId}` },
-      (payload) => {
-        const row = payload.old as SocialComment;
-        if (!row) return;
-        setItems((prev) => prev.filter((c) => c.id_comment !== row.id_comment));
-        seen.current.delete(row.id_comment);
-      }
-    );
-
-    // UPDATE (edición de texto)
-    channel.on(
-      "postgres_changes",
-      { event: "UPDATE", schema: "public", table: "SocialComments", filter: `id_sesion=eq.${sessionId}` },
-      (payload) => {
-        const row = payload.new as SocialComment;
-        if (!row) return;
-        setItems((prev) => prev.map((c) => (c.id_comment === row.id_comment ? row : c)));
-      }
-    );
-
-    channel.subscribe();
+    const channel = supabase
+      .channel(`realtime:comments:${sessionId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "SocialComments", filter: `id_sesion=eq.${sessionId}` },
+        (payload) => {
+          const row = payload.new as SocialComment;
+          if (seen.current.has(row.id_comment)) return;
+          setState((s) => ({ ...s, items: uniqueMerge([row], s.items) }));
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "SocialComments", filter: `id_sesion=eq.${sessionId}` },
+        (payload) => {
+          const id = (payload.old as any).id_comment as number;
+          setState((s) => ({ ...s, items: s.items.filter((c) => c.id_comment !== id) }));
+          seen.current.delete(id);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "SocialComments", filter: `id_sesion=eq.${sessionId}` },
+        (payload) => {
+          const row = payload.new as SocialComment;
+          setState((s) => ({
+            ...s,
+            items: s.items.map((c) => (c.id_comment === row.id_comment ? { ...c, texto: row.texto } : c)),
+          }));
+        }
+      )
+      .subscribe();
 
     return () => {
-      void supabase.removeChannel(channel);
+      supabase.removeChannel(channel);
     };
   }, [sessionId]);
 
-  // ===== Acciones =====
+  // Fallback (si no hay realtime)
+  useEffect(() => {
+    const id = window.setInterval(async () => {
+      try {
+        const latest = await fetchPage(sessionId, 0);
+        setState((s) => ({
+          ...s,
+          items: uniqueMerge(latest, s.items),
+        }));
+      } catch {
+        /* ignore */
+      }
+    }, 12000);
+    return () => window.clearInterval(id);
+  }, [sessionId]);
+
   const loadMore = useCallback(async () => {
-    if (!hasMore || loading) return;
-    setLoading(true);
+    if (!state.hasMore || state.loading) return;
+    setState((s) => ({ ...s, loading: true }));
     try {
-      const { items: next, nextCursor } = await fetchComments({
-        sessionId,
-        limit: PAGE_SIZE,
-        cursor,
-      });
-      next.forEach((c) => seen.current.add(c.id_comment));
-      setItems((prev) => [...prev, ...next]);
-      setCursor(nextCursor);
-      setHasMore(Boolean(nextCursor));
-    } catch (e: any) {
-      setError(e?.message ?? "No se pudieron cargar más comentarios");
-    } finally {
-      setLoading(false);
+      const nextPage = state.page + 1;
+      const pageData = await fetchPage(sessionId, nextPage);
+      setState((s) => ({
+        ...s,
+        items: uniqueMerge(s.items, pageData),
+        page: nextPage,
+        hasMore: pageData.length === PAGE_SIZE,
+        loading: false,
+      }));
+    } catch (e) {
+      setState((s) => ({ ...s, loading: false, error: e }));
     }
-  }, [sessionId, cursor, hasMore, loading]);
+  }, [sessionId, state.hasMore, state.loading, state.page]);
 
   const add = useCallback(
     async (texto: string) => {
-      // optimista: agregamos un placeholder temporal (id negativo)
-      const optimistic: SocialComment = {
-        id_comment: -Date.now(),
-        id_sesion: sessionId,
-        author_uid: "me",
-        texto,
-        created_at: new Date().toISOString(),
-        updated_at: null,
-      };
+      const { data, error } = await supabase
+        .from("SocialComments")
+        .insert({ texto, id_sesion: sessionId })
+        .select()
+        .single();
+      if (error) throw error;
 
-      setItems((prev) => [optimistic, ...prev]);
-
-      try {
-        const saved = await createComment(sessionId, texto);
-        // Reemplazar el optimista por el real (si no llegó ya por realtime)
-        setItems((prev) => {
-          const idx = prev.findIndex((c) => c.id_comment === optimistic.id_comment);
-          const already = prev.findIndex((c) => c.id_comment === saved.id_comment) >= 0;
-          if (already && idx >= 0) {
-            // ya llegó por realtime; solo quitamos optimista
-            const cp = prev.slice();
-            cp.splice(idx, 1);
-            return cp;
-          }
-          if (idx >= 0) {
-            const cp = prev.slice();
-            cp[idx] = saved;
-            return cp;
-          }
-          // no estaba (llegó por realtime): devolvemos prev intacto
-          return prev;
-        });
-        seen.current.add(saved.id_comment);
-        return saved;
-      } catch (e) {
-        // revertir optimista
-        setItems((prev) => prev.filter((c) => c.id_comment !== optimistic.id_comment));
-        throw e;
+      if (data?.id_comment) {
+        seen.current.add(data.id_comment);
+        setState((s) => ({ ...s, items: uniqueMerge([data as SocialComment], s.items) }));
+        // notifica contadores en UI (misma pestaña)
+        emitCommentsChanged(sessionId, +1);
       }
     },
     [sessionId]
@@ -172,18 +164,41 @@ export function useComments(sessionId: number) {
 
   const remove = useCallback(
     async (id_comment: number) => {
-      const prev = items;
-      setItems((s) => s.filter((c) => c.id_comment !== id_comment));
+      const prev = state.items;
+      setState((s) => ({ ...s, items: s.items.filter((c) => c.id_comment !== id_comment) }));
+      emitCommentsChanged(sessionId, -1); // refresca contadores locales
+
       try {
-        await deleteComment(id_comment);
+        const { error } = await supabase.from("SocialComments").delete().eq("id_comment", id_comment);
+        if (error) throw error;
         seen.current.delete(id_comment);
       } catch (e) {
-        setItems(prev); // rollback
+        // revert si falla
+        setState((s) => ({ ...s, items: prev }));
+        emitCommentsChanged(sessionId, +1);
+        // revalidación suave
+        try {
+          const latest = await fetchPage(sessionId, 0);
+          setState((s) => ({ ...s, items: uniqueMerge(latest, s.items) }));
+        } catch {
+          /* ignore */
+        }
         throw e;
       }
     },
-    [items]
+    [sessionId, state.items]
   );
 
-  return { items, loading, hasMore, loadMore, add, remove, error };
+  return useMemo(
+    () => ({
+      items: state.items,
+      loading: state.loading,
+      hasMore: state.hasMore,
+      loadMore,
+      add,
+      remove,
+      error: state.error,
+    }),
+    [state.items, state.loading, state.hasMore, state.error, loadMore, add, remove]
+  );
 }
