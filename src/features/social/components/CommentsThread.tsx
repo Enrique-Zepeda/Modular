@@ -12,6 +12,16 @@ import { toast } from "react-hot-toast";
 import { useProfilesByUid } from "../hooks/useProfilesByUid";
 import { supabase } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const schema = z.object({
   texto: z.string().trim().min(1, "Escribe un comentario").max(1000, "Máximo 1000 caracteres"),
@@ -32,6 +42,10 @@ export const CommentsThread = memo(function CommentsThread({ sessionId, onClose 
   const form = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema), defaultValues: { texto: "" } });
   const listRef = useRef<HTMLDivElement>(null);
   const [myUid, setMyUid] = useState<string | null>(null);
+
+  // Estado para la confirmación de borrado
+  const [pendingDelete, setPendingDelete] = useState<SocialComment | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -56,16 +70,25 @@ export const CommentsThread = memo(function CommentsThread({ sessionId, onClose 
     [add, form]
   );
 
-  const handleRemove = useCallback(
-    async (c: SocialComment) => {
-      try {
-        await remove(c.id_comment);
-      } catch (e: any) {
-        toast.error(e?.message ?? "No se pudo eliminar el comentario");
-      }
-    },
-    [remove]
-  );
+  // Abrir diálogo de confirmación
+  const requestRemove = useCallback((c: SocialComment) => {
+    setPendingDelete(c);
+  }, []);
+
+  // Confirmar y eliminar
+  const confirmRemove = useCallback(async () => {
+    if (!pendingDelete) return;
+    try {
+      setDeleting(true);
+      await remove(pendingDelete.id_comment);
+      toast.success("Comentario eliminado");
+      setPendingDelete(null);
+    } catch (e: any) {
+      toast.error(e?.message ?? "No se pudo eliminar el comentario");
+    } finally {
+      setDeleting(false);
+    }
+  }, [pendingDelete, remove]);
 
   return (
     <motion.div
@@ -190,7 +213,7 @@ export const CommentsThread = memo(function CommentsThread({ sessionId, onClose 
                     size="icon"
                     className="absolute top-3 right-3 h-8 w-8 hover:bg-destructive/15 hover:text-destructive hover:scale-110 transition-all duration-200 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2 rounded-lg"
                     aria-label="Eliminar comentario"
-                    onClick={() => void handleRemove(c)}
+                    onClick={() => requestRemove(c)}
                   >
                     <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                   </Button>
@@ -228,6 +251,33 @@ export const CommentsThread = memo(function CommentsThread({ sessionId, onClose 
           </div>
         ) : null}
       </div>
+
+      {/* Diálogo de confirmación de borrado */}
+      <AlertDialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => {
+          if (!o) setPendingDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar comentario?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará el comentario de forma permanente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => void confirmRemove()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleting}
+            >
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 });

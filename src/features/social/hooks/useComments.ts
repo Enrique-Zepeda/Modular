@@ -172,16 +172,13 @@ export function useComments(sessionId: number) {
 
   const remove = useCallback(
     async (id_comment: number) => {
-      // optimista
       const prev = items;
       setItems((s) => s.filter((c) => c.id_comment !== id_comment));
-
       try {
         await deleteComment(id_comment);
         seen.current.delete(id_comment);
       } catch (e) {
-        // revertir
-        setItems(prev);
+        setItems(prev); // rollback
         throw e;
       }
     },

@@ -25,7 +25,7 @@ export function useFriendActions() {
       const p = acceptReq({ id_solicitud }).unwrap();
       await toast.promise(p, {
         loading: "Aceptando…",
-        success: "Ahora sois amigos 🎉",
+        success: "Ahora som amigos 🎉",
         error: (e) => e?.message ?? "No se pudo aceptar",
       });
     },
