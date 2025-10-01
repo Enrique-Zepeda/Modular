@@ -1,3 +1,4 @@
+// FILE: src/features/workouts/components/WorkoutCard.tsx
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,14 +14,22 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { CalendarDays, Trash2, TrendingUp, Dumbbell, Timer } from "lucide-react";
+import {
+  CalendarDays,
+  Trash2,
+  TrendingUp,
+  Dumbbell,
+  Timer,
+  ListChecks, // 👈 NUEVO: icono para "ejercicios"
+} from "lucide-react";
 import { useDeleteWorkoutSessionMutation } from "@/features/workouts/api/workoutsApi";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 import { diffSecondsSafe, formatDurationShort } from "@/lib/duration";
-
 /** 👇 Social (likes + comentarios, realtime) */
 import { SocialActionsBar } from "@/features/social/components/SocialActionsBar";
+/** 👇 Badge de shadcn/ui */
+import { Badge } from "@/components/ui/badge";
 
 type ExerciseItem = {
   id?: number | string | null;
@@ -143,6 +152,10 @@ export function WorkoutCard({
 
   const durationLabel = useMemo(() => formatDurationShort(durationSeconds), [durationSeconds]);
 
+  /** ✅ Cálculo de ejercicios realizados para badge "X ejercicios" */
+  const doneExercises = useMemo(() => (ejercicios ?? []).filter((ex) => (ex.sets_done ?? 0) > 0), [ejercicios]);
+  const exercisesCount = doneExercises.length;
+
   return (
     <>
       {dayHeader ? (
@@ -215,11 +228,24 @@ export function WorkoutCard({
                 </div>
               </div>
 
+              {/* KPIs superiores */}
               <div
                 className="flex flex-wrap items-center gap-3 pt-1"
                 role="list"
                 aria-label="Estadísticas del entrenamiento"
               >
+                {/* 🔹 NUEVO: badge "X ejercicios" (solo con sets_done) */}
+                <div
+                  className="flex items-center justify-center gap-2 min-w-[90px] px-3 py-2.5 bg-gradient-to-br from-indigo-500/15 to-indigo-600/10 border-2 border-indigo-500/40 rounded-xl hover:from-indigo-500/25 hover:to-indigo-600/20 hover:border-indigo-500/60 hover:shadow-lg hover:shadow-indigo-500/20 hover:scale-105 transition-all duration-200"
+                  role="listitem"
+                >
+                  <ListChecks className="h-4 w-4 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
+                  <span className="font-bold text-indigo-700 dark:text-indigo-300">{exercisesCount}</span>
+                  <span className="text-xs text-indigo-600/80 dark:text-indigo-400/80 font-semibold">
+                    ejercicio{exercisesCount === 1 ? "" : "s"}
+                  </span>
+                </div>
+
                 <div
                   className="flex items-center justify-center gap-2 min-w-[90px] px-3 py-2.5 bg-gradient-to-br from-blue-500/15 to-blue-600/10 border-2 border-blue-500/40 rounded-xl hover:from-blue-500/25 hover:to-blue-600/20 hover:border-blue-500/60 hover:shadow-lg hover:shadow-blue-500/20 hover:scale-105 transition-all duration-200"
                   role="listitem"
@@ -259,6 +285,8 @@ export function WorkoutCard({
                   </div>
                 )}
               </div>
+
+              {/* (Opcional) tira de badges por ejercicio más abajo… */}
             </div>
           </CardHeader>
 
