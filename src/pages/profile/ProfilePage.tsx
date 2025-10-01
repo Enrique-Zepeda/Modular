@@ -11,6 +11,7 @@ import ProfileFriendsModal from "@/features/profile/components/ProfileFriendsMod
 import ProfileWorkoutsList from "@/features/profile/components/ProfileWorkoutsList";
 import { useTrainingProfile } from "@/features/profile/hooks/useTrainingProfile";
 import ProfileMainExercise from "@/features/profile/components/ProfileMainExercise";
+import ProfileMuscleDistribution from "@/features/profile/components/ProfileMuscleDistribution";
 
 // pequeño helper para color de fondo translúcido a partir de hex
 function hexToRgba(hex: string, alpha = 0.12) {
@@ -59,14 +60,18 @@ export default function ProfilePage() {
       <h1 className="text-2xl font-semibold tracking-tight">
         {isSelf ? "Mi perfil" : profile ? `Perfil de @${profile.username}` : "Perfil"}
       </h1>
-
       <ProfileCard
         variant="full"
         displayName={profile?.nombre ?? null}
         username={profile?.username ?? null}
         avatarUrl={profile?.url_avatar ?? null}
       />
-
+      <ProfileStats
+        summary={summary}
+        loading={summaryQ.isLoading}
+        hideLastPanel
+        onFriendsClick={() => setOpenFriends(true)}
+      />
       {/* Badge de “Perfil de entrenamiento” (visible, no intrusivo) */}
       {training.badge && (
         <div className="flex items-center gap-3">
@@ -85,18 +90,13 @@ export default function ProfilePage() {
         </div>
       )}
       {targetUsername && <ProfileMainExercise username={targetUsername} />}
-      <ProfileStats
-        summary={summary}
-        loading={summaryQ.isLoading}
-        hideLastPanel
-        onFriendsClick={() => setOpenFriends(true)}
-      />
+      {targetUsername && <ProfileMuscleDistribution username={targetUsername} recentDays={60} />}
 
       {/* Lista de TODOS los entrenamientos */}
+      <h1 className="text-xl font-semibold">Entrenamientos</h1>
       {targetUsername && (
         <ProfileWorkoutsList username={targetUsername} avatarUrl={profile?.url_avatar ?? null} isMine={isSelf} />
       )}
-
       {targetUsername && (
         <ProfileFriendsModal
           username={targetUsername}
