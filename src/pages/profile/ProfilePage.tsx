@@ -7,8 +7,8 @@ import {
 } from "@/features/profile/api/userProfileApi";
 import ProfileCard from "@/features/profile/components/ProfileCard";
 import ProfileStats from "@/features/profile/components/ProfileStats";
-import LastWorkoutSummaryCard from "@/features/profile/components/LastWorkoutSummaryCard";
 import ProfileFriendsModal from "@/features/profile/components/ProfileFriendsModal";
+import ProfileWorkoutsList from "@/features/profile/components/ProfileWorkoutsList";
 
 export default function ProfilePage() {
   const { username } = useParams<{ username?: string }>();
@@ -27,7 +27,6 @@ export default function ProfilePage() {
     { username: targetUsername },
     {
       skip: !targetUsername,
-      // 👇 asegura refresco al montar, cambiar arg, recuperar foco o red conectividad
       refetchOnMountOrArgChange: true,
       refetchOnFocus: true,
       refetchOnReconnect: true,
@@ -35,7 +34,7 @@ export default function ProfilePage() {
   );
   const summary = summaryQ.data ?? null;
 
-  // 🔔 Escuchar cambios globales de amistades (emitidos desde modal/búsqueda)
+  // Refrescar KPIs si cambian amistades (contador)
   React.useEffect(() => {
     const handler = () => summaryQ.refetch();
     window.addEventListener("friends:changed", handler);
@@ -62,12 +61,9 @@ export default function ProfilePage() {
         onFriendsClick={() => setOpenFriends(true)}
       />
 
+      {/* ✅ Usa el mismo WorkoutCard del feature de workouts */}
       {targetUsername && (
-        <LastWorkoutSummaryCard
-          username={targetUsername}
-          displayName={profile?.nombre ?? null}
-          avatarUrl={profile?.url_avatar ?? null}
-        />
+        <ProfileWorkoutsList username={targetUsername} avatarUrl={profile?.url_avatar ?? null} isMine={isSelf} />
       )}
 
       {targetUsername && (
@@ -76,7 +72,6 @@ export default function ProfilePage() {
           open={openFriends}
           onOpenChange={setOpenFriends}
           canManageFriends={isSelf}
-          // ✅ cuando cambia la lista, refrescamos el summary (contador)
           onFriendsChanged={() => summaryQ.refetch()}
         />
       )}

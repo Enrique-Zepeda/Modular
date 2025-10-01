@@ -15,7 +15,13 @@ export type WorkoutSetInput = {
   done?: boolean;
   done_at?: string | null;
 };
-
+type UserWorkoutExercise = {
+  id_ejercicio: number;
+  nombre: string;
+  sets: number;
+  volumen_kg: number;
+  ejemplo?: string | null;
+};
 export type CreateWorkoutInput = {
   id_rutina: number;
   started_at: string;
@@ -54,6 +60,172 @@ export const workoutsApi = createApi({
   baseQuery: fakeBaseQuery(),
   tagTypes: ["Workouts", "FinishedWorkouts"],
   endpoints: (builder) => ({
+    getWorkoutsByUsername: builder.query<
+      {
+        items: Array<{
+          id_sesion: number;
+          titulo: string | null;
+          started_at: string | null;
+          ended_at: string | null;
+          duracion_seg: number | null;
+          total_sets: number;
+          total_volume_kg: number;
+          sensacion: string | null;
+          ejercicios: Array<UserWorkoutExercise>; // 👈 ahora incluye ejemplo
+        }>;
+        hasMore: boolean;
+      },
+      { username: string; page?: number; pageSize?: number }
+    >({
+      async queryFn({ username, page = 0, pageSize = 10 }) {
+        try {
+          const { supabase } = await import("@/lib/supabase/client");
+          const uname = username.replace(/^@+/, "").trim();
+          if (!uname) return { data: { items: [], hasMore: false } };
+
+          // 1) auth_uid por username
+          const { data: urow, error: uerr } = await supabase
+            .from("Usuarios")
+            .select("auth_uid, id_usuario")
+            .eq("username", uname)
+            .maybeSingle();
+          if (uerr) return { error: uerr as any };
+          if (!urow?.auth_uid) return { data: { items: [], hasMore: false } };
+
+          const offset = page * pageSize;
+          const limit = pageSize;
+
+          // 2) Sesiones finalizadas
+          const { data: sessions, error: serr } = await supabase
+            .from("Entrenamientos")
+            .select("id_sesion, started_at, ended_at, duracion_seg, sensacion_global, id_rutina")
+            .eq("owner_uid", urow.auth_uid)
+            .not("ended_at", "is", null)
+            .order("ended_at", { ascending: false })
+            .range(offset, offset + limit - 1);
+          if (serr) return { error: serr as any };
+
+          const itemsRaw =
+            (sessions ?? []).map((s: any) => ({
+              id_sesion: Number(s.id_sesion),
+              started_at: s.started_at ?? null,
+              ended_at: s.ended_at ?? null,
+              duracion_seg:
+                typeof s.duracion_seg === "number"
+                  ? s.duracion_seg
+                  : s.started_at && s.ended_at
+                  ? Math.max(0, Math.floor((new Date(s.ended_at).getTime() - new Date(s.started_at).getTime()) / 1000))
+                  : null,
+              sensacion: typeof s.sensacion_global === "number" ? String(s.sensacion_global) : null,
+              id_rutina: s.id_rutina ?? null,
+            })) ?? [];
+
+          if (itemsRaw.length === 0) {
+            return { data: { items: [], hasMore: false } };
+          }
+
+          // 3) Sets/volumen por sesión + ejercicio
+          const sesionIds = itemsRaw.map((i) => i.id_sesion);
+          const { data: sets, error: setErr } = await supabase
+            .from("EntrenamientoSets")
+            .select("id_sesion, id_ejercicio, reps, kg") // ⛏ usamos 'kg'
+            .in("id_sesion", sesionIds);
+          if (setErr) return { error: setErr as any };
+
+          const perSession: Map<
+            number,
+            { totalSets: number; totalVolume: number; perExercise: Map<number, { sets: number; volume: number }> }
+          > = new Map();
+          const exerciseIds = new Set<number>();
+
+          for (const row of sets ?? []) {
+            const sid = Number((row as any).id_sesion);
+            const eid = Number((row as any).id_ejercicio);
+            const reps = Number((row as any).reps ?? 0);
+            const peso = Number((row as any).kg ?? 0);
+
+            if (Number.isFinite(eid)) exerciseIds.add(eid);
+
+            const agg = perSession.get(sid) ?? { totalSets: 0, totalVolume: 0, perExercise: new Map() };
+            agg.totalSets += 1;
+            if (Number.isFinite(reps) && Number.isFinite(peso)) {
+              agg.totalVolume += reps * peso;
+              const e = agg.perExercise.get(eid) ?? { sets: 0, volume: 0 };
+              e.sets += 1;
+              e.volume += reps * peso;
+              agg.perExercise.set(eid, e);
+            }
+            perSession.set(sid, agg);
+          }
+
+          // 4) Nombres + ejemplo (gif) de ejercicios
+          const exInfo = new Map<number, { nombre: string; ejemplo: string | null }>();
+          if (exerciseIds.size > 0) {
+            const { data: ejercicios, error: exErr } = await supabase
+              .from("Ejercicios")
+              .select("id, nombre, ejemplo")
+              .in("id", Array.from(exerciseIds));
+
+            if (exErr) return { error: exErr as any };
+
+            for (const e of ejercicios ?? []) {
+              const id = Number((e as any).id);
+              exInfo.set(id, {
+                nombre: (e as any).nombre ?? "Ejercicio",
+                ejemplo: (e as any).ejemplo ?? null,
+              });
+            }
+          }
+
+          // 5) Nombres de rutinas
+          const rutinaIds = Array.from(new Set(itemsRaw.map((i) => i.id_rutina).filter((x) => x != null))) as number[];
+          const rutinaNames = new Map<number, string>();
+          if (rutinaIds.length > 0) {
+            const { data: rutinas } = await supabase
+              .from("Rutinas")
+              .select("id_rutina, nombre")
+              .in("id_rutina", rutinaIds);
+            for (const r of rutinas ?? []) {
+              rutinaNames.set(Number((r as any).id_rutina), (r as any).nombre ?? "Entrenamiento");
+            }
+          }
+
+          const items = itemsRaw.map((r) => {
+            const agg = perSession.get(r.id_sesion);
+            const ejercicios: UserWorkoutExercise[] = [];
+            if (agg) {
+              for (const [eid, v] of agg.perExercise.entries()) {
+                const info = exInfo.get(eid);
+                ejercicios.push({
+                  id_ejercicio: eid,
+                  nombre: info?.nombre ?? "Ejercicio",
+                  sets: v.sets,
+                  volumen_kg: Math.round(v.volume * 10) / 10,
+                  ejemplo: info?.ejemplo ?? null, // 👈 pasamos gif/url
+                });
+              }
+              ejercicios.sort((a, b) => b.volumen_kg - a.volumen_kg || a.nombre.localeCompare(b.nombre));
+            }
+            return {
+              id_sesion: r.id_sesion,
+              titulo: r.id_rutina != null ? rutinaNames.get(Number(r.id_rutina)) ?? "Entrenamiento" : "Entrenamiento",
+              started_at: r.started_at,
+              ended_at: r.ended_at,
+              duracion_seg: r.duracion_seg,
+              total_sets: agg?.totalSets ?? 0,
+              total_volume_kg: Math.round((agg?.totalVolume ?? 0) * 10) / 10,
+              sensacion: r.sensacion,
+              ejercicios,
+            };
+          });
+
+          return { data: { items, hasMore: (sessions?.length ?? 0) === limit } };
+        } catch (e: any) {
+          return { error: e };
+        }
+      },
+      providesTags: (_res, _err, args) => [{ type: "WorkoutsByUser" as const, id: args.username }],
+    }),
     /** Crear sesión con sets (RPC transaccional) */
     createWorkoutSession: builder.mutation<CreateWorkoutResult, CreateWorkoutInput>({
       async queryFn(payload) {
@@ -374,4 +546,6 @@ export const {
   useListUserWorkoutsQuery,
   useDeleteWorkoutSessionMutation,
   useGetFinishedWorkoutsRichQuery,
+  useGetWorkoutsByUsernameQuery,
+  useLazyGetWorkoutsByUsernameQuery,
 } = workoutsApi;
