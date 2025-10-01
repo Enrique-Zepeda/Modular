@@ -10,6 +10,7 @@ import ProfileStats from "@/features/profile/components/ProfileStats";
 import ProfileFriendsModal from "@/features/profile/components/ProfileFriendsModal";
 import ProfileWorkoutsList from "@/features/profile/components/ProfileWorkoutsList";
 import { useTrainingProfile } from "@/features/profile/hooks/useTrainingProfile";
+import ProfileMainExercise from "@/features/profile/components/ProfileMainExercise";
 
 // pequeño helper para color de fondo translúcido a partir de hex
 function hexToRgba(hex: string, alpha = 0.12) {
@@ -83,7 +84,7 @@ export default function ProfilePage() {
           </span>
         </div>
       )}
-
+      {targetUsername && <ProfileMainExercise username={targetUsername} />}
       <ProfileStats
         summary={summary}
         loading={summaryQ.isLoading}
