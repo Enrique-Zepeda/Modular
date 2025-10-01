@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { UserPublicProfile } from "@/types/friends";
-import { UserPlus, Check, Clock, UserMinus } from "lucide-react";
+import { UserPlus, Clock, UserMinus } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   AlertDialog,
@@ -70,21 +70,30 @@ export default function UserResultCard({ user, status = "none", onSend }: Props)
   }
 
   return (
-    <Card className="border-muted/60">
-      <CardContent className="p-4 flex items-center gap-3">
+    <Card className="border-muted/60 hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 group">
+      <CardContent className="p-5 flex items-center gap-4">
         {/* Clickeable a perfil */}
-        <Link to={`/u/${user.username}`} className="flex items-center gap-3 min-w-0 group">
-          <Avatar className="h-10 w-10 ring-1 ring-border/50">
-            <AvatarImage src={user.url_avatar ?? undefined} alt={user.username} />
-            <AvatarFallback>{initial}</AvatarFallback>
-          </Avatar>
-          <div className="min-w-0">
-            <div className="font-medium truncate group-hover:underline">@{user.username}</div>
-            {user.nombre && <div className="text-sm text-muted-foreground truncate">{user.nombre}</div>}
+        <Link to={`/u/${user.username}`} className="flex items-center gap-4 min-w-0 flex-1 group/link">
+          <div className="relative">
+            <Avatar className="h-12 w-12 ring-2 ring-border/50 group-hover:ring-primary/50 transition-all duration-300">
+              <AvatarImage src={user.url_avatar ?? undefined} alt={user.username} />
+              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white font-semibold">
+                {initial}
+              </AvatarFallback>
+            </Avatar>
+            {/* Online indicator (decorative) */}
+            <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 bg-green-500 rounded-full ring-2 ring-background" />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="font-semibold text-base truncate group-hover/link:text-primary transition-colors">
+              {user.username}
+            </div>
+            {user.nombre && (
+              <div className="text-sm text-muted-foreground truncate flex items-center gap-1.5">{user.nombre}</div>
+            )}
           </div>
         </Link>
-
-        <div className="flex-1" />
 
         {/* Acciones */}
         {localStatus === "friend" ? (
@@ -93,7 +102,7 @@ export default function UserResultCard({ user, status = "none", onSend }: Props)
               <Button
                 size="sm"
                 variant="ghost"
-                className="gap-1 text-destructive hover:text-destructive"
+                className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
                 disabled={pending}
                 onClick={(e) => {
                   e.preventDefault();
@@ -124,13 +133,14 @@ export default function UserResultCard({ user, status = "none", onSend }: Props)
             </AlertDialogContent>
           </AlertDialog>
         ) : localStatus === "pending-out" ? (
-          <span className="text-sm text-muted-foreground flex items-center gap-1">
-            <Clock className="h-4 w-4" /> Pendiente
-          </span>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20">
+            <Clock className="h-4 w-4 text-amber-500" />
+            <span className="text-sm font-medium text-amber-600 dark:text-amber-400">Pendiente</span>
+          </div>
         ) : (
           <Button
             size="sm"
-            className="gap-1"
+            className="gap-1.5 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-md hover:shadow-lg transition-all duration-300"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();

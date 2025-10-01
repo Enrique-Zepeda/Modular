@@ -5,7 +5,6 @@ import { User, Palette, Shield, BellIcon, Settings } from "lucide-react";
 import { AppearanceCard, ChangePasswordForm, Perfil } from "@/features/settings/components";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import NotificationsPage from "./NotificationsPage";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("profile");
@@ -43,13 +42,7 @@ export default function SettingsPage() {
                 <User className="h-5 w-5" />
                 <span className="hidden sm:inline">Perfil</span>
               </TabsTrigger>
-              <TabsTrigger
-                value="notificaciones"
-                className="flex items-center gap-3 px-8 py-4 text-sm font-semibold transition-all duration-300 data-[state=active]:glass-effect data-[state=active]:text-primary data-[state=active]:shadow-lg data-[state=active]:border data-[state=active]:border-primary/20 rounded-xl premium-hover"
-              >
-                <BellIcon className="h-5 w-5" />
-                <span className="hidden sm:inline">Notificaciones</span>
-              </TabsTrigger>
+
               <TabsTrigger
                 value="appearance"
                 className="flex items-center gap-3 px-8 py-4 text-sm font-semibold transition-all duration-300 data-[state=active]:glass-effect data-[state=active]:text-primary data-[state=active]:shadow-lg data-[state=active]:border data-[state=active]:border-primary/20 rounded-xl premium-hover"
@@ -83,32 +76,6 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="pt-0">
                 <Perfil />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="notificaciones" className="space-y-8 animate-fade-in">
-            <Card className="glass-card border-0 premium-hover">
-              <CardHeader className="pb-8">
-                <CardTitle className="flex items-center gap-4 text-2xl">
-                  <div className="p-3 rounded-xl glass-effect border border-primary/20">
-                    <BellIcon className="h-6 w-6 text-primary" />
-                  </div>
-                  Notificaciones
-                  <Badge variant="outline" className="ml-auto glass-effect border-0 text-yellow-400 bg-yellow-400/10">
-                    <div className="status-dot status-warning mr-2"></div>
-                    Próximamente
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="p-6 rounded-full glass-effect mb-6 animate-pulse-glow">
-                    <BellIcon className="h-12 w-12 text-primary" />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-3">Configuración de notificaciones</h3>
-                  <NotificationsPage />
-                </div>
               </CardContent>
             </Card>
           </TabsContent>
