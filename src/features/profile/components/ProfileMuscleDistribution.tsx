@@ -38,17 +38,18 @@ export default function ProfileMuscleDistribution({
   }
 
   return (
-    <Card className="border-2 border-border/60 bg-gradient-to-br from-card/95 to-card/90 shadow-sm">
-      <CardContent className="p-6">
-        <div className="mb-6 space-y-2">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-            Distribución de volumen
-          </h3>
+    <Card className="border-2 border-border/60 bg-gradient-to-br from-card via-card/98 to-card/95 shadow-lg hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 transition-all duration-300 overflow-hidden relative">
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/8 via-transparent to-primary/5 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+
+      <CardContent className="p-6 relative">
+        <div className="mb-6 space-y-3">
+          <h3 className="text-base font-bold text-foreground uppercase tracking-wider">Distribución de volumen</h3>
           <div className="flex items-center justify-between">
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-muted-foreground font-semibold bg-muted/50 px-3 py-1.5 rounded-lg">
               {recentDays > 0 ? `Últimos ${recentDays} días` : "Histórico"}
             </div>
-            <div className="text-sm font-semibold">
+            <div className="text-sm font-bold">
               Total: <span className="text-primary">{Math.round(total).toLocaleString()} kg</span>
             </div>
           </div>

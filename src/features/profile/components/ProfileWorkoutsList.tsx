@@ -67,7 +67,7 @@ export default function ProfileWorkoutsList({ username, avatarUrl, isMine = fals
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-5">
         {Array.from({ length: 3 }).map((_, i) => (
           <Skeleton key={i} className="h-40 w-full rounded-xl" />
         ))}
@@ -138,7 +138,7 @@ export default function ProfileWorkoutsList({ username, avatarUrl, isMine = fals
               loadPage(next);
             }}
             disabled={isFetchingMore}
-            className="w-full h-12 text-base font-semibold rounded-xl border-2 border-border/60 hover:border-primary/40 hover:shadow-md transition-all duration-200"
+            className="w-full h-12 text-base font-bold rounded-xl border-2 border-border/60 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 hover:scale-[1.02]"
           >
             {isFetchingMore ? "Cargando…" : "Cargar más entrenamientos"}
           </Button>

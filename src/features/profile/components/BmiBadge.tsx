@@ -1,4 +1,3 @@
-import * as React from "react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useBmiFromProfile } from "../hooks/useBmi";
@@ -8,11 +7,11 @@ import type { UserProfile } from "@/types/user";
 import { useGetCurrentUserProfileQuery } from "@/features/settings/api/profileApi";
 
 const COLORS: Record<string, string> = {
-  under: "bg-sky-500/20 text-sky-300 border-sky-500/40",
-  normal: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
-  over: "bg-amber-500/20 text-amber-300 border-amber-500/40",
-  obese: "bg-orange-600/20 text-orange-300 border-orange-600/40",
-  morbid: "bg-red-600/20 text-red-300 border-red-600/40",
+  under: "bg-sky-500/20 text-sky-200 border-sky-500/50 shadow-sky-500/20",
+  normal: "bg-emerald-500/20 text-emerald-200 border-emerald-500/50 shadow-emerald-500/20",
+  over: "bg-amber-500/20 text-amber-200 border-amber-500/50 shadow-amber-500/20",
+  obese: "bg-orange-600/20 text-orange-200 border-orange-600/50 shadow-orange-600/20",
+  morbid: "bg-red-600/20 text-red-200 border-red-600/50 shadow-red-600/20",
 };
 
 type Props = {
@@ -45,7 +44,9 @@ export default function BmiBadge({ isSelf = false, profile, className, showPlace
   if (!canCompute || !bmi || !category) {
     if (!showPlaceholder) return null;
     return (
-      <Badge className={cn("border-muted-foreground/20 text-muted-foreground bg-muted/30", className)}>
+      <Badge
+        className={cn("border-2 border-muted-foreground/30 text-muted-foreground bg-muted/40 shadow-sm", className)}
+      >
         IMC: incompleto
       </Badge>
     );
@@ -53,7 +54,11 @@ export default function BmiBadge({ isSelf = false, profile, className, showPlace
 
   return (
     <Badge
-      className={cn("border", COLORS[category], className)}
+      className={cn(
+        "border-2 font-bold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105",
+        COLORS[category],
+        className
+      )}
       title={`Índice de Masa Corporal: ${bmi.toFixed(1)} (${label})`}
     >
       IMC {bmi.toFixed(1)} — {label}

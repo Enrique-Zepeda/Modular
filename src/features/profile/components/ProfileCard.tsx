@@ -47,19 +47,29 @@ export default function ProfileCard({
   }
 
   return (
-    <Card className={cn("border-2 border-border/60 bg-gradient-to-br from-card/95 to-card/90", className)}>
-      <CardContent className="p-8">
-        <div className="flex items-center gap-6">
-          <Avatar className="h-24 w-24 border-4 border-primary/20 ring-4 ring-primary/10 shadow-xl shadow-primary/5">
+    <Card
+      className={cn(
+        "border-2 border-border/60 bg-gradient-to-br from-card via-card/98 to-card/95 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden relative",
+        className
+      )}
+    >
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-purple-500/5 pointer-events-none" />
+      <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+
+      <CardContent className="p-8 relative">
+        <div className="flex items-center gap-8">
+          <Avatar className="h-28 w-28 border-4 border-primary/30 ring-4 ring-primary/10 shadow-2xl shadow-primary/20 hover:scale-105 transition-transform duration-300">
             <AvatarImage src={avatarUrl ?? undefined} alt={displayName ?? "Usuario"} />
-            <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-primary/20 to-primary/10 text-primary">
+            <AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-primary/30 via-primary/20 to-primary/10 text-primary">
               {initials}
             </AvatarFallback>
           </Avatar>
 
-          <div className="flex-1 min-w-0 space-y-2">
-            <div className="text-2xl font-bold tracking-tight truncate">{displayName ?? "Usuario"}</div>
-            <div className="text-base text-muted-foreground truncate">{username ? `@${username}` : ""}</div>
+          <div className="flex-1 min-w-0 space-y-3">
+            <div className="text-3xl font-extrabold tracking-tight truncate bg-gradient-to-br from-foreground to-foreground/80 bg-clip-text">
+              {displayName ?? "Usuario"}
+            </div>
+            <div className="text-lg text-muted-foreground truncate font-medium">{username ? `@${username}` : ""}</div>
           </div>
         </div>
       </CardContent>
