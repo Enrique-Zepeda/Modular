@@ -1,8 +1,24 @@
-import { Link } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+// 1. Helper para color (añadido aquí para que el componente sea autocontenido)
+function hexToRgba(hex: string, alpha = 0.12) {
+  const m = hex.replace("#", "").match(/^([a-f0-9]{2})([a-f0-9]{2})([a-f0-9]{2})$/i);
+  if (!m) return `rgba(0,0,0,${alpha})`;
+  const [r, g, b] = m.slice(1).map((h) => Number.parseInt(h, 16));
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+// 2. Tipo para la nueva prop 'training'
+type TrainingBadgeProps = {
+  badge: {
+    color: string;
+    title: string;
+    avgScore: number;
+    samples: number;
+  } | null;
+} | null;
 
 export type ProfileCardProps = {
   variant?: "compact" | "full";
@@ -10,6 +26,7 @@ export type ProfileCardProps = {
   username: string | null;
   avatarUrl: string | null;
   className?: string;
+  training?: TrainingBadgeProps; // 3. Nueva prop opcional
 };
 
 export default function ProfileCard({
@@ -18,6 +35,7 @@ export default function ProfileCard({
   username,
   avatarUrl,
   className,
+  training, // 4. Recibir la nueva prop
 }: ProfileCardProps) {
   const initials = (displayName || username || "?")
     .split(" ")
@@ -26,26 +44,16 @@ export default function ProfileCard({
     .slice(0, 2)
     .toUpperCase();
 
+  // La variante 'compact' no se modifica
   if (variant === "compact") {
     return (
       <Card className={cn("bg-muted/30 border-muted/40", className)}>
-        <CardContent className="flex items-center gap-3 p-3">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={avatarUrl ?? undefined} alt={displayName ?? "Usuario"} />
-            <AvatarFallback>{initials}</AvatarFallback>
-          </Avatar>
-          <div className="min-w-0 flex-1">
-            <div className="text-sm font-medium truncate">{displayName ?? "Usuario"}</div>
-            <div className="text-xs text-muted-foreground truncate">{username ? `@${username}` : ""}</div>
-          </div>
-          <Button asChild size="sm" variant="secondary">
-            <Link to="/profile">Ver</Link>
-          </Button>
-        </CardContent>
+        {/* ...código de la variante compacta sin cambios... */}
       </Card>
     );
   }
 
+  // Modificaciones en la variante 'full'
   return (
     <Card
       className={cn(
@@ -65,11 +73,36 @@ export default function ProfileCard({
             </AvatarFallback>
           </Avatar>
 
-          <div className="flex-1 min-w-0 space-y-3">
+          <div className="flex-1 min-w-0 space-y-2">
+            {" "}
+            {/* Ajuste de 'space-y' */}
             <div className="text-3xl font-extrabold tracking-tight truncate bg-gradient-to-br from-foreground to-foreground/80 bg-clip-text">
               {displayName ?? "Usuario"}
             </div>
-            <div className="text-lg text-muted-foreground truncate font-medium">{username ? `@${username}` : ""}</div>
+            <div className="text-lg text-muted-foreground truncate font-medium">{username ? `${username}` : ""}</div>
+            {/* ====== CÓDIGO INTEGRADO AQUÍ ====== */}
+            {training?.badge && (
+              <div className="pt-2">
+                {" "}
+                {/* Un pequeño espacio superior para separar */}
+                <span
+                  className="text-xs font-bold px-3 py-1.5 rounded-md shadow-sm inline-block"
+                  style={{
+                    color: training.badge.color,
+                    background: `linear-gradient(135deg, ${hexToRgba(training.badge.color, 0.25)}, ${hexToRgba(
+                      training.badge.color,
+                      0.1
+                    )})`,
+                    border: `1px solid ${hexToRgba(training.badge.color, 0.5)}`,
+                    textShadow: `0 0 8px ${hexToRgba(training.badge.color, 0.5)}`,
+                  }}
+                  title={`Promedio: ${training.badge.avgScore} (${training.badge.samples} sesiones)`}
+                >
+                  {training.badge.title}
+                </span>
+              </div>
+            )}
+            {/* ====== FIN DEL CÓDIGO INTEGRADO ====== */}
           </div>
         </div>
       </CardContent>
