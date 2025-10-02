@@ -73,22 +73,22 @@ export function AdvancedFilters({
   const isLoadingEq = !!loading?.isLoadingEquipment;
 
   return (
-    <div className="p-3 rounded-xl bg-card border border-border/50">
+    <div className="p-4 rounded-xl bg-gradient-to-br from-primary/5 via-purple-500/5 to-background border-2 border-border/60 shadow-lg">
       {onSearchChange && (
-        <div className="mb-3">
+        <div className="mb-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               value={searchValue || ""}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Buscar ejercicios..."
-              className="h-8 pl-9 pr-8 text-xs rounded-lg border-border/50 focus:border-primary/50"
+              className="h-10 pl-10 pr-10 text-sm rounded-xl border-2 border-border/60 hover:border-primary/50 focus:border-primary transition-all duration-300"
             />
             {searchValue && (
               <button
                 type="button"
                 onClick={() => onSearchChange("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-muted transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-muted transition-colors"
               >
                 <X className="h-3 w-3 text-muted-foreground" />
               </button>
@@ -97,14 +97,14 @@ export function AdvancedFilters({
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-4">
         <FilterBlock
-          icon={<Dumbbell className="h-3 w-3" />}
+          icon={<Dumbbell className="h-4 w-4" />}
           label="Músculo"
           loading={isLoadingMG}
           control={
             <select
-              className="h-8 w-full bg-background border border-border rounded-lg px-3 pr-8 text-xs text-foreground appearance-none hover:border-border/80 focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-colors"
+              className="h-10 w-full bg-background border-2 border-border/60 hover:border-primary/50 focus:border-primary rounded-xl px-3 pr-8 text-sm text-foreground appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-300 font-medium"
               value={values.selectedMuscleGroup}
               onChange={(e) => onChange.setSelectedMuscleGroup(e.target.value)}
             >
@@ -121,12 +121,12 @@ export function AdvancedFilters({
         />
 
         <FilterBlock
-          icon={<Activity className="h-3 w-3" />}
+          icon={<Activity className="h-4 w-4" />}
           label="Dificultad"
           loading={isLoadingDif}
           control={
             <select
-              className="h-8 w-full bg-background border border-border rounded-lg px-3 pr-8 text-xs text-foreground appearance-none hover:border-border/80 focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-colors"
+              className="h-10 w-full bg-background border-2 border-border/60 hover:border-primary/50 focus:border-primary rounded-xl px-3 pr-8 text-sm text-foreground appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-300 font-medium"
               value={values.selectedDifficulty}
               onChange={(e) => onChange.setSelectedDifficulty(e.target.value)}
             >
@@ -143,12 +143,12 @@ export function AdvancedFilters({
         />
 
         <FilterBlock
-          icon={<Wrench className="h-3 w-3" />}
+          icon={<Wrench className="h-4 w-4" />}
           label="Equipo"
           loading={isLoadingEq}
           control={
             <select
-              className="h-8 w-full bg-background border border-border rounded-lg px-3 pr-8 text-xs text-foreground appearance-none hover:border-border/80 focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-colors"
+              className="h-10 w-full bg-background border-2 border-border/60 hover:border-primary/50 focus:border-primary rounded-xl px-3 pr-8 text-sm text-foreground appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-300 font-medium"
               value={values.selectedEquipment}
               onChange={(e) => onChange.setSelectedEquipment(e.target.value)}
             >

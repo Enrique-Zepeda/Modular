@@ -9,7 +9,7 @@ export function SearchBar({ value, onChange }: { value: string; onChange: (v: st
         placeholder="Buscar ejercicios por nombre o descripción..."
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="pl-12 h-12 text-base border-0 bg-muted/50 focus:bg-background transition-colors"
+        className="pl-12 h-12 text-base border-2 border-border/60 hover:border-primary/50 focus:border-primary bg-background transition-all duration-300 rounded-xl"
       />
     </div>
   );

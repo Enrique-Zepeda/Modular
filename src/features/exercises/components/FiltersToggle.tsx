@@ -20,19 +20,24 @@ export function FiltersToggle({
       <Button
         variant="ghost"
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+        className="flex items-center gap-2 text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-all duration-300 rounded-xl"
       >
         <Filter className="h-4 w-4" />
-        <span>Filtros avanzados</span>
+        <span className="font-semibold">Filtros avanzados</span>
         {activeCount > 0 && (
-          <Badge variant="secondary" className="ml-2">
+          <Badge variant="secondary" className="ml-2 bg-primary/15 border border-primary/30 text-primary font-bold">
             {activeCount}
           </Badge>
         )}
-        <ChevronDown className={`h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`} />
+        <ChevronDown className={`h-4 w-4 transition-transform duration-300 ${expanded ? "rotate-180" : ""}`} />
       </Button>
       {hasActive && (
-        <Button variant="ghost" size="sm" onClick={onClear} className="text-xs">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onClear}
+          className="text-xs hover:bg-destructive/10 hover:text-destructive transition-all duration-300 rounded-xl font-semibold"
+        >
           <X className="h-3 w-3 mr-1" /> Limpiar filtros
         </Button>
       )}
