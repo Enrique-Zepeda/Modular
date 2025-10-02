@@ -14,22 +14,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import {
-  CalendarDays,
-  Trash2,
-  TrendingUp,
-  Dumbbell,
-  Timer,
-  ListChecks, // 👈 NUEVO: icono para "ejercicios"
-} from "lucide-react";
+import { CalendarDays, Trash2, TrendingUp, Dumbbell, Timer, ListChecks } from "lucide-react";
 import { useDeleteWorkoutSessionMutation } from "@/features/workouts/api/workoutsApi";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 import { diffSecondsSafe, formatDurationShort } from "@/lib/duration";
-/** 👇 Social (likes + comentarios, realtime) */
 import { SocialActionsBar } from "@/features/social/components/SocialActionsBar";
-/** 👇 Badge de shadcn/ui */
-import { Badge } from "@/components/ui/badge";
+import { normalizeSensation, sensationPillClasses } from "@/features/workouts/utils/sensation";
 
 type ExerciseItem = {
   id?: number | string | null;
@@ -152,7 +143,7 @@ export function WorkoutCard({
 
   const durationLabel = useMemo(() => formatDurationShort(durationSeconds), [durationSeconds]);
 
-  /** ✅ Cálculo de ejercicios realizados para badge "X ejercicios" */
+  // ✅ Cálculo de ejercicios realizados para badge "X ejercicios"
   const doneExercises = useMemo(() => (ejercicios ?? []).filter((ex) => (ex.sets_done ?? 0) > 0), [ejercicios]);
   const exercisesCount = doneExercises.length;
 
@@ -234,7 +225,7 @@ export function WorkoutCard({
                 role="list"
                 aria-label="Estadísticas del entrenamiento"
               >
-                {/* 🔹 NUEVO: badge "X ejercicios" (solo con sets_done) */}
+                {/* 🔹 badge "X ejercicios" (solo con sets_done) */}
                 <div
                   className="flex items-center justify-center gap-2 min-w-[90px] px-3 py-2.5 bg-gradient-to-br from-indigo-500/15 to-indigo-600/10 border-2 border-indigo-500/40 rounded-xl hover:from-indigo-500/25 hover:to-indigo-600/20 hover:border-indigo-500/60 hover:shadow-lg hover:shadow-indigo-500/20 hover:scale-105 transition-all duration-200"
                   role="listitem"
@@ -276,14 +267,16 @@ export function WorkoutCard({
                   </div>
                 )}
 
-                {sensationText !== "Sin sensaciones" && (
-                  <div
-                    className="flex items-center justify-center gap-2 min-w-[90px] px-3 py-2.5 bg-gradient-to-br from-purple-500/15 to-purple-600/10 border-2 border-purple-500/40 rounded-xl hover:from-purple-500/25 hover:to-purple-600/20 hover:border-purple-500/60 hover:shadow-lg hover:shadow-purple-500/20 hover:scale-105 transition-all duration-200  font-semibold text-purple-700 dark:text-purple-300"
-                    role="listitem"
-                  >
-                    {sensationText}
-                  </div>
-                )}
+                {/* ✅ Badge dinámico para “sensaciones” (siempre visible, con color por RPE) */}
+                <div
+                  className={cn(
+                    "flex items-center justify-center gap-2 min-w-[90px] px-3 py-2.5 rounded-xl border-2 font-semibold transition-all duration-200",
+                    sensationPillClasses(sensationText)
+                  )}
+                  role="listitem"
+                >
+                  {normalizeSensation(sensationText)}
+                </div>
               </div>
 
               {/* (Opcional) tira de badges por ejercicio más abajo… */}
