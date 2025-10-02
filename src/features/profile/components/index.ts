@@ -6,4 +6,5 @@ export { default as ProfileFriendsModal } from "./ProfileFriendsModal";
 export { default as ProfileMainExercise } from "./ProfileMainExercise";
 export { default as ProfileMuscleDistribution } from "./ProfileMuscleDistribution";
 export { default as ProfileStats } from "./ProfileStats";
+export { default as ProfileTopExercises } from "./ProfileTopExercises";
 export { default as ProfileWorkoutsList } from "./ProfileWorkoutsList";

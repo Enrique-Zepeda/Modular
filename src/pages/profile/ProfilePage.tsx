@@ -12,6 +12,7 @@ import {
   ProfileMainExercise,
   ProfileMuscleDistribution,
   ProfileStats,
+  ProfileTopExercises,
   ProfileWorkoutsList,
 } from "@/features/profile/components";
 import BmiBadge from "@/features/profile/components/BmiBadge";
@@ -124,7 +125,7 @@ export default function ProfilePage() {
         <h2 className="text-lg font-semibold tracking-tight">Análisis</h2>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {targetUsername && <ProfileMainExercise username={targetUsername} />}
+          {targetUsername && <ProfileTopExercises username={targetUsername} topN={3} />}
           {targetUsername && <ProfileMuscleDistribution username={targetUsername} recentDays={60} />}
         </div>
       </div>
