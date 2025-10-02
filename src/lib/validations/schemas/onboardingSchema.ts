@@ -10,6 +10,11 @@ export const onboardingSchema = z.object({
     .trim()
     .min(3, "Mínimo 3 caracteres")
     .max(20, "Máximo 20 caracteres")
+    // Mensaje específico si hay mayúsculas
+    .refine((s) => s === s.toLowerCase(), {
+      message: "El username debe estar en minúsculas",
+    })
+    // Reglas de caracteres permitidos (tal como ya tenías)
     .regex(/^[a-z0-9_]+$/, "Solo minúsculas, números y '_'"),
   nombre: z.string().trim().min(1, "Requerido"),
   edad: z
@@ -25,7 +30,7 @@ export const onboardingSchema = z.object({
     .max(999, "3 dígitos"),
   nivel_experiencia: z.enum(NIVELES, { required_error: "Selecciona un nivel" }),
   objetivo: z.enum(OBJETIVOS, { required_error: "Selecciona un objetivo" }),
-  sexo: z.enum(SEXOS, { required_error: "Selecciona tu sexo" }), // 👈 nuevo
+  sexo: z.enum(SEXOS, { required_error: "Selecciona tu sexo" }),
 });
 
 export type OnboardingFormValues = z.infer<typeof onboardingSchema>;

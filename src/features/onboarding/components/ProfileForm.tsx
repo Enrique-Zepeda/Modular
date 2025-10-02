@@ -50,8 +50,12 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
       objetivo: (defaults?.objetivo as any) ?? ("" as any),
       sexo: (defaults?.sexo as any) ?? ("" as any),
     },
-    mode: "onBlur",
+    mode: "onChange", // ✅ valida mientras escribe
+    reValidateMode: "onChange",
   });
+
+  const usernameValue = form.watch("username") ?? "";
+  const usernameHasUppercase = /[A-ZÁÉÍÓÚÑ]/.test(usernameValue);
 
   const blockNonDigits: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
     const bad = ["e", "E", "+", "-", ".", ","];
@@ -243,8 +247,14 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                           onBlur={handleCheckAvailability}
                           autoComplete="username"
                           className="h-11"
+                          aria-invalid={!!form.formState.errors.username || usernameHasUppercase}
+                          aria-describedby="username-rules username-error-help"
+                          onKeyDown={(e) => {
+                            if (e.key === " ") e.preventDefault(); // bloquea espacios
+                          }}
                         />
                       </div>
+
                       <Button
                         type="button"
                         variant="outline"
@@ -255,6 +265,7 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                       >
                         {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verificar"}
                       </Button>
+
                       <AnimatePresence mode="wait">
                         {available === true && (
                           <motion.div
@@ -282,17 +293,31 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                         )}
                       </AnimatePresence>
                     </div>
+
+                    {/* Error de Zod */}
                     {form.formState.errors.username && (
                       <motion.p
+                        id="username-error-help"
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="text-sm text-destructive flex items-center gap-2"
+                        role="alert"
                       >
                         <AlertCircle className="h-4 w-4" />
                         {form.formState.errors.username.message}
                       </motion.p>
                     )}
-                    <p className="text-xs text-muted-foreground">3-20 caracteres, solo minúsculas, números y "_"</p>
+
+                    {/* Aviso inmediato si detectamos mayúsculas y aún no hay error de Zod */}
+                    {!form.formState.errors.username && usernameHasUppercase && (
+                      <p id="username-error-help" className="text-xs text-destructive" role="alert">
+                        El username debe estar en <b>minúsculas</b>.
+                      </p>
+                    )}
+
+                    <p id="username-rules" className="text-xs text-muted-foreground">
+                      3–20 caracteres, solo <b>minúsculas</b>, números y “_”
+                    </p>
                   </div>
 
                   {/* Nombre */}
