@@ -90,9 +90,14 @@ export default function ExerciseListPage() {
           <ExercisesHeader total={exercises.length} groups={muscleGroups.length} />
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-            <Card className="border-0 shadow-lg bg-card/80 backdrop-blur-sm">
-              <CardContent className="p-6 space-y-6">
+            <Card className="relative overflow-hidden rounded-3xl border-2 border-primary/20 bg-gradient-to-br from-primary/10 via-purple-500/5 to-card shadow-2xl hover:shadow-[0_20px_70px_-15px_rgba(139,92,246,0.3)] transition-all duration-300 backdrop-blur-md">
+              {/* Overlays de realce, igual que el header */}
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-purple-500/5 pointer-events-none" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(120,119,198,0.12),transparent_55%)] pointer-events-none" />
+
+              <CardContent className="relative p-6 space-y-6">
                 <SearchBar value={filters.searchTerm} onChange={filters.setSearchTerm} />
+
                 <FiltersToggle
                   expanded={filters.isFiltersExpanded}
                   setExpanded={filters.setIsFiltersExpanded}
@@ -100,6 +105,7 @@ export default function ExerciseListPage() {
                   hasActive={filters.hasActiveFilters}
                   onClear={filters.clearFilters}
                 />
+
                 <AdvancedFilters
                   expanded={filters.isFiltersExpanded}
                   muscleGroups={muscleGroups}
