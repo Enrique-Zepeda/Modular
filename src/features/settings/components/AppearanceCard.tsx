@@ -12,7 +12,7 @@ export function AppearanceCard() {
 
   return (
     <div className="space-y-12">
-      <div className="flex items-center justify-between p-8 rounded-2xl glass-effect border border-primary/10 premium-hover">
+      <div className="flex items-center justify-between p-8 rounded-2xl glass-effect border bg-slate-50/50 dark:bg-transparent border-slate-200 dark:border-primary/10 premium-hover">
         <div className="flex items-center gap-6">
           <div className="p-4 rounded-xl glass-effect border border-primary/20 animate-pulse-glow">
             {isDark ? <Moon className="h-7 w-7 text-primary" /> : <Sun className="h-7 w-7 text-primary" />}
@@ -33,7 +33,7 @@ export function AppearanceCard() {
           id="theme-toggle"
           checked={isDark}
           onCheckedChange={() => dispatch(toggleTheme())}
-          className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-muted scale-125 premium-hover"
+          className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-slate-300 data-[state=unchecked]:ring-1 data-[state=unchecked]:ring-slate-400/50 dark:data-[state=unchecked]:bg-slate-700 scale-125 premium-hover"
         />
       </div>
     </div>
