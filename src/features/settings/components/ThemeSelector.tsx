@@ -55,12 +55,6 @@ export function ThemeSelector() {
     setColorTheme(theme as any);
   };
 
-  const handleReset = () => {
-    const defaultTheme = "modern";
-    setSelectedTheme(defaultTheme);
-    setColorTheme(defaultTheme as any);
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent, theme: string, index: number) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -92,16 +86,6 @@ export function ThemeSelector() {
             <p className="text-sm text-muted-foreground">{filteredThemes.length} temas disponibles</p>
           </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleReset}
-          className="gap-2 premium-hover bg-transparent"
-          aria-label="Restablecer al tema por defecto"
-        >
-          <RotateCcw className="h-4 w-4" />
-          <span className="hidden sm:inline">Restablecer</span>
-        </Button>
       </div>
 
       <div
