@@ -3,6 +3,7 @@ import { toggleTheme } from "@/features/theme/slices/themeSlice";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Moon, Sun } from "lucide-react";
+import { ThemeSelector } from "./ThemeSelector";
 
 export function AppearanceCard() {
   const theme = useAppSelector((state) => state.theme);
@@ -36,6 +37,7 @@ export function AppearanceCard() {
           className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-slate-300 data-[state=unchecked]:ring-1 data-[state=unchecked]:ring-slate-400/50 dark:data-[state=unchecked]:bg-slate-700 scale-125 premium-hover"
         />
       </div>
+      <ThemeSelector />
     </div>
   );
 }

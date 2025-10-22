@@ -218,3 +218,20 @@
     -webkit-line-clamp: 3;
   }
 }
+
+/* Importa temas de color */
+@import "./features/theme/themes/amethyst.css";
+@import "./features/theme/themes/blue.css";
+@import "./features/theme/themes/candyland.css";
+@import "./features/theme/themes/dark.css";
+@import "./features/theme/themes/ghibliStudio.css";
+@import "./features/theme/themes/green.css";
+@import "./features/theme/themes/kodama.css";
+@import "./features/theme/themes/neo.css";
+@import "./features/theme/themes/notebook.css";
+@import "./features/theme/themes/red.css";
+@import "./features/theme/themes/spotify.css";
+@import "./features/theme/themes/summer.css";
+@import "./features/theme/themes/twitter.css";
+@import "./features/theme/themes/vercel.css";
+@import "./features/theme/themes/violet.css";
