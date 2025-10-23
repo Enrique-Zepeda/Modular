@@ -233,7 +233,7 @@ export function WorkoutCard({
                   <ListChecks className="h-4 w-4 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
                   <span className="font-bold text-indigo-700 dark:text-indigo-300">{exercisesCount}</span>
                   <span className="text-xs text-indigo-600/80 dark:text-indigo-400/80 font-semibold">
-                    ejercicio{exercisesCount === 1 ? "" : "s"}
+                    Ejercicio{exercisesCount === 1 ? "" : "s"}
                   </span>
                 </div>
 
@@ -243,7 +243,7 @@ export function WorkoutCard({
                 >
                   <Dumbbell className="h-4 w-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />
                   <span className="font-bold text-blue-700 dark:text-blue-300">{totalSets}</span>
-                  <span className="text-xs text-blue-600/80 dark:text-blue-400/80 font-semibold">sets realizados</span>
+                  <span className="text-xs text-blue-600/80 dark:text-blue-400/80 font-semibold">Sets</span>
                 </div>
 
                 <div
@@ -270,10 +270,17 @@ export function WorkoutCard({
                 {/* ✅ Badge dinámico para “sensaciones” (siempre visible, con color por RPE) */}
                 <div
                   className={cn(
-                    "flex items-center justify-center gap-2 min-w-[90px] px-3 py-2.5 rounded-xl border-2 font-semibold transition-all duration-200",
+                    "flex items-center justify-center gap-2 min-w-[90px] px-3 py-2.5 rounded-xl border-2 font-semibold",
+                    "bg-gradient-to-br transition-all duration-200",
+                    // Hover/Focus accesible y consistente
+                    "hover:scale-105 hover:shadow-lg hover:shadow-primary/20 hover:saturate-125 hover:contrast-110",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    // Colores dinámicos según la sensación (tu helper)
                     sensationPillClasses(sensationText)
                   )}
                   role="listitem"
+                  title={`Sensación: ${normalizeSensation(sensationText)}`}
+                  aria-label={`Sensación: ${normalizeSensation(sensationText)}`}
                 >
                   {normalizeSensation(sensationText)}
                 </div>
