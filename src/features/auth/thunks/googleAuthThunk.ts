@@ -15,7 +15,7 @@ export const loginWithGoogle = () => async (dispatch: AppDispatch) => {
     });
 
     if (error) {
-      toast.error("Failed to sign in with Google");
+      toast.error("No se pudo iniciar sesión con Google.");
       throw error;
     }
   } catch (error) {
