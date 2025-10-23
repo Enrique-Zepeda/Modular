@@ -9,6 +9,8 @@ type TrainingBadge = {
   samples: number; // sesiones consideradas
 } | null;
 
+type Sexo = "masculino" | "femenino" | null | undefined;
+
 const scoreToLabel = (n: number): TrainingBadge["label"] => {
   const s = Math.min(5, Math.max(1, Math.round(n)));
   return (["Fácil", "Moderado", "Difícil", "Muy difícil", "Al fallo"] as const)[s - 1];
@@ -57,6 +59,18 @@ const trainingProfileMap = {
   "Al fallo": { title: "Entrena como dios del olimpo", color: "#E74C3C" },
 } as const;
 
+/** Devuelve el título ajustado por sexo (solo cambia en Difícil / Al fallo) */
+function titleForSexo(label: TrainingBadge["label"], sexo: Sexo) {
+  if (label === "Difícil") {
+    return sexo === "femenino" ? "Entrena como Guerrera" : "Entrena como Guerrero";
+  }
+  if (label === "Al fallo") {
+    return sexo === "femenino" ? "Entrena como Diosa del olimpo" : "Entrena como Dios del olimpo";
+  }
+  // Otros títulos son neutros
+  return trainingProfileMap[label].title;
+}
+
 function normalizeUsername(u?: string) {
   const x = (u ?? "").trim();
   return x.startsWith("@") ? x.slice(1) : x;
@@ -66,6 +80,7 @@ function normalizeUsername(u?: string) {
  * Calcula el “perfil de entrenamiento” a partir del RPE de los sets:
  * - Para cada sesión cerrada, hace la media de RPE de sus sets (done=true).
  * - Luego promedia esas medias por sesión (evita sesgos por #sets).
+ * Además: lee `sexo` del usuario (tabla `Usuarios`) para ajustar el título.
  */
 export function useTrainingProfile(username?: string, maxSessions = 200) {
   const uname = useMemo(() => normalizeUsername(username), [username]);
@@ -80,10 +95,10 @@ export function useTrainingProfile(username?: string, maxSessions = 200) {
       setIsLoading(true);
       setError(null);
       try {
-        // 1) UID por username
+        // 1) auth_uid + sexo por username (para visitar perfiles ajenos también)
         const { data: urow, error: uerr } = await supabase
           .from("Usuarios")
-          .select("auth_uid")
+          .select("auth_uid, sexo")
           .eq("username", uname)
           .maybeSingle();
         if (uerr) throw uerr;
@@ -94,6 +109,7 @@ export function useTrainingProfile(username?: string, maxSessions = 200) {
           }
           return;
         }
+        const userSexo: Sexo = (urow as { sexo?: Sexo }).sexo;
 
         // 2) Últimas N sesiones cerradas
         const { data: sesiones, error: serr } = await supabase
@@ -104,6 +120,7 @@ export function useTrainingProfile(username?: string, maxSessions = 200) {
           .order("ended_at", { ascending: false })
           .limit(maxSessions);
         if (serr) throw serr;
+
         const ids = (sesiones ?? []).map((s: any) => Number(s.id_sesion));
         if (ids.length === 0) {
           if (alive) {
@@ -147,13 +164,14 @@ export function useTrainingProfile(username?: string, maxSessions = 200) {
 
         const globalMean = sessionMeans.reduce((a, b) => a + b, 0) / sessionMeans.length;
         const label = scoreToLabel(globalMean);
-        const meta = trainingProfileMap[label];
+        const color = trainingProfileMap[label].color;
+        const title = titleForSexo(label, userSexo);
 
         if (alive) {
           setBadge({
             label,
-            title: meta.title,
-            color: meta.color,
+            title,
+            color,
             avgScore: Number(globalMean.toFixed(2)),
             samples: sessionMeans.length,
           });
