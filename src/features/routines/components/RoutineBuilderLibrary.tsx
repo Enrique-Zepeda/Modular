@@ -57,13 +57,22 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
     equipamento: selectedEquipment === "all" ? undefined : selectedEquipment,
   });
 
+  /**
+   * ✅ Cambios clave del formulario:
+   * - mode: "onSubmit" -> no valida ni muestra errores hasta que se envía el form.
+   * - peso_sugerido inicia "vacío": usamos undefined (cast para TS sin cambiar tipos).
+   */
   const form = useForm<AgregarEjercicioFormData>({
     resolver: zodResolver(agregarEjercicioSchema),
+    mode: "onSubmit",
+    reValidateMode: "onChange",
     defaultValues: {
       id_ejercicio: 0,
       series: 3,
       repeticiones: 10,
-      peso_sugerido: 0,
+      // inicia vacío visualmente (permitimos undefined internamente)
+      // sin cambiar los tipos de AgregarEjercicioFormData:
+      peso_sugerido: undefined as unknown as number,
     },
   });
 
@@ -112,7 +121,7 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
       const wantedEq = selectedEquipment.toLowerCase();
       const matchesEquipment = selectedEquipment === "all" || eqTokens.includes(wantedEq);
 
-      return matchesSearch && matchesMuscle && matchesDifficulty && matchesEquipment;
+      return matchesSearch, matchesMuscle, matchesDifficulty, matchesEquipment;
     });
   }, [exercises, debouncedSearch, selectedMuscleGroup, selectedDifficulty, selectedEquipment]);
 
@@ -142,7 +151,8 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
       id_ejercicio: 0,
       series: 3,
       repeticiones: 10,
-      peso_sugerido: 0,
+      // vuelve a vacío
+      peso_sugerido: undefined as unknown as number,
     });
   };
 
@@ -331,6 +341,7 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
               <div className="grid grid-cols-3 gap-4">
+                {/* SERIES */}
                 <FormField
                   control={form.control}
                   name="series"
@@ -343,14 +354,19 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
                           min="1"
                           max="20"
                           {...field}
-                          onChange={(e) => field.onChange(Number.parseInt(e.target.value) || 0)}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            field.onChange(v === "" ? "" : Number.parseInt(v, 10));
+                          }}
                         />
                       </FormControl>
-                      <FormMessage />
+                      {/* Mostrar errores sólo tras intentar enviar */}
+                      {form.formState.submitCount > 0 && <FormMessage />}
                     </FormItem>
                   )}
                 />
 
+                {/* REPETICIONES */}
                 <FormField
                   control={form.control}
                   name="repeticiones"
@@ -363,14 +379,18 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
                           min="1"
                           max="100"
                           {...field}
-                          onChange={(e) => field.onChange(Number.parseInt(e.target.value) || 0)}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            field.onChange(v === "" ? "" : Number.parseInt(v, 10));
+                          }}
                         />
                       </FormControl>
-                      <FormMessage />
+                      {form.formState.submitCount > 0 && <FormMessage />}
                     </FormItem>
                   )}
                 />
 
+                {/* PESO (KG) */}
                 <FormField
                   control={form.control}
                   name="peso_sugerido"
@@ -380,14 +400,26 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
                       <FormControl>
                         <Input
                           type="number"
+                          inputMode="decimal"
                           min="0"
                           max="1000"
-                          step="0.5"
+                          step="any"
+                          placeholder="Ej. 0, 20, 42.5"
                           {...field}
-                          onChange={(e) => field.onChange(Number.parseFloat(e.target.value) || 0)}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            if (v === "") {
+                              // vacío visualmente
+                              field.onChange(undefined as unknown as number);
+                              return;
+                            }
+                            const num = Number.parseFloat(v);
+                            // permite 0 y decimales; si no es número válido, mantenemos undefined
+                            field.onChange(Number.isNaN(num) ? (undefined as unknown as number) : num);
+                          }}
                         />
                       </FormControl>
-                      <FormMessage />
+                      {form.formState.submitCount > 0 && <FormMessage />}
                     </FormItem>
                   )}
                 />
