@@ -1,4 +1,3 @@
-// FILE: src/features/workouts/components/WorkoutCard.tsx
 import { useState, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

@@ -1,4 +1,3 @@
-// FILE: src/features/workouts/hooks/useWorkoutDetails.ts
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { formatDurationShort } from "@/lib/duration";
