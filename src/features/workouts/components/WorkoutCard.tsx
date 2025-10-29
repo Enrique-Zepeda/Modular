@@ -1,5 +1,5 @@
 // FILE: src/features/workouts/components/WorkoutCard.tsx
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { motion } from "framer-motion";
 import { diffSecondsSafe, formatDurationShort } from "@/lib/duration";
 import { SocialActionsBar } from "@/features/social/components/SocialActionsBar";
 import { normalizeSensation, sensationPillClasses } from "@/features/workouts/utils/sensation";
+import { WorkoutDetailsDialog } from "./WorkoutDetailsDialog";
 
 type ExerciseItem = {
   id?: number | string | null;
@@ -118,9 +119,33 @@ export function WorkoutCard({
     .join("");
 
   const [openConfirm, setOpenConfirm] = useState(false);
+  const [openDetails, setOpenDetails] = useState(false);
+
   const [deleteWorkout, { isLoading: deleting }] = useDeleteWorkoutSessionMutation();
 
   const canDelete = isMine && !readOnly;
+
+  const isAnyDialogOpen = openConfirm || openDetails;
+
+  const handleOpenDetails = useCallback<React.MouseEventHandler<HTMLDivElement>>(
+    (e) => {
+      if (isAnyDialogOpen) return;
+      const target = e.target as HTMLElement;
+      if (target.closest("[data-no-open]")) return;
+      setOpenDetails(true);
+    },
+    [isAnyDialogOpen]
+  );
+
+  const openConfirmExclusively = useCallback(() => {
+    setOpenDetails(false);
+    setOpenConfirm(true);
+  }, []);
+
+  const openDetailsExclusively = useCallback(() => {
+    setOpenConfirm(false);
+    setOpenDetails(true);
+  }, []);
 
   const handleDelete = async () => {
     try {
@@ -143,7 +168,6 @@ export function WorkoutCard({
 
   const durationLabel = useMemo(() => formatDurationShort(durationSeconds), [durationSeconds]);
 
-  // ✅ Cálculo de ejercicios realizados para badge "X ejercicios"
   const doneExercises = useMemo(() => (ejercicios ?? []).filter((ex) => (ex.sets_done ?? 0) > 0), [ejercicios]);
   const exercisesCount = doneExercises.length;
 
@@ -164,13 +188,13 @@ export function WorkoutCard({
         transition={{ duration: 0.2 }}
       >
         <Card
+          onClick={handleOpenDetails}
           className={cn(
-            "relative overflow-hidden border-2 border-border/60 rounded-3xl",
+            "relative overflow-hidden border-2 border-border/60 rounded-3xl cursor-pointer",
             "backdrop-blur-xl bg-gradient-to-br from-card/95 via-card/90 to-card/95",
             "shadow-2xl transition-all duration-700",
             "hover:shadow-[0_20px_70px_-15px_rgba(139,92,246,0.3)]",
             "hover:-translate-y-0.5",
-            "motion-reduce:transition-none motion-reduce:hover:shadow-none motion-reduce:hover:translate-y-0",
             "supports-[backdrop-filter]:backdrop-blur-xl",
             className
           )}
@@ -180,10 +204,14 @@ export function WorkoutCard({
               <div className="flex-1" />
               {canDelete && (
                 <Button
+                  data-no-open
                   variant="ghost"
                   size="icon"
                   className="h-9 w-9 shrink-0 hover:bg-destructive/15 hover:text-destructive hover:scale-110 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2 rounded-lg"
-                  onClick={() => setOpenConfirm(true)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openConfirmExclusively();
+                  }}
                   aria-label="Eliminar entrenamiento"
                   disabled={deleting}
                 >
@@ -219,13 +247,12 @@ export function WorkoutCard({
                 </div>
               </div>
 
-              {/* KPIs superiores */}
+              {/* KPIs */}
               <div
                 className="flex flex-wrap items-center gap-3 pt-1"
                 role="list"
                 aria-label="Estadísticas del entrenamiento"
               >
-                {/* 🔹 badge "X ejercicios" (solo con sets_done) */}
                 <div
                   className="flex items-center justify-center gap-2 min-w-[90px] px-3 py-2.5 bg-gradient-to-br from-indigo-500/15 to-indigo-600/10 border-2 border-indigo-500/40 rounded-xl hover:from-indigo-500/25 hover:to-indigo-600/20 hover:border-indigo-500/60 hover:shadow-lg hover:shadow-indigo-500/20 hover:scale-105 transition-all duration-200"
                   role="listitem"
@@ -257,7 +284,7 @@ export function WorkoutCard({
                   <span className="text-xs text-emerald-600/80 dark:text-emerald-400/80 font-semibold">kg</span>
                 </div>
 
-                {durationLabel && (
+                {!!durationLabel && (
                   <div
                     className="flex items-center justify-center gap-2 min-w-[90px] px-3 py-2.5 bg-gradient-to-br from-amber-500/15 to-amber-600/10 border-2 border-amber-500/40 rounded-xl hover:from-amber-500/25 hover:to-amber-600/20 hover:border-amber-500/60 hover:shadow-lg hover:shadow-amber-500/20 hover:scale-105 transition-all duration-200"
                     role="listitem"
@@ -267,15 +294,12 @@ export function WorkoutCard({
                   </div>
                 )}
 
-                {/* ✅ Badge dinámico para “sensaciones” (siempre visible, con color por RPE) */}
                 <div
                   className={cn(
                     "flex items-center justify-center gap-2 min-w-[90px] px-3 py-2.5 rounded-xl border-2 font-semibold",
                     "bg-gradient-to-br transition-all duration-200",
-                    // Hover/Focus accesible y consistente
                     "hover:scale-105 hover:shadow-lg hover:shadow-primary/20 hover:saturate-125 hover:contrast-110",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                    // Colores dinámicos según la sensación (tu helper)
                     sensationPillClasses(sensationText)
                   )}
                   role="listitem"
@@ -285,8 +309,6 @@ export function WorkoutCard({
                   {normalizeSensation(sensationText)}
                 </div>
               </div>
-
-              {/* (Opcional) tira de badges por ejercicio más abajo… */}
             </div>
           </CardHeader>
 
@@ -345,7 +367,14 @@ export function WorkoutCard({
               </div>
             )}
 
-            <div className="pt-5 border-t-2 border-border/80">
+            {/* Social bar: evitar que abra el modal */}
+            <div
+              className="pt-5 border-t-2 border-border/80"
+              data-no-open
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
               <SocialActionsBar
                 sessionId={idSesion}
                 initialLikesCount={socialInitial?.likesCount}
@@ -354,31 +383,48 @@ export function WorkoutCard({
               />
             </div>
           </CardContent>
-
-          {canDelete && (
-            <AlertDialog open={openConfirm} onOpenChange={setOpenConfirm}>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Eliminar entrenamiento</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta acción no se puede deshacer. Se eliminará la sesión y sus sets asociados.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDelete}
-                    disabled={deleting}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    {deleting ? "Eliminando…" : "Eliminar"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
         </Card>
       </motion.div>
+
+      {/* Detalle con semillas para duración y sensación */}
+      <WorkoutDetailsDialog
+        sessionId={idSesion}
+        open={openDetails}
+        onOpenChange={(v) => {
+          if (v) openDetailsExclusively();
+          else setOpenDetails(false);
+        }}
+        durationLabelSeed={durationLabel}
+        sensacionSeed={sensationText}
+      />
+
+      {/* Confirmación de eliminar */}
+      <AlertDialog
+        open={openConfirm}
+        onOpenChange={(v) => {
+          if (v) openConfirmExclusively();
+          else setOpenConfirm(false);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar entrenamiento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará la sesión y sus sets asociados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Eliminando…" : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

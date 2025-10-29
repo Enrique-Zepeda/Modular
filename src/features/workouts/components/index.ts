@@ -5,6 +5,7 @@ export { ExerciseQuickConfigDialog } from "./ExerciseQuickConfigDialog";
 export { FinishedWorkoutsSection } from "./FinishedWorkoutsSection";
 export { KpiProgress } from "./KpiProgress";
 export { WorkoutCard } from "./WorkoutCard";
+export { WorkoutDetailsDialog } from "./WorkoutDetailsDialog";
 export { WorkoutExerciseItem } from "./WorkoutExerciseItem";
 export { WorkoutExerciseList } from "./WorkoutExerciseList";
 export { WorkoutHeader } from "./WorkoutHeader";
