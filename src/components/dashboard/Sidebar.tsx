@@ -13,9 +13,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
-  Bell,
   User,
   Search,
+  UserPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import LogoutConfirmDialog from "../ui/logout-confirm-dialog";
@@ -29,7 +29,7 @@ const navigation = [
   { name: "Rutinas", href: "/dashboard/routines", icon: Calendar },
   { name: "Recomendación de Rutina", href: "/recomendacion", icon: Sparkles },
   { name: "Ejercicios", href: "/dashboard/ejercicios", icon: Dumbbell },
-  { name: "Solicitudes", href: "/dashboard/notifications", icon: Bell },
+  { name: "Solicitudes", href: "/dashboard/notifications", icon: UserPlus },
   { name: "Perfil", href: "/profile", icon: User },
   { name: "Configuración", href: "/dashboard/settings", icon: Settings },
 ];

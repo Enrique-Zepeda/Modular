@@ -2,7 +2,7 @@ import { RequestsList } from "@/features/friends/components/RequestsPanels";
 import { useFriendRequests } from "@/features/friends/hooks";
 import { useFriendActions } from "@/features/friends/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bell, Inbox, Send, Loader2 } from "lucide-react";
+import { Inbox, Send, Loader2, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 /**
@@ -17,7 +17,7 @@ export default function NotificationsPage() {
       <div className="space-y-3">
         <div className="flex items-center gap-3">
           <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/30">
-            <Bell className="h-6 w-6 text-purple-400" />
+            <UserPlus className="h-6 w-6 text-purple-400" />
           </div>
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">

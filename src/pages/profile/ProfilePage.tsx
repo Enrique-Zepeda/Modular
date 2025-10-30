@@ -76,7 +76,9 @@ export default function ProfilePage() {
         displayName={profile?.nombre ?? null}
         username={profile?.username ?? null}
         avatarUrl={profile?.url_avatar ?? null}
-        training={training} // <-- ¡Aquí pasas la nueva prop!
+        training={training}
+        friendshipTargetId={profile?.id_usuario ?? null}
+        friendshipTargetUsername={profile?.username ?? null}
       />
       {isSelf && (
         <div className="relative overflow-hidden rounded-2xl border-2 border-border/60 bg-gradient-to-br from-card via-card/95 to-card/90 shadow-lg hover:shadow-xl transition-all duration-300">

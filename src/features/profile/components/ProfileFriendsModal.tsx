@@ -139,7 +139,7 @@ export default function ProfileFriendsModal({
                           <div className="font-semibold truncate group-hover:underline">
                             {f.nombre ?? `@${f.username}`}
                           </div>
-                          <div className="text-sm text-muted-foreground truncate">@{f.username}</div>
+                          <div className="text-sm text-muted-foreground truncate">{f.username}</div>
                         </div>
                       </Link>
 
