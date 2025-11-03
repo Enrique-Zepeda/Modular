@@ -116,26 +116,6 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="pt-0 space-y-12">
                 <ChangePasswordForm />
-
-                <div className="pt-8 border-t border-border/30">
-                  <div className="glass-effect p-8 rounded-2xl border border-destructive/20">
-                    <div className="space-y-6">
-                      <div>
-                        <h3 className="text-2xl font-bold text-destructive mb-2">Zona de peligro</h3>
-                        <p className="text-muted-foreground text-lg leading-relaxed">
-                          Esta acción no se puede deshacer. Se eliminarán permanentemente todos tus datos, rutinas,
-                          ejercicios y configuraciones.
-                        </p>
-                      </div>
-                      <Button
-                        variant="destructive"
-                        className="premium-button glass-effect bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive hover:text-destructive-foreground h-12 px-8 text-base font-semibold"
-                      >
-                        Eliminar Cuenta Permanentemente
-                      </Button>
-                    </div>
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </TabsContent>
