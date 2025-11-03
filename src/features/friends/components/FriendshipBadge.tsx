@@ -1,98 +1,166 @@
-"use client";
-
 import type * as React from "react";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Check, X } from "lucide-react";
 import toast from "react-hot-toast";
+import { cn } from "@/lib/utils";
+
 import {
   useListFriendsQuery,
   useListOutgoingRequestsQuery,
+  useListIncomingRequestsQuery,
   useSendFriendRequestMutation,
+  useAcceptFriendRequestMutation,
+  useRejectFriendRequestMutation,
 } from "@/features/friends/api";
 import { useGetMyProfileQuery } from "@/features/profile/api/userProfileApi";
-import { UserPlus, Clock, Check, Loader2 } from "lucide-react";
 
 type Props = {
-  /** id del usuario visitado (string o number) */
   targetId: string | number;
-  /** para UX en el toast, opcional */
   targetUsername?: string | null;
   className?: string;
 };
 
+// UI-ONLY REFACTOR: Converted to mini-card badge with Avatar, Tooltip, and improved accessibility
 const FriendshipBadge: React.FC<Props> = ({ targetId, targetUsername, className }) => {
   const tid = String(targetId);
 
-  // Mi perfil para detectar si estoy viendo mi propio perfil
+  // 🧩 TODOS los hooks van siempre al tope (nunca condicionales)
   const myQ = useGetMyProfileQuery();
-  const isSelf = myQ.data ? String(myQ.data.id_usuario) === tid : false;
-
-  // Listas existentes en tu API de amigos
   const friendsQ = useListFriendsQuery();
   const outgoingQ = useListOutgoingRequestsQuery();
+  const incomingQ = useListIncomingRequestsQuery();
+
   const [sendReq, sendReqState] = useSendFriendRequestMutation();
+  const [acceptReq, acceptReqState] = useAcceptFriendRequestMutation();
+  const [rejectReq, rejectReqState] = useRejectFriendRequestMutation();
 
-  if (isSelf) return null; // no mostrar nada en mi propio perfil
+  // Derivados
+  const isSelf = myQ.data ? String(myQ.data.id_usuario) === tid : false;
+  const isLoading = friendsQ.isLoading || outgoingQ.isLoading || incomingQ.isLoading || myQ.isLoading;
 
-  const isLoading = friendsQ.isLoading || outgoingQ.isLoading || myQ.isLoading;
+  const isFriend = !!friendsQ.data?.some((f: any) => String(f.id_usuario) === tid);
+  const outgoingReq = outgoingQ.data?.find((r: any) => String(r.destinatario_id) === tid && r.estado === "pendiente");
+  const incomingReq = incomingQ.data?.find((r: any) => String(r.solicitante_id) === tid && r.estado === "pendiente");
 
-  if (isLoading)
-    return (
-      <Badge
-        variant="secondary"
-        className={cn("gap-2 px-4 py-2 shadow-sm border-2 border-border/60 bg-muted/50", className)}
-      >
-        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-        <span className="text-xs font-medium">Cargando…</span>
-      </Badge>
-    );
-
-  const isFriend = !!friendsQ.data?.some((f) => String(f.id_usuario) === tid);
-  const hasOutgoingPending = !!outgoingQ.data?.some(
-    (r) => String(r.destinatario_id) === tid && r.estado === "pendiente"
-  );
-
+  // Acciones
   const handleSend = async () => {
-    if (isFriend || hasOutgoingPending || sendReqState.isLoading) return;
+    if (isFriend || outgoingReq || incomingReq || sendReqState.isLoading) return;
     try {
       await sendReq({ destinatario_id: Number(tid) }).unwrap();
       toast.success(`Solicitud enviada${targetUsername ? ` a @${targetUsername}` : ""}`);
-      // para refrescar otros módulos que escuchen este evento (ya lo usas en el modal)
       window.dispatchEvent(new CustomEvent("friends:changed"));
     } catch (e: any) {
-      toast.error(e?.message ?? "No se pudo enviar la solicitud");
+      const msg = e?.message?.includes("uniq_sa_pair_pending")
+        ? "Ya existe una solicitud pendiente entre ustedes."
+        : e?.message ?? "No se pudo enviar la solicitud";
+      toast.error(msg);
     }
   };
 
+  const handleAccept = async () => {
+    if (!incomingReq || acceptReqState.isLoading) return;
+    try {
+      await acceptReq({ id_solicitud: incomingReq.id_solicitud }).unwrap();
+      toast.success(`Ahora sigues a @${targetUsername ?? "usuario"}`);
+      window.dispatchEvent(new CustomEvent("friends:changed"));
+    } catch (e: any) {
+      toast.error(e?.message ?? "No se pudo aceptar la solicitud");
+    }
+  };
+
+  const handleReject = async () => {
+    if (!incomingReq || rejectReqState.isLoading) return;
+    try {
+      await rejectReq({ id_solicitud: incomingReq.id_solicitud }).unwrap();
+      toast.success(`Solicitud de @${targetUsername ?? "usuario"} rechazada`);
+      window.dispatchEvent(new CustomEvent("friends:changed"));
+    } catch (e: any) {
+      toast.error(e?.message ?? "No se pudo rechazar la solicitud");
+    }
+  };
+
+  if (isSelf) return null;
+  if (isLoading)
+    return (
+      <Badge variant="secondary" className={className}>
+        Cargando…
+      </Badge>
+    );
   if (isFriend) {
     return (
-      <Badge
-        variant="secondary"
-        className={cn(
-          "gap-2 px-4 py-2 shadow-md border-2 border-green-500/30 bg-gradient-to-br from-green-500/10 via-emerald-500/5 to-green-500/10 text-green-600 dark:text-green-400 hover:shadow-lg hover:border-green-500/40 transition-all duration-300",
-          className
-        )}
-        title="Ya son amigos"
-      >
-        <Check className="h-3.5 w-3.5" />
-        <span className="text-xs font-semibold">Amigos</span>
-      </Badge>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge
+              variant="secondary"
+              className={cn("cursor-default flex items-center gap-2", className)}
+              role="status"
+              aria-label={`Amigo de ${targetUsername || "usuario"}`}
+            >
+              <div className="h-2 w-2 rounded-full bg-green-500" />
+              Son amigos
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-xs">
+            @{targetUsername || "usuario"}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   }
 
-  if (hasOutgoingPending) {
+  if (incomingReq) {
     return (
-      <Badge
-        variant="outline"
-        className={cn(
-          "gap-2 px-4 py-2 shadow-md border-2 border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-amber-500/10 text-amber-600 dark:text-amber-400 hover:shadow-lg hover:border-amber-500/50 transition-all duration-300",
-          className
-        )}
-        title="Solicitud enviada"
-      >
-        <Clock className="h-3.5 w-3.5 animate-pulse" />
-        <span className="text-xs font-semibold">Pendiente</span>
-      </Badge>
+      <div className={cn("flex items-center gap-2", className)}>
+        <Button
+          size="sm"
+          className="bg-green-600 hover:bg-green-700 text-white gap-1"
+          onClick={handleAccept}
+          disabled={acceptReqState.isLoading}
+          aria-label={`Aceptar solicitud de ${targetUsername || "usuario"}`}
+          title="Aceptar solicitud"
+        >
+          <Check className="h-4 w-4" />
+          {acceptReqState.isLoading ? "Aceptando…" : "Aceptar"}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1 bg-transparent"
+          onClick={handleReject}
+          disabled={rejectReqState.isLoading}
+          aria-label={`Rechazar solicitud de ${targetUsername || "usuario"}`}
+          title="Rechazar solicitud"
+        >
+          <X className="h-4 w-4" />
+          {rejectReqState.isLoading ? "Rechazando…" : "Rechazar"}
+        </Button>
+      </div>
+    );
+  }
+
+  if (outgoingReq) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge
+              variant="outline"
+              className={cn("cursor-default flex items-center gap-2", className)}
+              role="status"
+              aria-label={`Solicitud pendiente con ${targetUsername || "usuario"}`}
+            >
+              <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+              Esperando…
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-xs">
+            Solicitud pendiente con @{targetUsername || "usuario"}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     );
   }
 
@@ -100,25 +168,23 @@ const FriendshipBadge: React.FC<Props> = ({ targetId, targetUsername, className 
     <Badge
       variant="default"
       className={cn(
-        "gap-2 px-4 py-2 cursor-pointer shadow-lg border-2 border-primary/30 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 hover:border-primary/50",
-        sendReqState.isLoading && "opacity-70 cursor-wait",
+        "cursor-pointer select-none gap-1 hover:ring-2 hover:ring-offset-2 hover:ring-offset-background transition-all",
         className
       )}
       onClick={handleSend}
-      title={sendReqState.isLoading ? "Enviando…" : "Agregar amigo"}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleSend();
+        }
+      }}
+      role="button"
+      tabIndex={sendReqState.isLoading ? -1 : 0}
       aria-busy={sendReqState.isLoading}
+      aria-label={sendReqState.isLoading ? "Enviando solicitud…" : "Agregar amigo"}
+      title={sendReqState.isLoading ? "Enviando…" : "Agregar amigo"}
     >
-      {sendReqState.isLoading ? (
-        <>
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          <span className="text-xs font-semibold">Enviando…</span>
-        </>
-      ) : (
-        <>
-          <UserPlus className="h-3.5 w-3.5" />
-          <span className="text-xs font-semibold">Agregar</span>
-        </>
-      )}
+      {sendReqState.isLoading ? "Enviando…" : "Agregar"}
     </Badge>
   );
 };

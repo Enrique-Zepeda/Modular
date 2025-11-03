@@ -145,7 +145,7 @@ export async function prefetchWorkoutDetails(
       .order("idx", { ascending: true }),
     supabase
       .from("Entrenamientos")
-      .select("started_at, ended_at, duracion_seg, duracion_seconds")
+      .select("started_at, ended_at, duracion_seg")
       .eq("id_sesion", sessionId)
       .maybeSingle(),
   ]);
@@ -153,7 +153,7 @@ export async function prefetchWorkoutDetails(
   if (setsQ.error) return; // silencioso en prefetch
 
   const dur =
-    (typeof metaQ.data?.duracion_seconds === "number" && metaQ.data?.duracion_seconds) ??
+    (typeof (metaQ.data as any)?.duracion_seconds === "number" && (metaQ.data as any)?.duracion_seconds) ??
     (typeof metaQ.data?.duracion_seg === "number" && metaQ.data?.duracion_seg) ??
     null;
 
@@ -205,7 +205,7 @@ export function useWorkoutDetails(
           .order("idx", { ascending: true }),
         supabase
           .from("Entrenamientos")
-          .select("started_at, ended_at, duracion_seg, duracion_seconds")
+          .select("started_at, ended_at, duracion_seg")
           .eq("id_sesion", sessionId)
           .maybeSingle(),
       ]);
@@ -219,7 +219,7 @@ export function useWorkoutDetails(
       }
 
       const dur =
-        (typeof metaQ.data?.duracion_seconds === "number" && metaQ.data?.duracion_seconds) ??
+        (typeof (metaQ.data as any)?.duracion_seconds === "number" && (metaQ.data as any)?.duracion_seconds) ??
         (typeof metaQ.data?.duracion_seg === "number" && metaQ.data?.duracion_seg) ??
         null;
 
