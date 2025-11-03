@@ -1,12 +1,18 @@
-import { RequestsList } from "@/features/friends/components/RequestsPanels";
-import { useFriendRequests } from "@/features/friends/hooks";
-import { useFriendActions } from "@/features/friends/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { Inbox, Send, Loader2, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
+// Hooks existentes (ajusta si tus nombres difieren)
+import { useFriendRequests } from "@/features/friends/hooks";
+import { useFriendActions } from "@/features/friends/hooks";
+
+// ✅ Nuevo import: separa la lógica de navegación en su propio componente
+import NavigableRequestsList from "@/features/friends/components/NavigableRequestsList";
+
 /**
- * Página de Notificaciones: muestra solicitudes de amistad entrantes/salientes
+ * Página de Notificaciones: UI igual a la original.
+ * Solo se sustituyó el wrapper inline por el componente reutilizable.
  */
 export default function NotificationsPage() {
   const { incoming, outgoing, isLoading } = useFriendRequests();
@@ -28,6 +34,7 @@ export default function NotificationsPage() {
         </div>
       </div>
 
+      {/* Entrantes */}
       <Card className="border-muted/60 bg-gradient-to-br from-background to-muted/20 shadow-lg hover:shadow-xl transition-shadow">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
@@ -54,7 +61,7 @@ export default function NotificationsPage() {
               <span>Cargando solicitudes...</span>
             </div>
           ) : (
-            <RequestsList
+            <NavigableRequestsList
               items={incoming}
               variant="incoming"
               onAccept={(id) => actions.accept(id)}
@@ -64,6 +71,7 @@ export default function NotificationsPage() {
         </CardContent>
       </Card>
 
+      {/* Enviadas */}
       <Card className="border-muted/60 bg-gradient-to-br from-background to-muted/20 shadow-lg hover:shadow-xl transition-shadow">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
@@ -87,7 +95,7 @@ export default function NotificationsPage() {
               <span>Cargando solicitudes...</span>
             </div>
           ) : (
-            <RequestsList items={outgoing} variant="outgoing" onCancel={(id) => actions.cancel(id)} />
+            <NavigableRequestsList items={outgoing} variant="outgoing" onCancel={(id) => actions.cancel(id)} />
           )}
         </CardContent>
       </Card>

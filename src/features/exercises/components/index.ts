@@ -1,6 +1,7 @@
 export { AdvancedFilters } from "./AdvancedFilters";
 export { DifficultyBadge } from "./DifficultyBadge";
 export { EmptyState } from "./EmptyState";
+export { ExerciseDetailDialog } from "./ExerciseDetailDialog";
 export { ExerciseGrid } from "./ExerciseGrid";
 export { ExercisePicker } from "./ExercisePicker";
 export { ExercisePickerCard } from "./ExercisePickerCard";

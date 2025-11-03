@@ -30,10 +30,12 @@ export type FriendFeedItem = {
 export const friendsApi = createApi({
   reducerPath: "friendsApi",
   baseQuery: fakeBaseQuery(),
-  tagTypes: ["Friends", "Requests", "Search", "FriendsFeed"], // 👈 añadimos FriendsFeed
+  tagTypes: ["Friends", "Requests", "Search", "FriendsFeed"],
   endpoints: (builder) => ({
     // -----------------------------
     // FEED DE AMIGOS (RPC v2 con duracion_seg)
+    // Nota: mantenemos el endpoint para compat pero NO exportamos su hook
+    // desde este archivo para evitar colisiones con friendsFeedApi.ts
     // -----------------------------
     listFriendsFeedRich: builder.query<FriendFeedItem[], { limit?: number; before?: string | null } | void>({
       async queryFn(args) {
@@ -41,17 +43,17 @@ export const friendsApi = createApi({
           const p_limit = Math.max(1, args?.limit ?? 30);
           const p_before = args?.before ?? null;
 
-          // RPC que devuelve duracion_seg al final
           const { data, error } = await supabase.rpc("feed_friends_workouts_v3", {
             p_limit,
             p_before,
           });
           if (error) return { error };
 
-          // Si tu RPC no trae ejercicios/… no pasa nada; el componente es tolerante
           return { data: (data ?? []) as FriendFeedItem[] };
         } catch (e: any) {
-          return { error: { status: 500, data: e?.message ?? "Error cargando feed de amigos" } as any };
+          return {
+            error: { status: 500, data: e?.message ?? "Error cargando feed de amigos" } as any,
+          };
         }
       },
       providesTags: ["FriendsFeed"],
@@ -240,9 +242,8 @@ export const friendsApi = createApi({
   }),
 });
 
-// 👇 hooks
 export const {
-  useListFriendsFeedRichQuery, // feed con duracion_seg (v2)
+  // useListFriendsFeedRichQuery,  // ⬅️ OMITIDO para evitar duplicado
   useSearchUsersQuery,
   useListFriendsQuery,
   useListIncomingRequestsQuery,
@@ -252,6 +253,3 @@ export const {
   useRejectFriendRequestMutation,
   useCancelFriendRequestMutation,
 } = friendsApi;
-
-// 👇 alias de compat para invalidaciones desde otros slices
-export const friendsFeedApi = friendsApi;

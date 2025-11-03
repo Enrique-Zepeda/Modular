@@ -1,23 +1,18 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import { PublicRoute } from "./PublicRoutes/PublicRoute";
-import { AuthCallbackPage, LoginPage, RegisterPage, ResetPasswordPage } from "../pages/auth";
+import { Navigate, Route, Routes } from "react-router-dom";
+import { AuthCallbackPage, LoginPage, RegisterPage, ResetPasswordPage } from "@/pages/auth";
 import { DashboardLayout } from "@/components/dashboard";
-
-import { RoutineBuilderPage, RoutineDetailPage, RoutinesPage } from "@/pages/dashboard/routines";
-import SettingsPage from "@/pages/dashboard/settings/SettingsPage";
-import { ExerciseListPage } from "@/features/exercises";
-import WorkoutLivePage from "@/pages/dashboard/workouts/WorkoutLivePage";
-import OnboardingPage from "@/pages/auth/OnboardingPage";
-import ProtectedRoute from "./ProtectedRoutes/ProtectedRoute";
-import FriendsPage from "@/pages/friends/FriendsPage";
-import NotificationsPage from "@/pages/dashboard/settings/NotificationsPage";
 import { DashboardPage } from "@/pages/dashboard/DashboardPage";
+import { ExerciseListPage } from "@/features/exercises";
+import { FriendsPage } from "@/pages/friends";
+import { RoutineBuilderPage, RoutineDetailPage, RoutinesPage } from "@/pages/dashboard/routines";
+import NotificationsPage from "@/pages/friends/FriendRequestsPage";
+import OnboardingPage from "@/pages/auth/OnboardingPage";
 import ProfilePage from "@/pages/profile/ProfilePage";
-
-/** ✅ NUEVO: FriendsPage */
-
-
+import ProtectedRoute from "./ProtectedRoutes/ProtectedRoute";
+import PublicRoute from "./PublicRoutes/PublicRoute";
 import RecomendacionPage from "@/pages/RecomendacionPage";
+import SettingsPage from "@/pages/dashboard/settings/SettingsPage";
+import WorkoutLivePage from "@/pages/dashboard/workouts/WorkoutLivePage";
 
 export default function AppRouter() {
   return (
@@ -149,7 +144,6 @@ export default function AppRouter() {
         }
       />
 
-      {/* ✅ NUEVO: Friends */}
       <Route
         path="/dashboard/friends"
         element={
