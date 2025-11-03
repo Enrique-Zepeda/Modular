@@ -32,23 +32,16 @@ export const friendsApi = createApi({
   baseQuery: fakeBaseQuery(),
   tagTypes: ["Friends", "Requests", "Search", "FriendsFeed"],
   endpoints: (builder) => ({
-    // -----------------------------
-    // FEED DE AMIGOS (RPC v2 con duracion_seg)
-    // Nota: mantenemos el endpoint para compat pero NO exportamos su hook
-    // desde este archivo para evitar colisiones con friendsFeedApi.ts
-    // -----------------------------
     listFriendsFeedRich: builder.query<FriendFeedItem[], { limit?: number; before?: string | null } | void>({
       async queryFn(args) {
         try {
           const p_limit = Math.max(1, args?.limit ?? 30);
           const p_before = args?.before ?? null;
-
           const { data, error } = await supabase.rpc("feed_friends_workouts_v3", {
             p_limit,
             p_before,
           });
           if (error) return { error };
-
           return { data: (data ?? []) as FriendFeedItem[] };
         } catch (e: any) {
           return {
@@ -66,23 +59,16 @@ export const friendsApi = createApi({
       async queryFn({ term }) {
         try {
           const rpc = await supabase.rpc("search_users", { term });
-          if (!rpc.error && rpc.data) {
-            return { data: rpc.data as UserPublicProfile[] };
-          }
-        } catch {
-          // ignore y fallback abajo
-        }
-
+          if (!rpc.error && rpc.data) return { data: rpc.data as UserPublicProfile[] };
+        } catch {}
         const me = await supabase.rpc("current_usuario_id");
         const myId = me.data as number;
-
         const { data, error } = await supabase
-          .from(tableUsers)
+          .from("Usuarios")
           .select("id_usuario,username,nombre,url_avatar")
           .ilike("username", `%${term}%`)
           .neq("id_usuario", myId)
           .limit(20);
-
         if (error) return { error };
         return { data: (data ?? []) as UserPublicProfile[] };
       },
@@ -99,20 +85,18 @@ export const friendsApi = createApi({
           const myId = me.data as number;
 
           const { data: pairs, error: errPairs } = await supabase
-            .from(tableFriends)
+            .from("Amigos")
             .select("id_usuario1,id_usuario2")
             .or(`id_usuario1.eq.${myId},id_usuario2.eq.${myId}`);
-
           if (errPairs) return { error: errPairs };
 
           const others = (pairs ?? []).map((p: any) => (p.id_usuario1 === myId ? p.id_usuario2 : p.id_usuario1));
           if (!others.length) return { data: [] };
 
           const { data: users, error: errUsers } = await supabase
-            .from(tableUsers)
+            .from("Usuarios")
             .select("id_usuario,username,nombre,url_avatar")
             .in("id_usuario", others);
-
           if (errUsers) return { error: errUsers };
 
           const byId = new Map<number, any>((users ?? []).map((u: any) => [u.id_usuario as number, u]));
@@ -127,7 +111,6 @@ export const friendsApi = createApi({
               created_at: null,
             };
           });
-
           return { data: out };
         } catch (error: any) {
           return { error };
@@ -143,9 +126,8 @@ export const friendsApi = createApi({
       async queryFn() {
         const me = await supabase.rpc("current_usuario_id");
         const myId = me.data as number;
-
         const { data, error } = await supabase
-          .from(tableRequests)
+          .from("SolicitudesAmistad")
           .select(
             `
             id_solicitud, solicitante_id, destinatario_id, estado, mensaje, created_at, updated_at,
@@ -155,7 +137,6 @@ export const friendsApi = createApi({
           .eq("destinatario_id", myId)
           .eq("estado", "pendiente")
           .order("created_at", { ascending: false });
-
         if (error) return { error };
         return { data: (data ?? []) as any as FriendRequest[] };
       },
@@ -166,9 +147,8 @@ export const friendsApi = createApi({
       async queryFn() {
         const me = await supabase.rpc("current_usuario_id");
         const myId = me.data as number;
-
         const { data, error } = await supabase
-          .from(tableRequests)
+          .from("SolicitudesAmistad")
           .select(
             `
             id_solicitud, solicitante_id, destinatario_id, estado, mensaje, created_at, updated_at,
@@ -178,7 +158,6 @@ export const friendsApi = createApi({
           .eq("solicitante_id", myId)
           .eq("estado", "pendiente")
           .order("created_at", { ascending: false });
-
         if (error) return { error };
         return { data: (data ?? []) as any as FriendRequest[] };
       },
@@ -209,7 +188,7 @@ export const friendsApi = createApi({
         if (error) return { error };
         return { data: data as FriendRequest };
       },
-      invalidatesTags: ["Requests", "Friends", "Search"],
+      invalidatesTags: ["Requests", "Friends", "Search", "FriendsFeed"],
     }),
 
     rejectFriendRequest: builder.mutation<FriendRequest, { id_solicitud: string }>({
@@ -227,23 +206,45 @@ export const friendsApi = createApi({
     cancelFriendRequest: builder.mutation<FriendRequest, { id_solicitud: string }>({
       async queryFn({ id_solicitud }) {
         const { data, error } = await supabase
-          .from(tableRequests)
+          .from("SolicitudesAmistad")
           .update({ estado: "cancelada" })
           .eq("id_solicitud", id_solicitud)
           .eq("estado", "pendiente")
           .select("*")
           .single();
-
         if (error) return { error };
         return { data: data as FriendRequest };
       },
       invalidatesTags: ["Requests", "Search"],
     }),
+
+    unfriend: builder.mutation<{ success: true }, { other_id: number }>({
+      async queryFn({ other_id }) {
+        try {
+          const { data: meId, error: meErr } = await supabase.rpc("current_usuario_id");
+          if (meErr) return { error: meErr };
+          if (!meId) return { error: { status: 400, data: "No se pudo resolver tu usuario." } as any };
+
+          const { error: delErr } = await supabase
+            .from("Amigos")
+            .delete()
+            .or(
+              `and(id_usuario1.eq.${meId},id_usuario2.eq.${other_id}),` +
+                `and(id_usuario1.eq.${other_id},id_usuario2.eq.${meId})`
+            );
+
+          if (delErr) return { error: delErr };
+          return { data: { success: true } };
+        } catch (e: any) {
+          return { error: { status: 500, data: e?.message ?? "No se pudo eliminar" } as any };
+        }
+      },
+      invalidatesTags: ["Friends", "FriendsFeed", "Search"],
+    }),
   }),
 });
 
 export const {
-  // useListFriendsFeedRichQuery,  // ⬅️ OMITIDO para evitar duplicado
   useSearchUsersQuery,
   useListFriendsQuery,
   useListIncomingRequestsQuery,
@@ -252,4 +253,5 @@ export const {
   useAcceptFriendRequestMutation,
   useRejectFriendRequestMutation,
   useCancelFriendRequestMutation,
+  useUnfriendMutation,
 } = friendsApi;

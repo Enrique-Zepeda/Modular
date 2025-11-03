@@ -7,13 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { useFriendRequests } from "@/features/friends/hooks";
 import { useFriendActions } from "@/features/friends/hooks";
 
-// ✅ Nuevo import: separa la lógica de navegación en su propio componente
 import NavigableRequestsList from "@/features/friends/components/NavigableRequestsList";
 
-/**
- * Página de Notificaciones: UI igual a la original.
- * Solo se sustituyó el wrapper inline por el componente reutilizable.
- */
 export default function NotificationsPage() {
   const { incoming, outgoing, isLoading } = useFriendRequests();
   const actions = useFriendActions();
