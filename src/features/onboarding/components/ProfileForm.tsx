@@ -1,5 +1,5 @@
 import type * as React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
@@ -21,10 +21,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "react-hot-toast";
-import { Loader2, Check, X, User, AlertCircle, Sparkles, Target, Settings } from "lucide-react";
+import { Loader2, Check, X, User, AlertCircle, Sparkles, Target, Settings, Calendar } from "lucide-react";
 
 type Props = {
-  defaults?: Partial<OnboardingFormValues>;
+  defaults?: Partial<OnboardingFormValues> & { fecha_nacimiento?: string | null };
   onCompleted?: () => void | Promise<void>;
 };
 
@@ -33,24 +33,47 @@ const log = (...a: any[]) => DEBUG_ONBOARD && console.log("[ONBOARD][form]", ...
 
 const capitalize = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
+// Edad derivada de DOB
+const ageFromDOB = (dob: string | null | undefined): number | null => {
+  if (!dob) return null;
+  const d = new Date(dob);
+  if (Number.isNaN(d.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - d.getFullYear();
+  const m = today.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age--;
+  return age;
+};
+
 export default function ProfileForm({ defaults, onCompleted }: Props) {
   const [checking, setChecking] = useState(false);
   const [available, setAvailable] = useState<boolean | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const form = useForm<OnboardingFormValues>({
+  // límites DOB (min: hoy - 100 años, max: hoy - 13 años)
+  const { minDOB, maxDOB } = useMemo(() => {
+    const today = new Date();
+    const min = new Date(today);
+    min.setFullYear(min.getFullYear() - 100);
+    const max = new Date(today);
+    max.setFullYear(max.getFullYear() - 13);
+    const toISO = (d: Date) => d.toISOString().split("T")[0];
+    return { minDOB: toISO(min), maxDOB: toISO(max) };
+  }, []);
+
+  const form = useForm<OnboardingFormValues & { fecha_nacimiento?: string }>({
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
       username: defaults?.username ?? "",
       nombre: defaults?.nombre ?? "",
-      edad: (defaults?.edad ?? ("" as unknown as number)) as number,
+      fecha_nacimiento: (defaults?.fecha_nacimiento ?? "") as any,
       peso: (defaults?.peso ?? ("" as unknown as number)) as number,
       altura: (defaults?.altura ?? ("" as unknown as number)) as number,
       nivel_experiencia: (defaults?.nivel_experiencia as any) ?? ("" as any),
       objetivo: (defaults?.objetivo as any) ?? ("" as any),
       sexo: (defaults?.sexo as any) ?? ("" as any),
     },
-    mode: "onChange", // ✅ valida mientras escribe
+    mode: "onChange",
     reValidateMode: "onChange",
   });
 
@@ -88,7 +111,7 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.watch("username")]);
 
-  const onSubmit = async (values: OnboardingFormValues) => {
+  const onSubmit = async (values: OnboardingFormValues & { fecha_nacimiento?: string }) => {
     setSubmitError(null);
     try {
       log("submit values", values);
@@ -96,17 +119,19 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
       const nombre = values.nombre.trim();
 
       const ok = await checkUsernameAvailability(username);
-      log("username available?", username, ok);
       if (!ok) {
         form.setError("username", { type: "validate", message: "Este usuario ya existe" });
         toast.error("El nombre de usuario ya está en uso.");
         return;
       }
 
+      const derivedAge = ageFromDOB(values.fecha_nacimiento ?? null);
+
       const saved = await upsertCurrentUserProfile({
         username,
         nombre,
-        edad: Number(values.edad),
+        fecha_nacimiento: values.fecha_nacimiento || null,
+        edad: derivedAge ?? null, // compatibilidad si el RPC aún espera edad
         peso: Number(values.peso),
         altura: Number(values.altura),
         nivel_experiencia: values.nivel_experiencia,
@@ -114,7 +139,6 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
         sexo: values.sexo as any,
       });
 
-      log("saved profile", saved);
       toast.success("Perfil completado. ¡Bienvenido!");
       await onCompleted?.();
     } catch (e: any) {
@@ -126,17 +150,14 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
   };
 
   const watchedValues = form.watch();
-  const hasData = watchedValues.username || watchedValues.nombre || watchedValues.edad;
+  const hasData = watchedValues.username || watchedValues.nombre || (watchedValues as any).fecha_nacimiento;
 
-  // Calculate which steps are completed
   const step1Complete = !!(watchedValues.username && watchedValues.nombre);
-  const step2Complete = !!(watchedValues.edad && watchedValues.peso && watchedValues.altura);
+  const step2Complete = !!((watchedValues as any).fecha_nacimiento && watchedValues.peso && watchedValues.altura);
   const step3Complete = !!(watchedValues.nivel_experiencia && watchedValues.objetivo && watchedValues.sexo);
 
-  // Calculate current step and progress
   let currentStep = 1;
   let completedSteps = 0;
-
   if (step1Complete) {
     completedSteps = 1;
     currentStep = 2;
@@ -149,8 +170,9 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
     completedSteps = 3;
     currentStep = 3;
   }
-
   const progressValue = (completedSteps / 3) * 100;
+
+  const calculatedAge = useMemo(() => ageFromDOB((watchedValues as any).fecha_nacimiento ?? null), [watchedValues]);
 
   return (
     <div className="space-y-6">
@@ -186,7 +208,7 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                 </div>
                 <div>
                   <div className="font-medium">Datos personales</div>
-                  <div className="text-xs text-muted-foreground">Edad, peso, altura</div>
+                  <div className="text-xs text-muted-foreground">Fecha de nacimiento, edad, peso, altura</div>
                 </div>
               </div>
               <div
@@ -250,11 +272,10 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                           aria-invalid={!!form.formState.errors.username || usernameHasUppercase}
                           aria-describedby="username-rules username-error-help"
                           onKeyDown={(e) => {
-                            if (e.key === " ") e.preventDefault(); // bloquea espacios
+                            if (e.key === " ") e.preventDefault();
                           }}
                         />
                       </div>
-
                       <Button
                         type="button"
                         variant="outline"
@@ -265,7 +286,6 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                       >
                         {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verificar"}
                       </Button>
-
                       <AnimatePresence mode="wait">
                         {available === true && (
                           <motion.div
@@ -293,8 +313,6 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                         )}
                       </AnimatePresence>
                     </div>
-
-                    {/* Error de Zod */}
                     {form.formState.errors.username && (
                       <motion.p
                         id="username-error-help"
@@ -307,14 +325,11 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                         {form.formState.errors.username.message}
                       </motion.p>
                     )}
-
-                    {/* Aviso inmediato si detectamos mayúsculas y aún no hay error de Zod */}
                     {!form.formState.errors.username && usernameHasUppercase && (
                       <p id="username-error-help" className="text-xs text-destructive" role="alert">
                         El username debe estar en <b>minúsculas</b>.
                       </p>
                     )}
-
                     <p id="username-rules" className="text-xs text-muted-foreground">
                       3–20 caracteres, solo <b>minúsculas</b>, números y “_”
                     </p>
@@ -349,29 +364,61 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                     </Badge>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {/* Fecha de nacimiento */}
                     <div className="space-y-3">
-                      <Label htmlFor="edad" className="text-sm font-medium">
-                        Edad
+                      <Label htmlFor="fecha_nacimiento" className="text-sm font-medium">
+                        Fecha de nacimiento
                       </Label>
-                      <Input
-                        id="edad"
-                        type="number"
-                        min={13}
-                        max={100}
-                        step={1}
-                        inputMode="numeric"
-                        pattern="\d*"
-                        placeholder="25"
-                        onKeyDown={blockNonDigits}
-                        {...form.register("edad", { valueAsNumber: true })}
-                        className="h-11"
-                      />
-                      {form.formState.errors.edad && (
-                        <p className="text-xs text-destructive">{form.formState.errors.edad.message}</p>
+                      <div className="relative">
+                        <Input
+                          id="fecha_nacimiento"
+                          type="date"
+                          autoComplete="bday"
+                          min={minDOB}
+                          max={maxDOB}
+                          {...(form.register as any)("fecha_nacimiento")}
+                          className="h-11 pr-10 [appearance:auto]"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-1 top-1.5 h-8 w-8"
+                          onClick={() => {
+                            const el = document.getElementById("fecha_nacimiento") as HTMLInputElement | null;
+                            (el as any)?.showPicker?.();
+                            el?.focus();
+                          }}
+                          aria-label="Abrir calendario"
+                        >
+                          <Calendar className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      {(form.formState.errors as any).fecha_nacimiento && (
+                        <p className="text-xs text-destructive">
+                          {(form.formState.errors as any).fecha_nacimiento.message as string}
+                        </p>
                       )}
                     </div>
 
+                    {/* Edad (solo lectura) */}
+                    <div className="space-y-3">
+                      <Label htmlFor="edad_calc" className="text-sm font-medium">
+                        Edad
+                      </Label>
+                      <Input
+                        id="edad_calc"
+                        value={calculatedAge ?? ""}
+                        readOnly
+                        disabled
+                        placeholder="—"
+                        className="h-11 bg-muted/20"
+                        aria-readonly="true"
+                      />
+                    </div>
+
+                    {/* Peso */}
                     <div className="space-y-3">
                       <Label htmlFor="peso" className="text-sm font-medium">
                         Peso (kg)
@@ -395,6 +442,7 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                       )}
                     </div>
 
+                    {/* Altura */}
                     <div className="space-y-3">
                       <Label htmlFor="altura" className="text-sm font-medium">
                         Altura (cm)
@@ -568,52 +616,58 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
             <CardContent className="space-y-4">
               {hasData ? (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
-                  {watchedValues.username && (
+                  {(watchedValues as any).username && (
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Usuario:</span>
-                      <Badge variant="outline">@{watchedValues.username}</Badge>
+                      <Badge variant="outline">@{(watchedValues as any).username}</Badge>
                     </div>
                   )}
-                  {watchedValues.nombre && (
+                  {(watchedValues as any).nombre && (
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Nombre:</span>
-                      <span className="text-sm font-medium">{watchedValues.nombre}</span>
+                      <span className="text-sm font-medium">{(watchedValues as any).nombre}</span>
                     </div>
                   )}
-                  {watchedValues.edad && (
+                  {(watchedValues as any).fecha_nacimiento && (
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Edad:</span>
-                      <span className="text-sm font-medium">{watchedValues.edad} años</span>
+                      <span className="text-sm text-muted-foreground">Fecha de nacimiento:</span>
+                      <span className="text-sm font-medium">{(watchedValues as any).fecha_nacimiento}</span>
                     </div>
                   )}
-                  {watchedValues.peso && (
+                  {calculatedAge !== null && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Edad (calculada):</span>
+                      <span className="text-sm font-medium">{calculatedAge} años</span>
+                    </div>
+                  )}
+                  {(watchedValues as any).peso && (
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Peso:</span>
-                      <span className="text-sm font-medium">{watchedValues.peso} kg</span>
+                      <span className="text-sm font-medium">{(watchedValues as any).peso} kg</span>
                     </div>
                   )}
-                  {watchedValues.altura && (
+                  {(watchedValues as any).altura && (
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Altura:</span>
-                      <span className="text-sm font-medium">{watchedValues.altura} cm</span>
+                      <span className="text-sm font-medium">{(watchedValues as any).altura} cm</span>
                     </div>
                   )}
-                  {watchedValues.nivel_experiencia && (
+                  {(watchedValues as any).nivel_experiencia && (
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Nivel:</span>
-                      <Badge variant="secondary">{capitalize(watchedValues.nivel_experiencia)}</Badge>
+                      <Badge variant="secondary">{capitalize((watchedValues as any).nivel_experiencia)}</Badge>
                     </div>
                   )}
-                  {watchedValues.objetivo && (
+                  {(watchedValues as any).objetivo && (
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Objetivo:</span>
-                      <Badge variant="secondary">{capitalize(watchedValues.objetivo)}</Badge>
+                      <Badge variant="secondary">{capitalize((watchedValues as any).objetivo)}</Badge>
                     </div>
                   )}
-                  {watchedValues.sexo && (
+                  {(watchedValues as any).sexo && (
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Sexo:</span>
-                      <span className="text-sm font-medium">{capitalize(watchedValues.sexo)}</span>
+                      <span className="text-sm font-medium">{capitalize((watchedValues as any).sexo)}</span>
                     </div>
                   )}
                 </motion.div>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -10,17 +10,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, Calendar } from "lucide-react";
 
 import { canChangeUsername } from "@/features/settings/utils/checkUsername";
 import { AvatarUploader } from "./AvatarUploader";
 
 /* -------------------- Opciones en línea para los selects -------------------- */
-const SEX_OPTIONS = ["masculino", "femenino"];
-const OBJETIVO_OPTIONS = ["hipertrofia", "fuerza", "resistencia"];
-const NIVEL_OPTIONS = ["principiante", "intermedio", "avanzado"];
+const SEX_OPTIONS = ["masculino", "femenino"] as const;
+const OBJETIVO_OPTIONS = ["hipertrofia", "fuerza", "resistencia"] as const;
+const NIVEL_OPTIONS = ["principiante", "intermedio", "avanzado"] as const;
 
 /* ---------------------------- Validación con Zod ---------------------------- */
+/** Validamos DOB (13–100 años) y eliminamos 'edad' del formulario */
 const PerfilSchema = z.object({
   nombre: z.string().trim().max(120, "Máximo 120 caracteres").optional().or(z.literal("")),
   username: z
@@ -31,10 +32,20 @@ const PerfilSchema = z.object({
     .optional()
     .or(z.literal("")),
   correo: z.string().email().optional().or(z.literal("")),
-  edad: z
-    .union([z.string(), z.number()])
-    .transform((v) => (v === "" ? null : Number(v)))
-    .refine((v) => v === null || (Number.isFinite(v) && v >= 0 && v <= 120), "Edad inválida"),
+  fecha_nacimiento: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .refine((v) => v === "" || !Number.isNaN(Date.parse(v)), "Fecha inválida")
+    .refine((v) => {
+      if (!v) return true;
+      const d = new Date(v);
+      const today = new Date();
+      let age = today.getFullYear() - d.getFullYear();
+      const m = today.getMonth() - d.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age--;
+      return age >= 13 && age <= 100;
+    }, "Debes tener entre 13 y 100 años"),
   peso: z
     .union([z.string(), z.number()])
     .transform((v) => (v === "" ? null : Number(v)))
@@ -49,13 +60,38 @@ const PerfilSchema = z.object({
   url_avatar: z.string().url().optional().or(z.literal("")),
 });
 
+/* ------------------------- Utilidad: edad desde DOB ------------------------- */
+const ageFromDOB = (dob?: string | null): number | null => {
+  if (!dob) return null;
+  const d = new Date(dob);
+  if (Number.isNaN(d.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - d.getFullYear();
+  const m = today.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age--;
+  return age;
+};
+
 export function Perfil() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [checkingUser, setCheckingUser] = useState(false);
-  const [usernameStatus, setUsernameStatus] = useState(null);
+  const [usernameStatus, setUsernameStatus] = useState<"available" | "taken" | "unchanged" | "empty" | "error" | null>(
+    null
+  );
   const initialUsernameRef = useRef("");
+
+  // límites de DOB: min = hoy - 100 años, max = hoy - 13 años
+  const { minDOB, maxDOB } = useMemo(() => {
+    const today = new Date();
+    const min = new Date(today);
+    min.setFullYear(min.getFullYear() - 100);
+    const max = new Date(today);
+    max.setFullYear(max.getFullYear() - 13);
+    const toISO = (d: Date) => d.toISOString().split("T")[0];
+    return { minDOB: toISO(min), maxDOB: toISO(max) };
+  }, []);
 
   const {
     register,
@@ -64,13 +100,13 @@ export function Perfil() {
     reset,
     formState: { errors },
     watch,
-  } = useForm({
+  } = useForm<z.infer<typeof PerfilSchema>>({
     resolver: zodResolver(PerfilSchema),
     defaultValues: {
       nombre: "",
       username: "",
       correo: "",
-      edad: "",
+      fecha_nacimiento: "",
       peso: "",
       altura: "",
       objetivo: "",
@@ -82,6 +118,8 @@ export function Perfil() {
   });
 
   const usernameWatch = watch("username");
+  const dobWatch = watch("fecha_nacimiento");
+  const calculatedAge = ageFromDOB(dobWatch || "");
 
   /* ----------------------------- Cargar perfil ------------------------------ */
   const loadProfile = async () => {
@@ -97,7 +135,6 @@ export function Perfil() {
       }
 
       const { data, error } = await supabase.from("Usuarios").select("*").eq("auth_uid", user.id).single();
-
       if (error) throw error;
 
       initialUsernameRef.current = data?.username ?? "";
@@ -106,7 +143,8 @@ export function Perfil() {
         nombre: data?.nombre ?? "",
         username: data?.username ?? "",
         correo: data?.correo ?? "",
-        edad: data?.edad ?? "",
+        // ✅ usamos DOB desde BD (si existe)
+        fecha_nacimiento: data?.fecha_nacimiento ?? "",
         peso: data?.peso ?? "",
         altura: data?.altura ?? "",
         objetivo: data?.objetivo ?? "",
@@ -114,7 +152,7 @@ export function Perfil() {
         sexo: data?.sexo ?? "",
         url_avatar: data?.url_avatar ?? "",
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       toast.error(err?.message ?? "No se pudo cargar tu perfil.");
     } finally {
@@ -131,7 +169,7 @@ export function Perfil() {
     try {
       setCheckingUser(true);
       setUsernameStatus(null);
-      const res = await canChangeUsername(initialUsernameRef.current, usernameWatch);
+      const res = await canChangeUsername(initialUsernameRef.current, usernameWatch || "");
 
       if (res.reason === "empty") {
         setUsernameStatus("empty");
@@ -165,17 +203,17 @@ export function Perfil() {
   };
 
   /* ------------------------------ Guardar datos ----------------------------- */
-  const onSubmit = async (values) => {
+  const onSubmit = async (values: z.infer<typeof PerfilSchema>) => {
     try {
       setSaving(true);
 
-      // Vuelve a validar antes de guardar
-      const res = await canChangeUsername(initialUsernameRef.current, values.username);
+      // Vuelve a validar username antes de guardar
+      const res = await canChangeUsername(initialUsernameRef.current, values.username || "");
       if (!res.canChange) {
         if (res.reason === "taken") toast.error("Ese username ya está en uso.");
         else if (res.reason === "empty") toast.error("Escribe un username válido.");
         else toast.error("No se pudo verificar el username.");
-        setUsernameStatus(res.reason === "available" ? "available" : res.reason || "error");
+        setUsernameStatus(res.reason === "available" ? "available" : (res.reason as any) || "error");
         setSaving(false);
         return;
       }
@@ -185,11 +223,12 @@ export function Perfil() {
       const user = authData?.user;
       if (!user) throw new Error("No hay sesión activa.");
 
-      const norm = (v) => (v === "" ? null : v);
-      const payload = {
+      const norm = (v: any) => (v === "" ? null : v);
+      const payload: Record<string, any> = {
         nombre: norm(values.nombre),
         username: norm(values.username?.toLowerCase()),
-        edad: values.edad ?? null,
+        // ✅ Enviamos fecha_nacimiento; 'edad' la calcula el trigger en BD (si está configurado)
+        fecha_nacimiento: norm(values.fecha_nacimiento),
         peso: values.peso ?? null,
         altura: values.altura ?? null,
         objetivo: norm(values.objetivo),
@@ -206,11 +245,11 @@ export function Perfil() {
         .single();
 
       if (error) {
-        if (error.code === "23505") {
+        if ((error as any).code === "23505") {
           toast.error("El username ya está en uso.");
           setUsernameStatus("taken");
         } else {
-          toast.error(error.message ?? "No se pudo guardar.");
+          toast.error((error as any).message ?? "No se pudo guardar.");
         }
         return;
       }
@@ -220,7 +259,7 @@ export function Perfil() {
         nombre: data?.nombre ?? "",
         username: data?.username ?? "",
         correo: data?.correo ?? "",
-        edad: data?.edad ?? "",
+        fecha_nacimiento: data?.fecha_nacimiento ?? "",
         peso: data?.peso ?? "",
         altura: data?.altura ?? "",
         objetivo: data?.objetivo ?? "",
@@ -242,8 +281,10 @@ export function Perfil() {
     }
   };
 
-  const renderError = (field) =>
-    errors?.[field]?.message ? <p className="text-sm text-destructive mt-1">{String(errors[field].message)}</p> : null;
+  const renderError = (field: keyof z.infer<typeof PerfilSchema>) =>
+    (errors?.[field] as any)?.message ? (
+      <p className="text-sm text-destructive mt-1">{String((errors as any)[field].message)}</p>
+    ) : null;
 
   return (
     <div className="grid gap-12">
@@ -302,6 +343,7 @@ export function Perfil() {
             </>
           ) : (
             <>
+              {/* Nombre */}
               <div className="space-y-4">
                 <Label htmlFor="nombre" className="text-base font-semibold">
                   Nombre completo
@@ -315,6 +357,7 @@ export function Perfil() {
                 {renderError("nombre")}
               </div>
 
+              {/* Username + Verificar */}
               <div className="space-y-4">
                 <Label htmlFor="username" className="text-base font-semibold">
                   Nombre de usuario
@@ -332,6 +375,7 @@ export function Perfil() {
                     onClick={handleCheckUsername}
                     disabled={checkingUser}
                     className="h-14 px-6 glass-effect border-0 hover:glass-card premium-hover bg-transparent"
+                    aria-label="Verificar disponibilidad de username"
                   >
                     {checkingUser ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
                   </Button>
@@ -357,6 +401,7 @@ export function Perfil() {
                 {renderError("username")}
               </div>
 
+              {/* Correo */}
               <div className="space-y-4 md:col-span-2">
                 <Label htmlFor="correo" className="text-base font-semibold">
                   Correo electrónico
@@ -372,21 +417,45 @@ export function Perfil() {
                 </p>
               </div>
 
+              {/* Fecha de nacimiento (calendario) */}
               <div className="space-y-4">
-                <Label htmlFor="edad" className="text-base font-semibold">
-                  Edad
+                <Label htmlFor="fecha_nacimiento" className="text-base font-semibold">
+                  Fecha de nacimiento
                 </Label>
-                <Input
-                  id="edad"
-                  type="number"
-                  step="1"
-                  {...register("edad")}
-                  className="h-14 glass-input border-0 bg-transparent text-base placeholder:text-muted-foreground/60"
-                  placeholder="25"
-                />
-                {renderError("edad")}
+                <div className="relative">
+                  <Input
+                    id="fecha_nacimiento"
+                    type="date"
+                    autoComplete="bday"
+                    min={minDOB}
+                    max={maxDOB}
+                    {...register("fecha_nacimiento")}
+                    className="h-14 glass-input border-0 bg-transparent text-base placeholder:text-muted-foreground/60 pr-12 [appearance:auto]"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1.5 top-1.5 h-10 w-10"
+                    onClick={() => {
+                      const el = document.getElementById("fecha_nacimiento") as HTMLInputElement | null;
+                      (el as any)?.showPicker?.();
+                      el?.focus();
+                    }}
+                    aria-label="Abrir calendario"
+                  >
+                    <Calendar className="h-5 w-5" />
+                  </Button>
+                </div>
+                {renderError("fecha_nacimiento")}
+                {dobWatch && calculatedAge !== null && (
+                  <p className="text-sm text-muted-foreground">
+                    Edad: <span className="font-semibold">{calculatedAge}</span> años
+                  </p>
+                )}
               </div>
 
+              {/* Peso */}
               <div className="space-y-4">
                 <Label htmlFor="peso" className="text-base font-semibold">
                   Peso (kg)
@@ -402,6 +471,7 @@ export function Perfil() {
                 {renderError("peso")}
               </div>
 
+              {/* Altura */}
               <div className="space-y-4">
                 <Label htmlFor="altura" className="text-base font-semibold">
                   Altura (cm)
@@ -417,6 +487,7 @@ export function Perfil() {
                 {renderError("altura")}
               </div>
 
+              {/* Objetivo */}
               <div className="space-y-4">
                 <Label className="text-base font-semibold">Objetivo de entrenamiento</Label>
                 <Select
@@ -441,6 +512,7 @@ export function Perfil() {
                 {renderError("objetivo")}
               </div>
 
+              {/* Nivel de experiencia */}
               <div className="space-y-4">
                 <Label className="text-base font-semibold">Nivel de experiencia</Label>
                 <Select
@@ -465,6 +537,7 @@ export function Perfil() {
                 {renderError("nivel_experiencia")}
               </div>
 
+              {/* Sexo */}
               <div className="space-y-4">
                 <Label className="text-base font-semibold">Sexo</Label>
                 <Select value={watch("sexo") ?? ""} onValueChange={(v) => setValue("sexo", v, { shouldDirty: true })}>

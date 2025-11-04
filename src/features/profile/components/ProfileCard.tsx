@@ -1,10 +1,10 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { FriendshipBadge } from "@/features/friends/components";
 import { cn } from "@/lib/utils";
-import { Badge } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
-// 1. Helper para color (añadido aquí para que el componente sea autocontenido)
+/* -------------------- Helper color (autocontenido) -------------------- */
 function hexToRgba(hex: string, alpha = 0.12) {
   const m = hex.replace("#", "").match(/^([a-f0-9]{2})([a-f0-9]{2})([a-f0-9]{2})$/i);
   if (!m) return `rgba(0,0,0,${alpha})`;
@@ -12,7 +12,7 @@ function hexToRgba(hex: string, alpha = 0.12) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-// 2. Tipo para la nueva prop 'training'
+/* ---------------------------------- Tipos ---------------------------------- */
 type TrainingBadgeProps = {
   badge: {
     color: string;
@@ -31,6 +31,39 @@ export type ProfileCardProps = {
   training?: TrainingBadgeProps;
   friendshipTargetId?: string | number | null;
   friendshipTargetUsername?: string | null;
+
+  /** Edad a mostrar junto al username (si llega). */
+  edad?: number | string | null;
+  /** Alternativa: DOB para calcular edad si no se pasa `edad`. */
+  fechaNacimiento?: string | null;
+};
+
+/* --------------------------- Utils edad segura --------------------------- */
+const parseAge = (value: number | string | null | undefined): number | null => {
+  if (typeof value === "number" && Number.isFinite(value) && value >= 0) return value;
+  if (typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value))) {
+    const n = Number(value);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  }
+  return null;
+};
+
+const ageFromDOB = (dob?: string | null): number | null => {
+  if (!dob) return null;
+  // soportar "DD/MM/YYYY"
+  const normalized = /^\d{2}\/\d{2}\/\d{4}$/.test(dob)
+    ? (() => {
+        const [dd, mm, yyyy] = dob.split("/");
+        return `${yyyy}-${mm}-${dd}`;
+      })()
+    : dob;
+  const d = new Date(normalized);
+  if (Number.isNaN(d.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - d.getFullYear();
+  const m = today.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age--;
+  return age;
 };
 
 export default function ProfileCard({
@@ -42,6 +75,8 @@ export default function ProfileCard({
   training,
   friendshipTargetId,
   friendshipTargetUsername,
+  edad,
+  fechaNacimiento,
 }: ProfileCardProps) {
   const isCompact = variant === "compact";
   const initials = (displayName || username || "?")
@@ -51,16 +86,13 @@ export default function ProfileCard({
     .slice(0, 2)
     .toUpperCase();
 
-  // La variante 'compact' no se modifica
-  if (variant === "compact") {
-    return (
-      <Card className={cn("bg-muted/30 border-muted/40", className)}>
-        {/* ...código de la variante compacta sin cambios... */}
-      </Card>
-    );
+  // ✅ Preferimos edad directa; si no viene, la calculamos desde DOB
+  const ageToShow = parseAge(edad) ?? ageFromDOB(fechaNacimiento);
+
+  if (isCompact) {
+    return <Card className={cn("bg-muted/30 border-muted/40", className)}>{/* ...compact sin cambios... */}</Card>;
   }
 
-  // Modificaciones en la variante 'full'
   return (
     <Card
       className={cn(
@@ -86,24 +118,40 @@ export default function ProfileCard({
               <div className="text-3xl font-extrabold tracking-tight truncate bg-gradient-to-br from-foreground to-foreground/80 bg-clip-text">
                 {displayName ?? "Usuario"}
               </div>
-              <div className="text-lg text-muted-foreground truncate font-medium">{username ? `${username}` : ""}</div>
+
+              {/* username + edad (badge "Edad: 24") */}
+              <div className="text-lg text-muted-foreground font-medium">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="truncate">{username ? `${username}` : ""}</span>
+                  {ageToShow !== null && (
+                    <Badge variant="secondary" className="shrink-0">
+                      {/* 👇 Texto exactamente como lo pides */}
+                      Edad: {ageToShow}
+                    </Badge>
+                  )}
+                </div>
+              </div>
 
               {training?.badge && (
                 <div className="pt-1">
                   <span
                     className="text-xs font-bold px-3 py-1.5 rounded-md shadow-sm inline-block"
                     style={{
-                      color: training.badge.color,
-                      background: `linear-gradient(135deg, ${hexToRgba(training.badge.color, 0.25)}, ${hexToRgba(
-                        training.badge.color,
-                        0.1
-                      )})`,
-                      border: `1px solid ${hexToRgba(training.badge.color, 0.5)}`,
-                      textShadow: `0 0 8px ${hexToRgba(training.badge.color, 0.5)}`,
+                      color: training.badge?.color ?? "#888",
+                      background: `linear-gradient(135deg, ${hexToRgba(
+                        training.badge?.color ?? "#888",
+                        0.25
+                      )}, ${hexToRgba(training.badge?.color ?? "#888", 0.1)})`,
+                      border: `1px solid ${hexToRgba(training.badge?.color ?? "#888", 0.5)}`,
+                      textShadow: `0 0 8px ${hexToRgba(training.badge?.color ?? "#888", 0.5)}`,
                     }}
-                    title={`Promedio: ${training.badge.avgScore} (${training.badge.samples} sesiones)`}
+                    title={
+                      training?.badge
+                        ? `Promedio: ${training.badge.avgScore} (${training.badge.samples} sesiones)`
+                        : undefined
+                    }
                   >
-                    {training.badge.title}
+                    {training?.badge?.title}
                   </span>
                 </div>
               )}

@@ -16,6 +16,34 @@ import {
 } from "@/features/profile/components";
 import BmiBadge from "@/features/profile/components/BmiBadge";
 
+/** Intenta obtener DOB desde distintos nombres comunes */
+function pickDOB(p: any): string | null {
+  return p?.fecha_nacimiento ?? p?.fechaNacimiento ?? p?.dob ?? p?.date_of_birth ?? p?.birthdate ?? null;
+}
+
+/** Normaliza "DD/MM/YYYY" a "YYYY-MM-DD" (si aplica) */
+function normalizeDate(dob?: string | null): string | null {
+  if (!dob) return null;
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dob)) {
+    const [dd, mm, yyyy] = dob.split("/");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  return dob;
+}
+
+/** Calcula edad desde DOB normalizada */
+function calcAge(dob?: string | null): number | null {
+  const n = normalizeDate(dob);
+  if (!n) return null;
+  const d = new Date(n);
+  if (Number.isNaN(d.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - d.getFullYear();
+  const m = today.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age--;
+  return age;
+}
+
 export default function ProfilePage() {
   const { username } = useParams<{ username?: string }>();
   const isSelf = !username;
@@ -25,7 +53,7 @@ export default function ProfilePage() {
   // Card básica
   const my = useGetMyProfileQuery(undefined, { skip: !isSelf });
   const other = useGetProfileByUsernameQuery({ username: username! }, { skip: isSelf });
-  const profile = isSelf ? my.data : other.data ?? null;
+  const profile = (isSelf ? my.data : other.data) ?? null;
 
   // KPIs (públicos, v2)
   const targetUsername = isSelf ? my.data?.username ?? "" : username ?? "";
@@ -49,6 +77,13 @@ export default function ProfilePage() {
     window.addEventListener("friends:changed", handler);
     return () => window.removeEventListener("friends:changed", handler);
   }, [summaryQ]);
+
+  // 👇 Edad para el card:
+  // 1) Si hay DOB (en cualquiera de los nombres soportados), calcúlala.
+  // 2) Si no hay DOB, intenta usar profile.edad (si existe).
+  const dob = pickDOB(profile as any);
+  const edadFromDOB = calcAge(dob);
+  const edadForCard = edadFromDOB ?? (profile as any)?.edad ?? null;
 
   return (
     <div className="space-y-6 pb-8">
@@ -79,7 +114,11 @@ export default function ProfilePage() {
         training={training}
         friendshipTargetId={profile?.id_usuario ?? null}
         friendshipTargetUsername={profile?.username ?? null}
+        /* ⬇️ Pasamos DOB y edad calculada para que el card muestre "Edad: NN" */
+        fechaNacimiento={dob}
+        edad={edadForCard}
       />
+
       {isSelf && (
         <div className="relative overflow-hidden rounded-2xl border-2 border-border/60 bg-gradient-to-br from-card via-card/95 to-card/90 shadow-lg hover:shadow-xl transition-all duration-300">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-blue-500/5 pointer-events-none" />
@@ -112,6 +151,7 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
       <ProfileStats
         summary={summary}
         loading={summaryQ.isLoading}
