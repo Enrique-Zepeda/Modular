@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { z } from "zod";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import toast from "react-hot-toast";
-
+import { Loader2, Search } from "lucide-react"; // Import Loader2 and Search icons
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Search, Calendar } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { format, parse, isValid, isAfter, isBefore } from "date-fns";
+
+import { DatePicker } from "@/components/ui/date-picker";
 
 import { canChangeUsername } from "@/features/settings/utils/checkUsername";
 import { AvatarUploader } from "./AvatarUploader";
@@ -63,8 +66,8 @@ const PerfilSchema = z.object({
 /* ------------------------- Utilidad: edad desde DOB ------------------------- */
 const ageFromDOB = (dob?: string | null): number | null => {
   if (!dob) return null;
-  const d = new Date(dob);
-  if (Number.isNaN(d.getTime())) return null;
+  const d = parse(String(dob).slice(0, 10), "yyyy-MM-dd", new Date());
+  if (!isValid(d)) return null;
   const today = new Date();
   let age = today.getFullYear() - d.getFullYear();
   const m = today.getMonth() - d.getMonth();
@@ -82,6 +85,12 @@ export function Perfil() {
   );
   const initialUsernameRef = useRef("");
 
+  const parseLocalISODate = (s?: string | null): Date | undefined => {
+    if (!s) return undefined;
+    const clean = String(s).slice(0, 10); // soporta "2001-05-08" o "2001-05-08T00:00:00Z"
+    const d = parse(clean, "yyyy-MM-dd", new Date());
+    return isValid(d) ? d : undefined;
+  };
   // límites de DOB: min = hoy - 100 años, max = hoy - 13 años
   const { minDOB, maxDOB } = useMemo(() => {
     const today = new Date();
@@ -89,11 +98,14 @@ export function Perfil() {
     min.setFullYear(min.getFullYear() - 100);
     const max = new Date(today);
     max.setFullYear(max.getFullYear() - 13);
-    const toISO = (d: Date) => d.toISOString().split("T")[0];
-    return { minDOB: toISO(min), maxDOB: toISO(max) };
+    // ponerlas a mediodía local para evitar bordes de DST
+    min.setHours(12, 0, 0, 0);
+    max.setHours(12, 0, 0, 0);
+    return { minDOB: min, maxDOB: max };
   }, []);
 
   const {
+    control,
     register,
     handleSubmit,
     setValue,
@@ -144,7 +156,7 @@ export function Perfil() {
         username: data?.username ?? "",
         correo: data?.correo ?? "",
         // ✅ usamos DOB desde BD (si existe)
-        fecha_nacimiento: data?.fecha_nacimiento ?? "",
+        fecha_nacimiento: data?.fecha_nacimiento ? String(data.fecha_nacimiento).slice(0, 10) : "",
         peso: data?.peso ?? "",
         altura: data?.altura ?? "",
         objetivo: data?.objetivo ?? "",
@@ -259,7 +271,7 @@ export function Perfil() {
         nombre: data?.nombre ?? "",
         username: data?.username ?? "",
         correo: data?.correo ?? "",
-        fecha_nacimiento: data?.fecha_nacimiento ?? "",
+        fecha_nacimiento: data?.fecha_nacimiento ? String(data.fecha_nacimiento).slice(0, 10) : "",
         peso: data?.peso ?? "",
         altura: data?.altura ?? "",
         objetivo: data?.objetivo ?? "",
@@ -422,36 +434,31 @@ export function Perfil() {
                 <Label htmlFor="fecha_nacimiento" className="text-base font-semibold">
                   Fecha de nacimiento
                 </Label>
-                <div className="relative">
-                  <Input
-                    id="fecha_nacimiento"
-                    type="date"
-                    autoComplete="bday"
-                    min={minDOB}
-                    max={maxDOB}
-                    {...register("fecha_nacimiento")}
-                    className="h-14 glass-input border-0 bg-transparent text-base placeholder:text-muted-foreground/60 pr-12 [appearance:auto]"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-1.5 top-1.5 h-10 w-10"
-                    onClick={() => {
-                      const el = document.getElementById("fecha_nacimiento") as HTMLInputElement | null;
-                      (el as any)?.showPicker?.();
-                      el?.focus();
-                    }}
-                    aria-label="Abrir calendario"
-                  >
-                    <Calendar className="h-5 w-5" />
-                  </Button>
-                </div>
+                <Controller
+                  control={control}
+                  name="fecha_nacimiento"
+                  render={({ field }) => (
+                    <DatePicker
+                      date={parseLocalISODate(field.value)}
+                      onDateChange={(date) => {
+                        if (date) field.onChange(format(date, "yyyy-MM-dd"));
+                      }}
+                      placeholder="Selecciona tu fecha"
+                      disabled={(date) => isAfter(date, maxDOB) || isBefore(date, minDOB)}
+                      minDate={minDOB}
+                      maxDate={maxDOB}
+                      className="h-14 glass-input border-0 bg-transparent text-base"
+                    />
+                  )}
+                />
                 {renderError("fecha_nacimiento")}
                 {dobWatch && calculatedAge !== null && (
-                  <p className="text-sm text-muted-foreground">
-                    Edad: <span className="font-semibold">{calculatedAge}</span> años
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Edad:</span>
+                    <Badge variant="secondary" className="text-base px-3 py-1">
+                      {calculatedAge} años
+                    </Badge>
+                  </div>
                 )}
               </div>
 

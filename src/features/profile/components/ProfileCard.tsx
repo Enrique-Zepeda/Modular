@@ -120,16 +120,13 @@ export default function ProfileCard({
               </div>
 
               {/* username + edad (badge "Edad: 24") */}
-              <div className="text-lg text-muted-foreground font-medium">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="truncate">{username ? `${username}` : ""}</span>
-                  {ageToShow !== null && (
-                    <Badge variant="secondary" className="shrink-0">
-                      {/* 👇 Texto exactamente como lo pides */}
-                      Edad: {ageToShow}
-                    </Badge>
-                  )}
-                </div>
+              <div className="flex items-center gap-3 flex-wrap">
+                {username && <span className="text-lg text-muted-foreground font-medium truncate">@{username}</span>}
+                {ageToShow !== null && (
+                  <Badge variant="secondary" className="text-sm font-semibold px-3 py-1.5 shadow-sm">
+                    {ageToShow} años
+                  </Badge>
+                )}
               </div>
 
               {training?.badge && (

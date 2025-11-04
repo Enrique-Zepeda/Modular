@@ -20,8 +20,11 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { toast } from "react-hot-toast";
-import { Loader2, Check, X, User, AlertCircle, Sparkles, Target, Settings, Calendar } from "lucide-react";
+
+import { CalendarIcon, Loader2, Check, X, User, AlertCircle, Sparkles, Target, Settings } from "lucide-react";
+import { format, parse, isValid, isAfter, isBefore } from "date-fns";
+import toast from "react-hot-toast";
+import { DatePicker } from "@/components/ui/date-picker";
 
 type Props = {
   defaults?: Partial<OnboardingFormValues> & { fecha_nacimiento?: string | null };
@@ -33,11 +36,19 @@ const log = (...a: any[]) => DEBUG_ONBOARD && console.log("[ONBOARD][form]", ...
 
 const capitalize = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
-// Edad derivada de DOB
+/** Parse "yyyy-MM-dd" como fecha LOCAL (evita saltos por zona/UTC) */
+const parseLocalISODate = (s?: string | null): Date | undefined => {
+  if (!s) return undefined;
+  const clean = String(s).slice(0, 10);
+  const d = parse(clean, "yyyy-MM-dd", new Date());
+  return isValid(d) ? d : undefined;
+};
+
+/** Edad desde DOB (usando fecha local) */
 const ageFromDOB = (dob: string | null | undefined): number | null => {
   if (!dob) return null;
-  const d = new Date(dob);
-  if (Number.isNaN(d.getTime())) return null;
+  const d = parse(String(dob).slice(0, 10), "yyyy-MM-dd", new Date());
+  if (!isValid(d)) return null;
   const today = new Date();
   let age = today.getFullYear() - d.getFullYear();
   const m = today.getMonth() - d.getMonth();
@@ -50,15 +61,16 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
   const [available, setAvailable] = useState<boolean | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // límites DOB (min: hoy - 100 años, max: hoy - 13 años)
+  // límites del input date (min: hoy - 100 años, max: hoy - 13 años) a mediodía local
   const { minDOB, maxDOB } = useMemo(() => {
     const today = new Date();
     const min = new Date(today);
     min.setFullYear(min.getFullYear() - 100);
     const max = new Date(today);
     max.setFullYear(max.getFullYear() - 13);
-    const toISO = (d: Date) => d.toISOString().split("T")[0];
-    return { minDOB: toISO(min), maxDOB: toISO(max) };
+    min.setHours(12, 0, 0, 0);
+    max.setHours(12, 0, 0, 0);
+    return { minDOB: min, maxDOB: max };
   }, []);
 
   const form = useForm<OnboardingFormValues & { fecha_nacimiento?: string }>({
@@ -66,7 +78,8 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
     defaultValues: {
       username: defaults?.username ?? "",
       nombre: defaults?.nombre ?? "",
-      fecha_nacimiento: (defaults?.fecha_nacimiento ?? "") as any,
+      // 👇 normalizamos a "yyyy-MM-dd" (local)
+      fecha_nacimiento: (defaults?.fecha_nacimiento ? String(defaults.fecha_nacimiento).slice(0, 10) : "") as any,
       peso: (defaults?.peso ?? ("" as unknown as number)) as number,
       altura: (defaults?.altura ?? ("" as unknown as number)) as number,
       nivel_experiencia: (defaults?.nivel_experiencia as any) ?? ("" as any),
@@ -125,13 +138,14 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
         return;
       }
 
+      // Edad derivada desde DOB (local)
       const derivedAge = ageFromDOB(values.fecha_nacimiento ?? null);
 
-      const saved = await upsertCurrentUserProfile({
+      await upsertCurrentUserProfile({
         username,
         nombre,
         fecha_nacimiento: values.fecha_nacimiento || null,
-        edad: derivedAge ?? null, // compatibilidad si el RPC aún espera edad
+        edad: derivedAge ?? null, // compat si el backend la acepta
         peso: Number(values.peso),
         altura: Number(values.altura),
         nivel_experiencia: values.nivel_experiencia,
@@ -234,7 +248,7 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
           <Card className="rounded-2xl shadow-lg border-0 bg-card">
             <CardHeader className="pb-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
+                <div className="p-1.5 rounded-lg bg-primary/10">
                   <User className="h-5 w-5 text-primary" />
                 </div>
                 <div>
@@ -284,7 +298,7 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                         disabled={checking}
                         className="h-11 px-4 bg-transparent"
                       >
-                        {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verificar"}
+                        {checking ? <CalendarIcon className="h-4 w-4 animate-spin" /> : "Verificar"}
                       </Button>
                       <AnimatePresence mode="wait">
                         {available === true && (
@@ -364,37 +378,30 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                     </Badge>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    {/* Fecha de nacimiento */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Fecha de nacimiento (con fix local) */}
                     <div className="space-y-3">
                       <Label htmlFor="fecha_nacimiento" className="text-sm font-medium">
                         Fecha de nacimiento
                       </Label>
-                      <div className="relative">
-                        <Input
-                          id="fecha_nacimiento"
-                          type="date"
-                          autoComplete="bday"
-                          min={minDOB}
-                          max={maxDOB}
-                          {...(form.register as any)("fecha_nacimiento")}
-                          className="h-11 pr-10 [appearance:auto]"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-1 top-1.5 h-8 w-8"
-                          onClick={() => {
-                            const el = document.getElementById("fecha_nacimiento") as HTMLInputElement | null;
-                            (el as any)?.showPicker?.();
-                            el?.focus();
-                          }}
-                          aria-label="Abrir calendario"
-                        >
-                          <Calendar className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <Controller
+                        control={form.control}
+                        name="fecha_nacimiento"
+                        render={({ field }) => (
+                          <DatePicker
+                            date={parseLocalISODate(field.value)}
+                            onDateChange={(date) => {
+                              if (date) field.onChange(format(date, "yyyy-MM-dd"));
+                            }}
+                            disabled={(date) => isAfter(date, maxDOB) || isBefore(date, minDOB)}
+                            minDate={minDOB}
+                            maxDate={maxDOB}
+                            captionLayout="dropdown"
+                            fromYear={minDOB.getFullYear()}
+                            toYear={maxDOB.getFullYear()}
+                          />
+                        )}
+                      />
                       {(form.formState.errors as any).fecha_nacimiento && (
                         <p className="text-xs text-destructive">
                           {(form.formState.errors as any).fecha_nacimiento.message as string}
@@ -404,18 +411,16 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
 
                     {/* Edad (solo lectura) */}
                     <div className="space-y-3">
-                      <Label htmlFor="edad_calc" className="text-sm font-medium">
-                        Edad
-                      </Label>
-                      <Input
-                        id="edad_calc"
-                        value={calculatedAge ?? ""}
-                        readOnly
-                        disabled
-                        placeholder="—"
-                        className="h-11 bg-muted/20"
-                        aria-readonly="true"
-                      />
+                      <Label className="text-sm font-medium">Edad</Label>
+                      <div className="flex items-center h-11">
+                        {calculatedAge !== null ? (
+                          <Badge variant="secondary" className="text-base px-4 py-2">
+                            {calculatedAge} años
+                          </Badge>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Peso */}
@@ -636,8 +641,8 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                   )}
                   {calculatedAge !== null && (
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">Edad (calculada):</span>
-                      <span className="text-sm font-medium">{calculatedAge} años</span>
+                      <span className="text-sm text-muted-foreground">Edad:</span>
+                      <Badge variant="secondary">{calculatedAge} años</Badge>
                     </div>
                   )}
                   {(watchedValues as any).peso && (
