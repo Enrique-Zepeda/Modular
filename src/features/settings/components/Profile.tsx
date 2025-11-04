@@ -4,7 +4,7 @@ import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import toast from "react-hot-toast";
-import { Loader2, Search } from "lucide-react"; // Import Loader2 and Search icons
+import { Loader2, UserCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -389,7 +389,7 @@ export function Perfil() {
                     className="h-14 px-6 glass-effect border-0 hover:glass-card premium-hover bg-transparent"
                     aria-label="Verificar disponibilidad de username"
                   >
-                    {checkingUser ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
+                    {checkingUser ? <Loader2 className="h-5 w-5 animate-spin" /> : <UserCheck className="h-5 w-5" />}
                   </Button>
                 </div>
                 {usernameStatus === "available" && (
