@@ -406,15 +406,19 @@ export const workoutsApi = createApi({
           // 1.b) Perfiles
           const perfRes = await supabase
             .from("Usuarios")
-            .select("auth_uid, username, url_avatar")
+            .select("auth_uid, username, url_avatar, sexo")
             .in("auth_uid", ownerUids);
           if (perfRes.error) throw perfRes.error;
 
-          const profileByUid = new Map<string, { username: string | null; url_avatar: string | null }>();
+          const profileByUid = new Map<
+            string,
+            { username: string | null; url_avatar: string | null; sexo: string | null }
+          >();
           for (const p of perfRes.data ?? []) {
             profileByUid.set(p.auth_uid, {
               username: p.username ?? null,
               url_avatar: p.url_avatar ?? null,
+              sexo: (p as any).sexo ?? null, // 👈 guarda sexo
             });
           }
 
@@ -504,7 +508,7 @@ export const workoutsApi = createApi({
           >();
 
           for (const s of sesiones) {
-            const prof = profileByUid.get(s.owner_uid) ?? { username: null, url_avatar: null };
+            const prof = profileByUid.get(s.owner_uid) ?? { username: null, url_avatar: null, sexo: null };
             const titulo = rutinaById.get(s.id_rutina as number) ?? "Entrenamiento";
             bySesion.set(s.id_sesion, {
               id_sesion: s.id_sesion,
@@ -517,11 +521,11 @@ export const workoutsApi = createApi({
               titulo,
               username: prof.username,
               url_avatar: prof.url_avatar,
+              sexo: prof.sexo,
               ejercicios: [],
               sensacion_final: s.sensacion_global ?? null,
-              // 👇 añadimos duracion_seg si existe; si no, lo calculas en el UI (ya lo haces)
               duracion_seg: s.duracion_seg ?? null,
-            } as FinishedWorkoutRich);
+            } as any);
           }
 
           for (const set of sets) {

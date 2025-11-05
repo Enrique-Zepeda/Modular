@@ -1,5 +1,4 @@
 export { default as BmiGauge } from "./BmiGauge";
-export { default as LastWorkoutSummaryCard } from "./LastWorkoutSummaryCard";
 export { default as ProfileCard } from "./ProfileCard";
 export { default as ProfileFriendsModal } from "./ProfileFriendsModal";
 export { default as ProfileMuscleDistribution } from "./ProfileMuscleDistribution";

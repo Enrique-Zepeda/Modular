@@ -20,7 +20,7 @@ function formatDayHeader(key: string) {
 
 export function CompletedWorkoutsSection() {
   const { data, isLoading, isError } = useListUserWorkoutsQuery();
-
+  const mySexo = me?.sexo ?? null;
   const grouped = useMemo(() => {
     const g = new Map<string, FinishedWorkoutRich[]>();
     for (const s of (data ?? []) as FinishedWorkoutRich[]) {
@@ -71,10 +71,12 @@ export function CompletedWorkoutsSection() {
                   totalVolume={Number((s as any).total_volume ?? 0)}
                   username={"Tú"}
                   avatarUrl={undefined}
+                  sexo={mySexo}
                   ejercicios={(s as any).ejercicios ?? []}
                   sensacionFinal={s.sensacion_final ?? (s as any).sensacion_global ?? null}
                   isMine={true}
                   readOnly={false}
+                  sexo={mySexo}
                 />
               ))}
             </div>

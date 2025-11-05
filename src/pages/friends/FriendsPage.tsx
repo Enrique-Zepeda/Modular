@@ -9,6 +9,7 @@ import { useSearchUsersQuery } from "@/features/friends/api";
 import FriendshipBadge from "@/features/friends/components/FriendshipBadge";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 const MIN_CHARS = 2; // escribe al menos 2 letras para buscar
 const LIMIT = 10; // máximo de resultados a mostrar
@@ -158,12 +159,21 @@ export default function FriendsPage() {
                           <div className="flex items-center gap-4">
                             <Link to={`/u/${u.username}`} className="flex items-center gap-4 min-w-0 flex-1 group/link">
                               <div className="relative">
-                                <Avatar className="h-12 w-12 flex-shrink-0 ring-2 ring-transparent group-hover/link:ring-primary/30 transition-all duration-300 shadow-md group-hover/link:shadow-lg">
-                                  <AvatarImage src={u.url_avatar ?? undefined} alt={u.username} />
-                                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-foreground font-semibold">
-                                    {initials}
-                                  </AvatarFallback>
-                                </Avatar>
+                                <UserAvatar
+                                  url={u.url_avatar}
+                                  sexo={u.sexo}
+                                  alt={`Avatar de ${u.username}`}
+                                  size={48} //  h-12 w-12
+                                  className="ring-2 ring-transparent group-hover/link:ring-primary/30 transition-all duration-300 shadow-md group-hover/link:shadow-lg"
+                                  fallbackText={
+                                    (u.nombre || u.username || "?")
+                                      .split(" ")
+                                      .map((s: string) => s.charAt(0).toUpperCase())
+                                      .slice(0, 2)
+                                      .join("") || "?"
+                                  }
+                                  imageClassName="object-contain"
+                                />
                                 <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl opacity-0 group-hover/link:opacity-50 transition-opacity duration-300" />
                               </div>
 

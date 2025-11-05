@@ -55,26 +55,37 @@ export const friendsApi = createApi({
     // -----------------------------
     // BÚSQUEDA DE USUARIOS (global)
     // -----------------------------
-    searchUsers: builder.query<UserPublicProfile[], { term: string }>({
-      async queryFn({ term }) {
+    searchUsers: builder.query<UserPublicProfile[], { term: string; limit?: number }>({
+      async queryFn({ term, limit = 20 }) {
+        // Normaliza el término (@user → user) y evita consultas vacías
+        const qTerm = term.trim().replace(/^@+/, "").toLowerCase();
+        if (!qTerm) return { data: [] };
+
+        // myId es opcional (para excluirte de los resultados)
+        let myId: number | null = null;
         try {
-          const rpc = await supabase.rpc("search_users", { term });
-          if (!rpc.error && rpc.data) return { data: rpc.data as UserPublicProfile[] };
-        } catch {}
-        const me = await supabase.rpc("current_usuario_id");
-        const myId = me.data as number;
-        const { data, error } = await supabase
+          const me = await supabase.rpc("current_usuario_id");
+          if (!me.error && typeof me.data === "number") myId = me.data as number;
+        } catch {
+          // si falla, seguimos sin excluir
+        }
+
+        // Búsqueda por username o nombre (ILIKE)
+        let query = supabase
           .from("Usuarios")
-          .select("id_usuario,username,nombre,url_avatar")
-          .ilike("username", `%${term}%`)
-          .neq("id_usuario", myId)
-          .limit(20);
+          .select("id_usuario, username, nombre, url_avatar, sexo")
+          .or(`username.ilike.%${qTerm}%,nombre.ilike.%${qTerm}%`)
+          .order("username", { ascending: true })
+          .limit(limit);
+
+        if (myId != null) query = query.neq("id_usuario", myId);
+
+        const { data, error } = await query;
         if (error) return { error };
         return { data: (data ?? []) as UserPublicProfile[] };
       },
       providesTags: (_res, _err, { term }) => [{ type: "Search", id: term }],
     }),
-
     // -----------------------------
     // MIS AMIGOS (Modelo B real)
     // -----------------------------
@@ -95,7 +106,7 @@ export const friendsApi = createApi({
 
           const { data: users, error: errUsers } = await supabase
             .from("Usuarios")
-            .select("id_usuario,username,nombre,url_avatar")
+            .select("id_usuario,username,nombre,url_avatar, sexo")
             .in("id_usuario", others);
           if (errUsers) return { error: errUsers };
 
@@ -131,7 +142,7 @@ export const friendsApi = createApi({
           .select(
             `
             id_solicitud, solicitante_id, destinatario_id, estado, mensaje, created_at, updated_at,
-            solicitante:Usuarios!SolicitudesAmistad_solicitante_id_fkey(id_usuario,username,nombre,url_avatar)
+            solicitante:Usuarios!SolicitudesAmistad_solicitante_id_fkey(id_usuario,username,nombre,url_avatar, sexo)
           `
           )
           .eq("destinatario_id", myId)
@@ -152,7 +163,7 @@ export const friendsApi = createApi({
           .select(
             `
             id_solicitud, solicitante_id, destinatario_id, estado, mensaje, created_at, updated_at,
-            destinatario:Usuarios!SolicitudesAmistad_destinatario_id_fkey(id_usuario,username,nombre,url_avatar)
+            destinatario:Usuarios!SolicitudesAmistad_destinatario_id_fkey(id_usuario,username,nombre,url_avatar, sexo)
           `
           )
           .eq("solicitante_id", myId)

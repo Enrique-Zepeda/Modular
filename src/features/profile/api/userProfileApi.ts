@@ -14,8 +14,8 @@ export type PublicProfile = Pick<
   | "nivel_experiencia"
   | "objetivo"
   | "sexo"
-  | "fecha_nacimiento" // ✅ añadido
-  | "edad" // ✅ añadido
+  | "fecha_nacimiento"
+  | "edad"
 >;
 
 export const userProfileApi = createApi({
@@ -44,8 +44,8 @@ export const userProfileApi = createApi({
                 "nivel_experiencia",
                 "objetivo",
                 "sexo",
-                "fecha_nacimiento", // ✅ añadido
-                "edad", // ✅ añadido
+                "fecha_nacimiento",
+                "edad",
               ].join(", ")
             )
             .eq("auth_uid", u.id)
@@ -77,8 +77,8 @@ export const userProfileApi = createApi({
                 "nivel_experiencia",
                 "objetivo",
                 "sexo",
-                "fecha_nacimiento", // ✅ añadido
-                "edad", // ✅ añadido
+                "fecha_nacimiento",
+                "edad",
               ].join(", ")
             )
             .ilike("username", uname)

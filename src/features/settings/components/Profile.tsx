@@ -298,6 +298,9 @@ export function Perfil() {
       <p className="text-sm text-destructive mt-1">{String((errors as any)[field].message)}</p>
     ) : null;
 
+  const sexoValue = watch("sexo");
+  const sexoForAvatar = (sexoValue === "femenino" ? "femenino" : "masculino") as Sexo;
+
   return (
     <div className="grid gap-12">
       {/* Región aria-live */}
@@ -308,6 +311,7 @@ export function Perfil() {
       <div className="animate-slide-in">
         <AvatarUploader
           url={watch("url_avatar") || ""}
+          sexo={sexoForAvatar}
           onUpdated={(newUrl) => setValue("url_avatar", newUrl, { shouldDirty: true })}
         />
       </div>

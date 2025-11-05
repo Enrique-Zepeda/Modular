@@ -8,6 +8,7 @@ import { useLazyGetWorkoutsByUsernameQuery } from "@/features/workouts/api/worko
 type Props = {
   username: string; // sin @
   avatarUrl?: string | null;
+  sexo?: import("@/components/ui/user-avatar").Sexo;
   isMine?: boolean;
 };
 
@@ -29,7 +30,7 @@ type Item = {
   }>;
 };
 
-export default function ProfileWorkoutsList({ username, avatarUrl, isMine = false }: Props) {
+export default function ProfileWorkoutsList({ username, avatarUrl, isMine = false, sexo = null }: Props) {
   const [trigger] = useLazyGetWorkoutsByUsernameQuery();
   const [items, setItems] = React.useState<Item[]>([]);
   const [page, setPage] = React.useState(0);
@@ -108,6 +109,7 @@ export default function ProfileWorkoutsList({ username, avatarUrl, isMine = fals
           totalVolume={w.total_volume_kg}
           username={username}
           avatarUrl={avatarUrl ?? undefined}
+          sexo={sexo ?? null}
           ejercicios={w.ejercicios.map((e) => ({
             id: String(e.id_ejercicio),
             nombre: e.nombre,

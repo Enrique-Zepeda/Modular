@@ -1,7 +1,6 @@
 import * as React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -21,6 +20,8 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
+import UserAvatar from "@/components/ui/user-avatar"; // default import
+import type { Sexo } from "@/lib/avatar";
 
 type Props = {
   username: string;
@@ -40,7 +41,42 @@ function normalize(s: string) {
     .trim();
 }
 
-// UI-ONLY REFACTOR: Improved modal design with better search UX, loading states, and accessibility
+// ✅ normaliza a "M" | "F" | null (corregido)
+function normalizeSexo(input: unknown): Sexo | null {
+  if (input == null) return null;
+  const x = String(input).trim().toLowerCase();
+
+  // códigos numéricos comunes
+  if (x === "1") return "M"; // 1 = masculino (común)
+  if (x === "2") return "F"; // 2 = femenino (común)
+  if (x === "0") return null; // desconocido
+
+  // textos
+  if (["m", "masc", "masculino", "male", "hombre"].includes(x)) return "M";
+  if (["f", "fem", "femenino", "female", "mujer"].includes(x)) return "F";
+
+  return null;
+}
+
+// trata "", "null", "undefined" como vacío real
+function sanitizeUrl(v: unknown): string | null {
+  if (v == null) return null;
+  const s = String(v).trim();
+  if (!s || s === "null" || s === "undefined") return null;
+  return s;
+}
+
+// ignora placeholders masculinos cuando sexo = "F"
+function stripMalePlaceholderIfFemale(url: string | null, sexo: Sexo | null): string | null {
+  if (!url) return url;
+  if (sexo !== "F") return url;
+  // Heurística: si la ruta parece un placeholder masculino, fuerza fallback por sexo
+  if (/(default|placeholder|generic).*(male|man|hombre)/i.test(url)) {
+    return null;
+  }
+  return url;
+}
+
 export default function ProfileFriendsModal({
   username,
   open,
@@ -52,7 +88,7 @@ export default function ProfileFriendsModal({
   const { friends, isLoading, isError, error, refetch } = useProfileFriends(username);
   const [pendingId, setPendingId] = React.useState<string | null>(null);
 
-  // 🔎 estado de búsqueda local (misma UI, sin componentes nuevos)
+  // 🔎 estado de búsqueda local
   const [query, setQuery] = React.useState("");
 
   // Filtrado por nombre o username (diacríticos-insensitive)
@@ -60,8 +96,8 @@ export default function ProfileFriendsModal({
     const q = normalize(query);
     if (!q) return friends;
     return friends.filter((f) => {
-      const u = normalize(f.username ?? "");
-      const n = normalize(f.nombre ?? "");
+      const u = normalize((f as any).username ?? "");
+      const n = normalize((f as any).nombre ?? "");
       return u.includes(q) || n.includes(q);
     });
   }, [friends, query]);
@@ -73,7 +109,6 @@ export default function ProfileFriendsModal({
 
   const notifyChange = React.useCallback(() => {
     onFriendsChanged?.();
-    // evento global para que otras vistas interesadas refresquen (opcional)
     window.dispatchEvent(new CustomEvent("friends:changed"));
   }, [onFriendsChanged]);
 
@@ -101,7 +136,7 @@ export default function ProfileFriendsModal({
 
       toast.success(`Has eliminado a @${friendHandle}.`, { id: t });
       await refetch();
-      notifyChange(); // ✅ avisa al padre y al global
+      notifyChange();
     } catch (e: any) {
       toast.error(e?.message ?? "No se pudo eliminar.", { id: t });
     } finally {
@@ -109,7 +144,6 @@ export default function ProfileFriendsModal({
     }
   };
 
-  // Lista efectiva según búsqueda
   const list = query ? filteredFriends : friends;
 
   return (
@@ -161,16 +195,14 @@ export default function ProfileFriendsModal({
               ))}
             </div>
           ) : isError ? (
-            /* UI-ONLY: Improved error state */
             <div className="p-6 text-center">
               <div className="p-4 rounded-full bg-destructive/10 mb-3 w-fit mx-auto">
                 <Users className="h-6 w-6 text-destructive/60" />
               </div>
               <p className="text-sm font-medium text-destructive mb-1">No se pudo cargar la lista</p>
-              <p className="text-xs text-muted-foreground">{error ?? "Intenta recargar la página."}</p>
+              <p className="text-xs text-muted-foreground">{(error as any) ?? "Intenta recargar la página."}</p>
             </div>
           ) : list.length === 0 ? (
-            /* UI-ONLY: Improved empty state with better messaging */
             <div className="p-6 text-center">
               <div className="p-4 rounded-full bg-muted/50 mb-3 w-fit mx-auto">
                 <Users className="h-6 w-6 text-muted-foreground/40" />
@@ -183,39 +215,66 @@ export default function ProfileFriendsModal({
               </p>
             </div>
           ) : (
-            /* UI-ONLY: Improved friends list with better card design and accessibility */
             <ScrollArea className="h-full pr-4">
               <ul className="space-y-2">
-                {list.map((f) => {
-                  const initial = (f.nombre?.[0] || f.username?.[0] || "?").toUpperCase();
-                  const isPending = pendingId === f.id;
+                {list.map((f: any) => {
+                  // Compat: soporta distintas formas de la fila
+                  const id = String(f.id ?? f.id_usuario ?? f.user_id ?? f.userId ?? "");
+                  const usernameRow = f.username ?? f.handle ?? "";
+                  const nombreRow = f.nombre ?? null;
+                  const urlAvatar = f.url_avatar ?? f.avatarUrl ?? null;
+                  const sexoRaw = f.sexo ?? null;
+
+                  // Detectar usuario anidado + normalizar campos (sin borrar nada)
+                  const u = f.usuario ?? f.user ?? f.perfil ?? f.profile ?? f.friend ?? f.amigo ?? f.other ?? f; // fallback
+
+                  // Derivados robustos (mantienen tus valores originales como fallback)
+                  const usernameDerived: string = String(u.username ?? usernameRow ?? "");
+                  const nombreDerived: string | null = (u.nombre ?? nombreRow ?? null) as string | null;
+
+                  const sexoDerived: Sexo | null = normalizeSexo(u.sexo ?? sexoRaw ?? null);
+
+                  // URL final (limpia y, si hace falta, forzamos placeholder femenino)
+                  const urlAvatarSanitized: string | null = sanitizeUrl(
+                    u.url_avatar ?? u.avatarUrl ?? urlAvatar ?? null
+                  );
+                  const urlFinal = stripMalePlaceholderIfFemale(urlAvatarSanitized, sexoDerived);
+
+                  // Iniciales
+                  const initialDerived = (nombreDerived?.[0] || usernameDerived?.[0] || "?").toUpperCase();
+
+                  const isPending = pendingId === id;
+
                   return (
                     <li
-                      key={f.id}
+                      key={id}
                       className="p-3 flex items-center gap-3 rounded-xl border-2 border-border/60 bg-gradient-to-br from-card/95 to-card/90 hover:border-primary/40 hover:shadow-md transition-all duration-200 focus-within:ring-2 focus-within:ring-primary/40"
                     >
                       <Link
-                        to={`/u/${f.username}`}
+                        to={`/u/${usernameDerived}`}
                         className="flex items-center gap-3 min-w-0 flex-1 group outline-none rounded"
                         onClick={() => onOpenChange(false)}
-                        aria-label={`Ir al perfil de ${f.nombre || f.username}`}
+                        aria-label={`Ir al perfil de ${nombreDerived || usernameDerived}`}
                       >
-                        <Avatar className="size-12 border-2 border-primary/20 ring-2 ring-primary/10 shadow-sm flex-shrink-0">
-                          <AvatarImage src={f.avatarUrl ?? undefined} alt={`Avatar de ${f.username}`} />
-                          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-bold">
-                            {initial}
-                          </AvatarFallback>
-                        </Avatar>
+                        <UserAvatar
+                          url={urlFinal}
+                          sexo={sexoDerived}
+                          alt={`Avatar de ${usernameDerived}`}
+                          size={48} // h-12 w-12
+                          className="border-2 border-primary/20 ring-2 ring-primary/10 shadow-sm flex-shrink-0"
+                          imageClassName="object-contain" // evita recorte
+                          fallbackText={initialDerived}
+                        />
 
                         <div className="min-w-0 flex-1">
                           <div className="font-semibold truncate group-hover:underline">
-                            {f.nombre ?? `@${f.username}`}
+                            {nombreDerived ?? `@${usernameDerived}`}
                           </div>
-                          <div className="text-sm text-muted-foreground truncate">@{f.username}</div>
+                          <div className="text-sm text-muted-foreground truncate">@{usernameDerived}</div>
                         </div>
                       </Link>
 
-                      {canManageFriends && (
+                      {canManageFriends && id && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button
@@ -224,7 +283,7 @@ export default function ProfileFriendsModal({
                               className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
                               disabled={isPending}
                               onClick={(e) => e.stopPropagation()}
-                              aria-label={`Eliminar a ${f.username} de amigos`}
+                              aria-label={`Eliminar a ${usernameDerived} de amigos`}
                               title="Eliminar de amigos"
                             >
                               {isPending ? (
@@ -239,15 +298,15 @@ export default function ProfileFriendsModal({
                             <AlertDialogHeader>
                               <AlertDialogTitle>Eliminar de amigos</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Quitarás a <strong>@{f.username}</strong> de tu lista de amigos. Esta acción no puede
-                                deshacerse.
+                                Quitarás a <strong>@{usernameDerived}</strong> de tu lista de amigos. Esta acción no
+                                puede deshacerse.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancelar</AlertDialogCancel>
                               <AlertDialogAction
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                onClick={() => handleUnfriend(f.id, f.username)}
+                                onClick={() => handleUnfriend(id, usernameDerived)}
                               >
                                 Confirmar eliminar
                               </AlertDialogAction>

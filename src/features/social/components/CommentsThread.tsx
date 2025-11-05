@@ -2,7 +2,6 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useComments } from "../hooks/useComments";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, MessageSquare, Trash2, Send } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -23,6 +22,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+// 👇 NUEVO: usamos el mismo avatar que en el resto de la app
+import UserAvatar from "@/components/ui/user-avatar";
+
 const schema = z.object({
   texto: z.string().trim().min(1, "Escribe un comentario").max(1000, "Máximo 1000 caracteres"),
 });
@@ -35,6 +37,34 @@ function formatDate(iso: string) {
   } catch {
     return iso;
   }
+}
+
+/** Helpers locales solo para el avatar (no tocan tu lógica): */
+function normalizeSexoForAvatar(input: unknown): "M" | "F" | null {
+  if (input == null) return null;
+  const x = String(input).trim().toLowerCase();
+
+  // soporta variantes comunes
+  if (x === "0") return "M";
+  if (x === "1" || x === "2") return "F";
+  if (["f", "fem", "femenino", "female", "mujer"].includes(x)) return "F";
+  if (["m", "masc", "masculino", "male", "hombre"].includes(x)) return "M";
+  // iniciales en español legacy
+  if (x === "h") return "M";
+  if (x === "m") return "F";
+  if (x === "f") return "F";
+  // literals
+  if (x === "masculino") return "M";
+  if (x === "femenino") return "F";
+
+  return null;
+}
+
+function sanitizeUrl(v: unknown): string | null {
+  if (v == null) return null;
+  const s = String(v).trim();
+  if (!s || s === "null" || s === "undefined") return null;
+  return s;
 }
 
 export const CommentsThread = memo(function CommentsThread({ sessionId, onClose }: Props) {
@@ -164,7 +194,9 @@ export const CommentsThread = memo(function CommentsThread({ sessionId, onClose 
           {items.map((c) => {
             const prof = profiles[c.author_uid];
             const username = prof?.username || "Usuario";
-            const avatarUrl = prof?.url_avatar || "";
+            const avatarUrlNormalized = sanitizeUrl(prof?.url_avatar);
+            const sexoForAvatar = normalizeSexoForAvatar((prof as any)?.sexo ?? null);
+
             const initials =
               (username || "U")
                 .split(" ")
@@ -183,12 +215,16 @@ export const CommentsThread = memo(function CommentsThread({ sessionId, onClose 
                 className="relative flex items-start gap-3.5 p-4 border-2 border-border/80 bg-gradient-to-br from-background via-muted/10 to-muted/20 hover:from-muted/30 hover:via-muted/40 hover:to-muted/50 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-200 group rounded-xl"
                 role="listitem"
               >
-                <Avatar className="h-10 w-10 border-2 border-primary/20 ring-2 ring-primary/10 shadow-md">
-                  <AvatarImage src={avatarUrl || "/placeholder.svg"} alt={username} />
-                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-xs font-bold">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
+                {/* 👇 ÚNICO CAMBIO: avatar consistente con el resto (sexo M/F y fallback correcto) */}
+                <UserAvatar
+                  url={avatarUrlNormalized}
+                  sexo={sexoForAvatar}
+                  alt={username}
+                  size={40} // equivalente a h-10 w-10
+                  className="border-2 border-primary/20 ring-2 ring-primary/10 shadow-md"
+                  imageClassName="object-cover"
+                  fallbackText={initials}
+                />
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2.5 mb-2">

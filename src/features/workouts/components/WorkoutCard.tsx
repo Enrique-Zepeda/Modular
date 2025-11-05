@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,8 @@ import { diffSecondsSafe, formatDurationShort } from "@/lib/duration";
 import { SocialActionsBar } from "@/features/social/components/SocialActionsBar";
 import { normalizeSensation, sensationPillClasses } from "@/features/workouts/utils/sensation";
 import { WorkoutDetailsDialog } from "./WorkoutDetailsDialog";
+import type { Sexo } from "@/lib/avatar";
+import UserAvatar from "@/components/ui/user-avatar";
 
 type ExerciseItem = {
   id?: number | string | null;
@@ -40,7 +42,8 @@ type Props = {
   totalSets: number;
   totalVolume: number;
   username?: string;
-  avatarUrl?: string;
+  avatarUrl?: string | null;
+  sexo?: Sexo; // 👈 añadido
   ejercicios?: ExerciseItem[];
   className?: string;
   dayHeader?: string | null;
@@ -98,6 +101,7 @@ export function WorkoutCard({
   totalVolume,
   username = "Usuario",
   avatarUrl,
+  sexo, // 👈 recibido
   ejercicios = [],
   className,
   dayHeader,
@@ -169,7 +173,9 @@ export function WorkoutCard({
 
   const doneExercises = useMemo(() => (ejercicios ?? []).filter((ex) => (ex.sets_done ?? 0) > 0), [ejercicios]);
   const exercisesCount = doneExercises.length;
-
+  useEffect(() => {
+    console.debug("[WorkoutCard] usuario=", username, "sexo=", sexo, "avatarUrl=", avatarUrl);
+  }, [username, sexo, avatarUrl]);
   return (
     <>
       {dayHeader ? (
@@ -225,15 +231,15 @@ export function WorkoutCard({
               </h3>
 
               <div className="flex items-center gap-3.5">
-                <Avatar className="h-11 w-11 border-2 border-primary/20 ring-2 ring-primary/10 shadow-lg shadow-primary/5">
-                  {avatarUrl ? (
-                    <AvatarImage src={avatarUrl || "/placeholder.svg"} alt={username} />
-                  ) : (
-                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-xs font-bold">
-                      {initials}
-                    </AvatarFallback>
-                  )}
-                </Avatar>
+                <UserAvatar
+                  url={avatarUrl ?? null}
+                  sexo={sexo}
+                  alt={username}
+                  size={44}
+                  className="border-2 border-primary/20 ring-2 ring-primary/10 shadow-lg shadow-primary/5 rounded-full"
+                  imageClassName="object-contain"
+                  fallbackText={initials}
+                />
                 <div className="leading-tight min-w-0 flex-1">
                   <div className="text-sm font-bold truncate text-foreground">{username}</div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground/80 mt-1">

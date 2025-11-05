@@ -1,8 +1,8 @@
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { FriendshipBadge } from "@/features/friends/components";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 /* -------------------- Helper color (autocontenido) -------------------- */
 function hexToRgba(hex: string, alpha = 0.12) {
@@ -27,14 +27,12 @@ export type ProfileCardProps = {
   displayName: string | null;
   username: string | null;
   avatarUrl: string | null;
+  sexo?: import("@/lib/avatar").Sexo;
   className?: string;
   training?: TrainingBadgeProps;
   friendshipTargetId?: string | number | null;
   friendshipTargetUsername?: string | null;
-
-  /** Edad a mostrar junto al username (si llega). */
   edad?: number | string | null;
-  /** Alternativa: DOB para calcular edad si no se pasa `edad`. */
   fechaNacimiento?: string | null;
 };
 
@@ -71,6 +69,7 @@ export default function ProfileCard({
   displayName,
   username,
   avatarUrl,
+  sexo,
   className,
   training,
   friendshipTargetId,
@@ -107,12 +106,14 @@ export default function ProfileCard({
         <div className="flex items-start justify-between gap-8">
           {/* IZQUIERDA: avatar + info */}
           <div className="flex items-center gap-6">
-            <Avatar className="h-28 w-28 border-4 border-primary/30 ring-4 ring-primary/10 shadow-2xl shadow-primary/20 hover:scale-105 transition-transform duration-300">
-              <AvatarImage src={avatarUrl ?? undefined} alt={displayName ?? "Usuario"} />
-              <AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-primary/30 via-primary/20 to-primary/10 text-primary">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <UserAvatar
+              url={avatarUrl}
+              sexo={sexo}
+              alt={displayName ?? "Usuario"}
+              size={112}
+              className="border-4 border-primary/30 ring-4 ring-primary/10 shadow-2xl shadow-primary/20 hover:scale-105 transition-transform duration-300"
+              fallbackText={initials}
+            />
 
             <div className="flex-1 min-w-0 space-y-2">
               <div className="text-3xl font-extrabold tracking-tight truncate bg-gradient-to-br from-foreground to-foreground/80 bg-clip-text">

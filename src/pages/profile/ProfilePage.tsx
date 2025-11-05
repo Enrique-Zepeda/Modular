@@ -50,9 +50,21 @@ export default function ProfilePage() {
 
   const [openFriends, setOpenFriends] = React.useState(false);
 
-  // Card básica
-  const my = useGetMyProfileQuery(undefined, { skip: !isSelf });
-  const other = useGetProfileByUsernameQuery({ username: username! }, { skip: isSelf });
+  const my = useGetMyProfileQuery(undefined, {
+    skip: !isSelf,
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  });
+  const other = useGetProfileByUsernameQuery(
+    { username: username! },
+    {
+      skip: isSelf,
+      refetchOnMountOrArgChange: true,
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
+    }
+  );
   const profile = (isSelf ? my.data : other.data) ?? null;
 
   // KPIs (públicos, v2)
@@ -111,6 +123,7 @@ export default function ProfilePage() {
         displayName={profile?.nombre ?? null}
         username={profile?.username ?? null}
         avatarUrl={profile?.url_avatar ?? null}
+        sexo={profile?.sexo}
         training={training}
         friendshipTargetId={profile?.id_usuario ?? null}
         friendshipTargetUsername={profile?.username ?? null}
@@ -184,7 +197,12 @@ export default function ProfilePage() {
           </div>
         </div>
         {targetUsername && (
-          <ProfileWorkoutsList username={targetUsername} avatarUrl={profile?.url_avatar ?? null} isMine={isSelf} />
+          <ProfileWorkoutsList
+            username={targetUsername}
+            avatarUrl={profile?.url_avatar ?? null}
+            isMine={isSelf}
+            sexo={profile?.sexo ?? null}
+          />
         )}
       </div>
 

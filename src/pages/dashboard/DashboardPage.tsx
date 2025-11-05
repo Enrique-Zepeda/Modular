@@ -88,6 +88,7 @@ export function DashboardPage() {
         totalVolume: Number(w.total_volume ?? 0),
         username: w.username ?? "Yo",
         avatarUrl: w.url_avatar ?? undefined,
+        sexo: w.sexo ?? null,
         ejercicios: w.ejercicios ?? [],
         sensacionFinal: sensNormMine,
         isMine: true,
@@ -132,6 +133,7 @@ export function DashboardPage() {
         totalSets: Number(w.total_series ?? 0),
         totalVolume: Number(w.total_kg ?? 0),
         username: String(w.username ?? ""),
+        sexo: (w.sexo as any) ?? null,
         avatarUrl: (w.url_avatar ?? undefined) as string | undefined,
         ejercicios: (w.ejercicios ?? []) as any[],
         sensacionFinal: sensNormFriend,
@@ -151,10 +153,29 @@ export function DashboardPage() {
     // Dedupe por id, preferimos el feed si tiene mejor score
     const merged = [...friends, ...mine];
     const byId = new Map<number, any>();
+
     for (const it of merged) {
       const prev = byId.get(it.idSesion);
-      if (!prev || (it.__score ?? 0) > (prev.__score ?? 0)) byId.set(it.idSesion, it);
+      if (!prev) {
+        byId.set(it.idSesion, it);
+        continue;
+      }
+
+      // Elige como base el de mejor score
+      const base = (prev.__score ?? 0) >= (it.__score ?? 0) ? prev : it;
+      const other = base === prev ? it : prev;
+
+      // Completa huecos clave (sexo, avatar, username, ejercicios…)
+      byId.set(it.idSesion, {
+        ...base,
+        sexo: base.sexo ?? other.sexo ?? null,
+        avatarUrl: base.avatarUrl ?? other.avatarUrl ?? null,
+        username: base.username || other.username,
+        ejercicios: (base.ejercicios?.length ? base.ejercicios : other.ejercicios) ?? [],
+        socialInitial: base.socialInitial ?? other.socialInitial,
+      });
     }
+
     const out = Array.from(byId.values());
     out.sort((a, b) => (a.endedSort < b.endedSort ? 1 : -1));
 
@@ -240,6 +261,7 @@ export function DashboardPage() {
                       totalVolume={w.totalVolume}
                       username={w.username}
                       avatarUrl={w.avatarUrl}
+                      sexo={w.sexo ?? null}
                       ejercicios={w.ejercicios}
                       sensacionFinal={w.sensacionFinal}
                       isMine={w.isMine}

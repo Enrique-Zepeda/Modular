@@ -139,12 +139,20 @@ export async function fetchCommentsCount(sessionId: number): Promise<number> {
 /** =========================
  *  Perfiles mínimos por UID
  * ========================= */
-export type MinimalProfile = { auth_uid: string; username: string | null; url_avatar: string | null };
+export type MinimalProfile = {
+  auth_uid: string;
+  username: string | null;
+  url_avatar: string | null;
+  sexo?: "masculino" | "femenino" | null;
+};
 
 export async function fetchProfilesByUids(uids: string[]): Promise<Record<string, MinimalProfile>> {
   const uniq = Array.from(new Set(uids.filter(Boolean)));
   if (!uniq.length) return {};
-  const { data, error } = await supabase.from("Usuarios").select("auth_uid, username, url_avatar").in("auth_uid", uniq);
+  const { data, error } = await supabase
+    .from("Usuarios")
+    .select("auth_uid, username, url_avatar, sexo")
+    .in("auth_uid", uniq);
   if (error) throw error;
   const out: Record<string, MinimalProfile> = {};
   for (const row of (data ?? []) as MinimalProfile[]) out[row.auth_uid] = row;

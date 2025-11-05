@@ -1,11 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { UserPlus, UserMinus, Check, X, Clock, Search } from "lucide-react";
 import type { FriendRequest } from "@/types/friends";
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { UserAvatar, type Sexo } from "@/components/ui/user-avatar";
 
 type ItemsProps = {
   items: FriendRequest[];
@@ -97,6 +97,8 @@ export function RequestsList({ items, variant, onAccept, onReject, onCancel }: I
           const username = (other as any)?.username ?? "";
           const nombre = (other as any)?.nombre ?? null;
           const url_avatar = (other as any)?.url_avatar ?? null;
+          const sexo = ((other as any)?.sexo ?? null) as Sexo | null;
+          const initials = (username || "U").slice(0, 2).toUpperCase();
 
           return (
             <Card
@@ -110,12 +112,15 @@ export function RequestsList({ items, variant, onAccept, onReject, onCancel }: I
               <CardContent className="p-4 flex items-center gap-3 md:gap-4">
                 <div className="relative flex-shrink-0">
                   <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 opacity-50 blur-sm" />
-                  <Avatar className="h-12 w-12 relative border-2 border-background ring-1 ring-primary/20">
-                    <AvatarImage src={url_avatar ?? undefined} alt={`Avatar de ${username}`} />
-                    <AvatarFallback className="bg-gradient-to-br from-purple-500/20 to-blue-500/20 text-purple-300 font-semibold">
-                      {username?.slice(0, 2)?.toUpperCase() || "U"}
-                    </AvatarFallback>
-                  </Avatar>
+                  <UserAvatar
+                    url={url_avatar}
+                    sexo={sexo}
+                    alt={`Avatar de ${username}`}
+                    size={48}
+                    className="relative border-2 border-background ring-1 ring-primary/20 rounded-full"
+                    imageClassName="object-contain"
+                    fallbackText={initials}
+                  />
                 </div>
 
                 <div className="flex-1 min-w-0">
