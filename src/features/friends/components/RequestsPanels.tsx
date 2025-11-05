@@ -118,7 +118,7 @@ export function RequestsList({ items, variant, onAccept, onReject, onCancel }: I
                     alt={`Avatar de ${username}`}
                     size={48}
                     className="relative border-2 border-background ring-1 ring-primary/20 rounded-full"
-                    imageClassName="object-contain"
+                    imageClassName="object-cover"
                     fallbackText={initials}
                   />
                 </div>

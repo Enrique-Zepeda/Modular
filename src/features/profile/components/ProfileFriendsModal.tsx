@@ -262,7 +262,7 @@ export default function ProfileFriendsModal({
                           alt={`Avatar de ${usernameDerived}`}
                           size={48} // h-12 w-12
                           className="border-2 border-primary/20 ring-2 ring-primary/10 shadow-sm flex-shrink-0"
-                          imageClassName="object-contain" // evita recorte
+                          imageClassName="object-cover" // evita recorte
                           fallbackText={initialDerived}
                         />
 

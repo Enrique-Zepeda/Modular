@@ -172,7 +172,7 @@ export default function FriendsPage() {
                                       .slice(0, 2)
                                       .join("") || "?"
                                   }
-                                  imageClassName="object-contain"
+                                  imageClassName="object-cover"
                                 />
                                 <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl opacity-0 group-hover/link:opacity-50 transition-opacity duration-300" />
                               </div>

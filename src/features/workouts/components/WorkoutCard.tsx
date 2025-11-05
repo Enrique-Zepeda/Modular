@@ -237,7 +237,7 @@ export function WorkoutCard({
                   alt={username}
                   size={44}
                   className="border-2 border-primary/20 ring-2 ring-primary/10 shadow-lg shadow-primary/5 rounded-full"
-                  imageClassName="object-contain"
+                  imageClassName="object-cover"
                   fallbackText={initials}
                 />
                 <div className="leading-tight min-w-0 flex-1">
