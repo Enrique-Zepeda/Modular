@@ -1,6 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -23,6 +22,7 @@ import { normalizeSensation, sensationPillClasses } from "@/features/workouts/ut
 import { WorkoutDetailsDialog } from "./WorkoutDetailsDialog";
 import type { Sexo } from "@/lib/avatar";
 import UserAvatar from "@/components/ui/user-avatar";
+import { Link } from "react-router-dom"; // 👈 nuevo
 
 type ExerciseItem = {
   id?: number | string | null;
@@ -43,7 +43,7 @@ type Props = {
   totalVolume: number;
   username?: string;
   avatarUrl?: string | null;
-  sexo?: Sexo; // 👈 añadido
+  sexo?: Sexo;
   ejercicios?: ExerciseItem[];
   className?: string;
   dayHeader?: string | null;
@@ -101,7 +101,7 @@ export function WorkoutCard({
   totalVolume,
   username = "Usuario",
   avatarUrl,
-  sexo, // 👈 recibido
+  sexo,
   ejercicios = [],
   className,
   dayHeader,
@@ -127,14 +127,13 @@ export function WorkoutCard({
   const [deleteWorkout, { isLoading: deleting }] = useDeleteWorkoutSessionMutation();
 
   const canDelete = isMine && !readOnly;
-
   const isAnyDialogOpen = openConfirm || openDetails;
 
   const handleOpenDetails = useCallback<React.MouseEventHandler<HTMLDivElement>>(
     (e) => {
       if (isAnyDialogOpen) return;
       const target = e.target as HTMLElement;
-      if (target.closest("[data-no-open]")) return;
+      if (target.closest("[data-no-open]")) return; // 👈 respeta zonas “no abre modal”
       setOpenDetails(true);
     },
     [isAnyDialogOpen]
@@ -172,10 +171,22 @@ export function WorkoutCard({
   const durationLabel = useMemo(() => formatDurationShort(durationSeconds), [durationSeconds]);
 
   const doneExercises = useMemo(() => (ejercicios ?? []).filter((ex) => (ex.sets_done ?? 0) > 0), [ejercicios]);
-  const exercisesCount = doneExercises.length;
+
+  // Ruta segura al perfil (no rompe tu UI ni lógica)
+  const profileHref = useMemo(() => {
+    const handle = String(username || "")
+      .replace(/^@+/, "")
+      .trim();
+    if (!handle) return isMine ? "/profile" : "/dashboard";
+    return isMine ? "/profile" : `/u/${encodeURIComponent(handle)}`;
+  }, [username, isMine]);
+
   useEffect(() => {
     console.debug("[WorkoutCard] usuario=", username, "sexo=", sexo, "avatarUrl=", avatarUrl);
   }, [username, sexo, avatarUrl]);
+
+  const exercisesCount = doneExercises.length;
+
   return (
     <>
       {dayHeader ? (
@@ -231,15 +242,28 @@ export function WorkoutCard({
               </h3>
 
               <div className="flex items-center gap-3.5">
-                <UserAvatar
-                  url={avatarUrl ?? null}
-                  sexo={sexo}
-                  alt={username}
-                  size={44}
-                  className="border-2 border-primary/20 ring-2 ring-primary/10 shadow-lg shadow-primary/5 rounded-full"
-                  imageClassName="object-cover"
-                  fallbackText={initials}
-                />
+                {/* 👇 Avatar clickeable al perfil, sin abrir el modal */}
+                <Link
+                  to={profileHref}
+                  data-no-open
+                  onClick={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className="shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  aria-label={`Ver perfil de ${username}`}
+                  title={`Ver perfil de ${username}`}
+                >
+                  <UserAvatar
+                    url={avatarUrl ?? null}
+                    sexo={sexo}
+                    alt={username}
+                    size={44}
+                    className="border-2 border-primary/20 ring-2 ring-primary/10 shadow-lg shadow-primary/5 rounded-full"
+                    imageClassName="object-cover"
+                    fallbackText={initials}
+                  />
+                </Link>
+
                 <div className="leading-tight min-w-0 flex-1">
                   <div className="text-sm font-bold truncate text-foreground">{username}</div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground/80 mt-1">
@@ -391,7 +415,6 @@ export function WorkoutCard({
         </Card>
       </motion.div>
 
-      {/* Detalle con semillas para duración y sensación */}
       <WorkoutDetailsDialog
         sessionId={idSesion}
         open={openDetails}
@@ -403,7 +426,6 @@ export function WorkoutCard({
         sensacionSeed={sensationText}
       />
 
-      {/* Confirmación de eliminar */}
       <AlertDialog
         open={openConfirm}
         onOpenChange={(v) => {

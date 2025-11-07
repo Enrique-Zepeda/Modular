@@ -35,7 +35,8 @@ export const SocialActionsBar = memo(function SocialActionsBar({
     <div className="space-y-5 w-full">
       <div className="flex items-center gap-3 flex-wrap">
         <LikeButton sessionId={sessionId} initialCount={initialLikesCount} initialLikedByMe={initialLikedByMe} />
-        <CommentsTrigger count={commentsCount} onOpen={() => setOpen(true)} />
+        {/* 👇 ahora alterna abrir/cerrar */}
+        <CommentsTrigger count={commentsCount} isOpen={open} onToggle={() => setOpen((v) => !v)} />
       </div>
 
       {open ? <CommentsThread sessionId={sessionId} onClose={() => setOpen(false)} /> : null}

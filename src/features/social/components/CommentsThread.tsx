@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom"; // 👈 NUEVO
 import { useComments } from "../hooks/useComments";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,8 +22,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-// 👇 NUEVO: usamos el mismo avatar que en el resto de la app
 import UserAvatar from "@/components/ui/user-avatar";
 
 const schema = z.object({
@@ -39,24 +38,17 @@ function formatDate(iso: string) {
   }
 }
 
-/** Helpers locales solo para el avatar (no tocan tu lógica): */
 function normalizeSexoForAvatar(input: unknown): "M" | "F" | null {
   if (input == null) return null;
   const x = String(input).trim().toLowerCase();
-
-  // soporta variantes comunes
   if (x === "0") return "M";
   if (x === "1" || x === "2") return "F";
   if (["f", "fem", "femenino", "female", "mujer"].includes(x)) return "F";
   if (["m", "masc", "masculino", "male", "hombre"].includes(x)) return "M";
-  // iniciales en español legacy
   if (x === "h") return "M";
-  if (x === "m") return "F";
-  if (x === "f") return "F";
-  // literals
+  if (x === "m" || x === "f") return x === "m" ? "F" : "F";
   if (x === "masculino") return "M";
   if (x === "femenino") return "F";
-
   return null;
 }
 
@@ -73,7 +65,6 @@ export const CommentsThread = memo(function CommentsThread({ sessionId, onClose 
   const listRef = useRef<HTMLDivElement>(null);
   const [myUid, setMyUid] = useState<string | null>(null);
 
-  // Estado para la confirmación de borrado
   const [pendingDelete, setPendingDelete] = useState<SocialComment | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -100,12 +91,8 @@ export const CommentsThread = memo(function CommentsThread({ sessionId, onClose 
     [add, form]
   );
 
-  // Abrir diálogo de confirmación
-  const requestRemove = useCallback((c: SocialComment) => {
-    setPendingDelete(c);
-  }, []);
+  const requestRemove = useCallback((c: SocialComment) => setPendingDelete(c), []);
 
-  // Confirmar y eliminar
   const confirmRemove = useCallback(async () => {
     if (!pendingDelete) return;
     try {
@@ -194,6 +181,7 @@ export const CommentsThread = memo(function CommentsThread({ sessionId, onClose 
           {items.map((c) => {
             const prof = profiles[c.author_uid];
             const username = prof?.username || "Usuario";
+            const usernameSlug = prof?.username?.trim(); // 👈 para el link
             const avatarUrlNormalized = sanitizeUrl(prof?.url_avatar);
             const sexoForAvatar = normalizeSexoForAvatar((prof as any)?.sexo ?? null);
 
@@ -205,27 +193,18 @@ export const CommentsThread = memo(function CommentsThread({ sessionId, onClose 
                 .join("") || "U";
             const canDelete = !!myUid && c.author_uid === myUid;
 
-            return (
-              <motion.div
-                key={`comment-${c.id_comment}`}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ duration: 0.2 }}
-                className="relative flex items-start gap-3.5 p-4 border-2 border-border/80 bg-gradient-to-br from-background via-muted/10 to-muted/20 hover:from-muted/30 hover:via-muted/40 hover:to-muted/50 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-200 group rounded-xl"
-                role="listitem"
-              >
-                {/* 👇 ÚNICO CAMBIO: avatar consistente con el resto (sexo M/F y fallback correcto) */}
+            // Construimos el bloque avatar+texto
+            const MediaAndText = (
+              <>
                 <UserAvatar
                   url={avatarUrlNormalized}
                   sexo={sexoForAvatar}
                   alt={username}
-                  size={40} // equivalente a h-10 w-10
+                  size={40}
                   className="border-2 border-primary/20 ring-2 ring-primary/10 shadow-md"
                   imageClassName="object-cover"
                   fallbackText={initials}
                 />
-
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2.5 mb-2">
                     <span className="truncate font-bold text-sm bg-gradient-to-br from-foreground to-foreground/80 bg-clip-text text-transparent">
@@ -242,6 +221,32 @@ export const CommentsThread = memo(function CommentsThread({ sessionId, onClose 
                     {c.texto}
                   </p>
                 </div>
+              </>
+            );
+
+            return (
+              <motion.div
+                key={`comment-${c.id_comment}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.2 }}
+                className="relative flex items-start gap-3.5 p-4 border-2 border-border/80 bg-gradient-to-br from-background via-muted/10 to-muted/20 hover:from-muted/30 hover:via-muted/40 hover:to-muted/50 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-200 group rounded-xl"
+                role="listitem"
+              >
+                {usernameSlug ? (
+                  // 👇 Enlazamos avatar+texto al perfil, sin cambiar estilos
+                  <Link
+                    to={`/u/${usernameSlug}`}
+                    className="flex items-start gap-3.5 min-w-0 flex-1 outline-none rounded"
+                    aria-label={`Ir al perfil de ${usernameSlug}`}
+                  >
+                    {MediaAndText}
+                  </Link>
+                ) : (
+                  // Fallback si no hay username (se mantiene el mismo layout)
+                  <div className="flex items-start gap-3.5 min-w-0 flex-1">{MediaAndText}</div>
+                )}
 
                 {canDelete ? (
                   <Button
@@ -288,7 +293,6 @@ export const CommentsThread = memo(function CommentsThread({ sessionId, onClose 
         ) : null}
       </div>
 
-      {/* Diálogo de confirmación de borrado */}
       <AlertDialog
         open={!!pendingDelete}
         onOpenChange={(o) => {
