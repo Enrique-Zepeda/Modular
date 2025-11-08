@@ -55,6 +55,10 @@ function buildDetailsFromRows(
 ): WorkoutDetails {
   const byEx = new Map<number, WorkoutSet[]>();
 
+  // NEW: mapas auxiliares para ordenar ejercicios por ejecución real
+  const firstDoneTsByEx = new Map<number, number | null>(); // MIN(done_at) en ms
+  const minIdxByEx = new Map<number, number>(); // menor idx visto (fallback)
+
   for (const r of rows ?? []) {
     const id_ejercicio = Number(r.id_ejercicio);
     if (!Number.isFinite(id_ejercicio)) continue;
@@ -67,6 +71,22 @@ function buildDetailsFromRows(
       rpe: r.rpe ?? null,
       done: r.done ?? null,
     });
+
+    // Fallback de orden por el menor idx observado en el ejercicio
+    const idxVal = typeof r.idx === "number" ? r.idx : null;
+    if (idxVal != null) {
+      const prev = minIdxByEx.get(id_ejercicio);
+      if (prev == null || idxVal < prev) minIdxByEx.set(id_ejercicio, idxVal);
+    }
+
+    // Calcular MIN(done_at) por ejercicio (solo si el set está done y done_at válido)
+    if ((r.done ?? false) && r.done_at) {
+      const ts = Date.parse(r.done_at as string);
+      if (Number.isFinite(ts)) {
+        const prev = firstDoneTsByEx.get(id_ejercicio);
+        if (prev == null || ts < prev) firstDoneTsByEx.set(id_ejercicio, ts);
+      }
+    }
   }
 
   // meta ejercicios
@@ -88,16 +108,35 @@ function buildDetailsFromRows(
   const exercises: WorkoutExercise[] = [];
   for (const [id_ejercicio, sets] of byEx.entries()) {
     const m = metaMap.get(id_ejercicio);
-    const ordered = sets.slice().sort((a, b) => (a.idx ?? 0) - (b.idx ?? 0));
+    const orderedSets = sets.slice().sort((a, b) => (a.idx ?? 0) - (b.idx ?? 0));
     exercises.push({
       id_ejercicio,
       nombre: m?.nombre,
       grupo_muscular: m?.grupo_muscular,
       ejemplo: m?.ejemplo,
-      sets: ordered,
+      sets: orderedSets,
     });
   }
-  exercises.sort((a, b) => a.id_ejercicio - b.id_ejercicio);
+
+  // NEW: Ordenar ejercicios por MIN(done_at) (NULLS LAST). Fallback: menor idx, luego id_ejercicio
+  exercises.sort((a, b) => {
+    const ta = firstDoneTsByEx.get(a.id_ejercicio) ?? null;
+    const tb = firstDoneTsByEx.get(b.id_ejercicio) ?? null;
+
+    if (ta != null && tb != null) return ta - tb;
+    if (ta != null) return -1;
+    if (tb != null) return 1;
+
+    // Fallback por menor idx dentro de cada ejercicio (aproxima el orden manual cuando no hay done_at)
+    const ia = minIdxByEx.get(a.id_ejercicio);
+    const ib = minIdxByEx.get(b.id_ejercicio);
+    if (ia != null && ib != null) return ia - ib;
+    if (ia != null) return -1;
+    if (ib != null) return 1;
+
+    // Fallback estable
+    return a.id_ejercicio - b.id_ejercicio;
+  });
 
   const totalVolume = rows.reduce((acc, r: any) => {
     const kg = typeof r.kg === "number" ? r.kg : 0;
@@ -114,7 +153,7 @@ function buildDetailsFromRows(
   const durationSeconds =
     typeof meta?.dur_seg === "number" && Number.isFinite(meta?.dur_seg) && (meta?.dur_seg as number) >= 0
       ? (meta?.dur_seg as number)
-      : diffSecondsSafe(startedAt ?? undefined, endedAt ?? undefined);
+      : diffSecondsSafe(startedAt, endedAt);
 
   return {
     id_sesion: sessionId,
@@ -139,7 +178,8 @@ export async function prefetchWorkoutDetails(
   const [setsQ, metaQ] = await Promise.all([
     supabase
       .from("EntrenamientoSets")
-      .select("id_sesion,id_ejercicio,idx,kg,reps,rpe,done,Ejercicios(id,nombre,grupo_muscular,ejemplo)")
+      // NEW: incluir done_at
+      .select("id_sesion,id_ejercicio,idx,kg,reps,rpe,done,done_at,Ejercicios(id,nombre,grupo_muscular,ejemplo)")
       .eq("id_sesion", sessionId)
       .order("id_ejercicio", { ascending: true })
       .order("idx", { ascending: true }),
@@ -199,7 +239,8 @@ export function useWorkoutDetails(
       const [setsQ, metaQ] = await Promise.all([
         supabase
           .from("EntrenamientoSets")
-          .select("id_sesion,id_ejercicio,idx,kg,reps,rpe,done,Ejercicios(id,nombre,grupo_muscular,ejemplo)")
+          // NEW: incluir done_at
+          .select("id_sesion,id_ejercicio,idx,kg,reps,rpe,done,done_at,Ejercicios(id,nombre,grupo_muscular,ejemplo)")
           .eq("id_sesion", sessionId)
           .order("id_ejercicio", { ascending: true })
           .order("idx", { ascending: true }),
