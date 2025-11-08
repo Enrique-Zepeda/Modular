@@ -4,6 +4,7 @@ import { useAppDispatch } from "@/hooks";
 import { supabase } from "@/lib/supabase/client";
 import { setUser, clearUser, setLoading, setRecoveryMode } from "../slices/authSlice";
 import { rutinasApi } from "@/features/routines/api/rutinasApi";
+import { syncProviderAvatarIfNeeded } from "@/features/auth/utils/syncProviderAvatar";
 
 interface AuthProviderProps {
   children: ReactElement;
@@ -60,6 +61,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         dispatch(clearUser());
       } else if (session?.user) {
         dispatch(setUser(session.user.email || ""));
+        // ← sincroniza avatar del proveedor (no bloquea)
+        syncProviderAvatarIfNeeded();
       } else {
         dispatch(clearUser());
       }
@@ -98,11 +101,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
           if (newSession?.user && !isRecoveryInProgress() && !hashHasRecovery()) {
             dispatch(setUser(newSession.user.email || ""));
             dispatch(setRecoveryMode(false));
+            // ← sincroniza avatar del proveedor cuando inicia/refresca
+            syncProviderAvatarIfNeeded();
           } else {
             dispatch(clearUser());
           }
         } else if (newSession?.user && !isRecoveryInProgress() && !hashHasRecovery()) {
           dispatch(setUser(newSession.user.email || ""));
+          syncProviderAvatarIfNeeded();
         } else {
           dispatch(clearUser());
         }
