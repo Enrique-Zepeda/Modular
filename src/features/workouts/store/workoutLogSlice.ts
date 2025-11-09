@@ -1,15 +1,15 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
+type PrevSet = { kg: number | null; reps: number | null; rpe: string | null };
+export type PreviousSetsMap = Record<number, Record<number, PrevSet>>;
+
 export interface WorkoutSet {
   id: string;
   weight: number | null;
   reps: number | null;
   rpe: number | null;
   completed: boolean;
-  previous?: {
-    weight: number;
-    reps: number;
-  };
+  previous?: { weight: number; reps: number };
 }
 
 export interface WorkoutExercise {
@@ -36,17 +36,30 @@ export interface WorkoutSession {
 interface WorkoutLogState {
   currentSession: WorkoutSession | null;
   isLogging: boolean;
+  previousSetsByExercise: PreviousSetsMap; // cache opcional
 }
 
 const initialState: WorkoutLogState = {
   currentSession: null,
   isLogging: false,
+  previousSetsByExercise: {},
 };
 
 const workoutLogSlice = createSlice({
   name: "workoutLog",
   initialState,
   reducers: {
+    // por si decides cachearlo globalmente en otra vista
+    setPreviousSetsBatch: (state, action: PayloadAction<PreviousSetsMap>) => {
+      const incoming = action.payload || {};
+      for (const [exIdStr, setsByIdx] of Object.entries(incoming)) {
+        const exId = Number(exIdStr);
+        if (!state.previousSetsByExercise[exId]) state.previousSetsByExercise[exId] = {} as any;
+        Object.assign(state.previousSetsByExercise[exId], setsByIdx);
+      }
+    },
+
+    // --- resto de reducers sin cambios relevantes ---
     startWorkoutSession: (
       state,
       action: PayloadAction<{ routineId: number; routineName: string; exercises: any[] }>
@@ -70,13 +83,6 @@ const workoutLogSlice = createSlice({
                 reps: ex.repeticiones || null,
                 rpe: null,
                 completed: false,
-                previous:
-                  Math.random() > 0.5
-                    ? {
-                        weight: (ex.peso_sugerido || 50) - 5,
-                        reps: (ex.repeticiones || 10) + Math.floor(Math.random() * 3),
-                      }
-                    : undefined,
               }))
             : [
                 {
@@ -116,7 +122,6 @@ const workoutLogSlice = createSlice({
 
       set[field] = value;
 
-      // Recalculate totals
       state.currentSession.totalVolume = state.currentSession.exercises.reduce((total, ex) => {
         return (
           total +
@@ -139,7 +144,6 @@ const workoutLogSlice = createSlice({
 
       set.completed = !set.completed;
 
-      // Recalculate total sets
       state.currentSession.totalSets = state.currentSession.exercises.reduce((total, ex) => {
         return total + ex.sets.filter((s) => s.completed).length;
       }, 0);
@@ -251,6 +255,7 @@ const workoutLogSlice = createSlice({
 });
 
 export const {
+  setPreviousSetsBatch,
   startWorkoutSession,
   updateSetValue,
   toggleSetCompleted,

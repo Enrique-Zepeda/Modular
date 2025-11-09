@@ -6,6 +6,9 @@ import type { FinishedWorkoutRich } from "@/types/workouts";
 import { friendsFeedApi } from "@/features/friends/api/friendsFeedApi";
 
 /** ===== Tipos ===== **/
+export type PrevSet = { kg: number | null; reps: number | null; rpe: string | null };
+export type PreviousSetsMap = Record<number, Record<number, PrevSet>>;
+
 export type WorkoutSetInput = {
   id_ejercicio: number;
   idx: number;
@@ -619,6 +622,110 @@ export const workoutsApi = createApi({
         }
       },
     }),
+    getPreviousSetsForExercises: builder.query<PreviousSetsMap, number[]>({
+      async queryFn(exerciseIds) {
+        try {
+          if (!exerciseIds?.length) return { data: {} };
+
+          const { data: ures, error: uerr } = await supabase.auth.getUser();
+          if (uerr) return { error: { status: 401, data: uerr } as any };
+          const ownerUid = ures?.user?.id;
+          if (!ownerUid) return { data: {} };
+
+          // Paso 1: sesiones finalizadas del usuario que contengan esos ejercicios (done=true)
+          const cand = await supabase
+            .from("Entrenamientos")
+            .select("id_sesion, ended_at, EntrenamientoSets!inner(id_ejercicio, done)")
+            .eq("owner_uid", ownerUid)
+            .not("ended_at", "is", null)
+            .eq("EntrenamientoSets.done", true)
+            .in("EntrenamientoSets.id_ejercicio", exerciseIds)
+            .order("ended_at", { ascending: false });
+
+          if (cand.error) {
+            return { error: { status: 500, data: cand.error } as any };
+          }
+
+          // Última sesión por ejercicio (primera que aparezca por orden ended_at DESC)
+          const lastSessionByExercise = new Map<number, number>();
+          for (const sess of (cand.data as any[] | null) ?? []) {
+            const sets: any[] = sess?.EntrenamientoSets ?? [];
+            for (const s of sets) {
+              const exId = Number(s.id_ejercicio);
+              if (!lastSessionByExercise.has(exId)) {
+                lastSessionByExercise.set(exId, Number(sess.id_sesion));
+              }
+            }
+            if (lastSessionByExercise.size === exerciseIds.length) break;
+          }
+          if (lastSessionByExercise.size === 0) return { data: {} };
+
+          const lastSessionIds = Array.from(new Set([...lastSessionByExercise.values()]));
+          const filteredExerciseIds = Array.from(lastSessionByExercise.keys());
+
+          // Paso 2: sets SOLO de (ejercicio, última_sesión correspondiente)
+          const setsRes = await supabase
+            .from("EntrenamientoSets")
+            .select("id_ejercicio, id_sesion, idx, kg, reps, rpe")
+            .in("id_sesion", lastSessionIds)
+            .in("id_ejercicio", filteredExerciseIds)
+            .eq("done", true);
+
+          if (setsRes.error) {
+            return { error: { status: 500, data: setsRes.error } as any };
+          }
+
+          // Construimos el mapa por idx si existe (>=1); si no, ordinal 1..N
+          const map: PreviousSetsMap = {};
+          const buckets: Record<
+            number,
+            Array<{ idx: number | null; kg: any; reps: any; rpe: any; id_sesion: number }>
+          > = {};
+
+          for (const row of (setsRes.data as any[] | null) ?? []) {
+            const exId = Number(row.id_ejercicio);
+            const sesId = Number(row.id_sesion);
+            const expectedSes = lastSessionByExercise.get(exId);
+            if (!expectedSes || sesId !== expectedSes) continue; // estrictamente la última sesión de ese ejercicio
+            if (!buckets[exId]) buckets[exId] = [];
+            buckets[exId].push({
+              idx: row.idx == null ? null : Number(row.idx),
+              kg: row.kg,
+              reps: row.reps,
+              rpe: row.rpe,
+              id_sesion: sesId,
+            });
+          }
+
+          for (const [exIdStr, arr] of Object.entries(buckets)) {
+            const exId = Number(exIdStr);
+            // Orden por idx (nulls al final)
+            arr.sort((a, b) => {
+              const ai = a.idx == null ? Number.POSITIVE_INFINITY : a.idx!;
+              const bi = b.idx == null ? Number.POSITIVE_INFINITY : b.idx!;
+              return ai - bi;
+            });
+
+            let ordinal = 1;
+            for (const row of arr) {
+              const kg = row.kg == null ? null : Number(row.kg);
+              const reps = row.reps == null ? null : Number(row.reps);
+              const rpe = row.rpe ?? null;
+
+              const key = row.idx != null && row.idx >= 1 ? row.idx : ordinal; // preferimos idx real
+              if (!map[exId]) map[exId] = {};
+              map[exId][key] = { kg, reps, rpe };
+              ordinal += 1;
+            }
+          }
+
+          return { data: map };
+        } catch (e) {
+          return { error: { status: 500, data: e } as any };
+        }
+      },
+      providesTags: (_res, _err, ids) => ids.map((id) => ({ type: "Workouts" as const, id: `prev_${id}` })),
+    }),
   }),
 });
 
@@ -629,4 +736,5 @@ export const {
   useGetFinishedWorkoutsRichQuery,
   useGetWorkoutsByUsernameQuery,
   useLazyGetWorkoutsByUsernameQuery,
+  useGetPreviousSetsForExercisesQuery,
 } = workoutsApi;

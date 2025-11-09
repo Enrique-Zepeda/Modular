@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,8 @@ import {
   sanitizeInteger,
 } from "@/features/workouts/utils/numberInput";
 
+import { useGetPreviousSetsForExercisesQuery } from "@/features/workouts/api/workoutsApi";
+
 const RPE_OPTIONS = ["Fácil", "Moderado", "Difícil", "Muy difícil", "Al fallo"] as const;
 
 type Props = {
@@ -27,14 +29,38 @@ type Props = {
 };
 
 export function WorkoutExerciseItem({ ex, ei, onAskDelete, onAddSet, onUpdateSet, onToggleSet, onRemoveSet }: Props) {
+  const exerciseId = useMemo<number | undefined>(() => {
+    return (ex as any).id_ejercicio ?? (ex as any).exerciseId ?? (ex as any).id;
+  }, [ex]);
+
+  const args = useMemo(() => (exerciseId ? [Number(exerciseId)] : []), [exerciseId]);
+  const { data: prevBatch } = useGetPreviousSetsForExercisesQuery(args, { skip: !exerciseId });
+
+  // PREVIOUS para este ejercicio, claves = índice real (1..N) o fallback a ordinal
+  const prevForExercise = exerciseId ? prevBatch?.[Number(exerciseId)] : undefined;
+
+  // Usar idx si es válido (>=1). Si no, usar si+1 (ordinal visual).
+  const formatPrev = (rawIdx: any, visualIndex: number) => {
+    if (!prevForExercise) return "—";
+    const idxNum = Number(rawIdx);
+    const key = Number.isFinite(idxNum) && idxNum >= 1 ? idxNum : visualIndex + 1;
+    const p = prevForExercise[key];
+    if (!p) return "—";
+    const kg = p.kg ?? null;
+    const reps = p.reps ?? null;
+    const rpe = p.rpe ?? null;
+    if (kg == null || reps == null) return "—";
+    return `${kg} kg × ${reps}${rpe ? ` @ ${rpe}` : ""}`;
+  };
+
   return (
     <div className="group relative bg-card/30 backdrop-blur-sm rounded-2xl p-4 border border-border/40 hover:border-border/60 hover:bg-card/50 transition-all duration-300 shadow-sm hover:shadow-lg">
       <div className="flex items-start gap-3 mb-4">
         <div className="flex-shrink-0">
-          {ex.imagen ? (
+          {(ex as any).imagen ? (
             <img
-              src={ex.imagen || "/placeholder.svg"}
-              alt={ex.nombre ?? "Ejercicio"}
+              src={(ex as any).imagen || "/placeholder.svg"}
+              alt={(ex as any).nombre ?? ex.exerciseName ?? "Ejercicio"}
               className="w-12 h-12 rounded-xl object-cover border-2 border-border/20 shadow-sm"
               onError={(e) => ((e.currentTarget.src = ""), (e.currentTarget.alt = "Sin imagen"))}
             />
@@ -47,17 +73,17 @@ export function WorkoutExerciseItem({ ex, ei, onAskDelete, onAddSet, onUpdateSet
 
         <div className="flex-1 min-w-0">
           <CardTitle className="text-lg font-bold text-foreground mb-1 text-balance leading-tight">
-            {ex.nombre ?? `Ejercicio ${ei + 1}`}
+            {(ex as any).nombre ?? ex.exerciseName ?? `Ejercicio ${ei + 1}`}
           </CardTitle>
           <p className="text-xs text-muted-foreground">
-            {ex.sets.length} {ex.sets.length === 1 ? "serie" : "series"}
+            {(ex as any).sets.length} {(ex as any).sets.length === 1 ? "serie" : "series"}
           </p>
         </div>
 
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => onAskDelete(ei, ex.nombre)}
+          onClick={() => onAskDelete(ei, (ex as any).nombre ?? ex.exerciseName)}
           title="Eliminar ejercicio"
           className="opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-destructive rounded-xl h-8 w-8 transition-all duration-300"
         >
@@ -66,9 +92,10 @@ export function WorkoutExerciseItem({ ex, ei, onAskDelete, onAddSet, onUpdateSet
       </div>
 
       <div className="space-y-2">
-        {ex.sets.map((s, si) => (
+        {(ex as any).sets.map((s: any, si: number) => (
           <SetRow
             key={`${s.idx}-${si}`}
+            previousText={formatPrev(s.idx, si)} // ← PREVIOUS del set equivalente
             setIndexLabel={s.idx}
             values={{ ...s }}
             onChange={(field, val) => onUpdateSet(ei, si, field, val)}
@@ -100,9 +127,17 @@ type RowProps = {
   onChange: (field: "kg" | "reps" | "rpe", val: string) => void;
   onToggleDone: () => void;
   onRemove: () => void;
+  previousText?: string;
 };
 
-const SetRow = memo(function SetRow({ setIndexLabel, values, onChange, onToggleDone, onRemove }: RowProps) {
+const SetRow = memo(function SetRow({
+  setIndexLabel,
+  values,
+  onChange,
+  onToggleDone,
+  onRemove,
+  previousText,
+}: RowProps) {
   return (
     <div
       className={`group/set flex items-center gap-3 p-3 rounded-xl transition-all duration-300 ${
@@ -113,6 +148,11 @@ const SetRow = memo(function SetRow({ setIndexLabel, values, onChange, onToggleD
     >
       <div className="flex-shrink-0 w-12">
         <span className="text-xs font-bold text-primary tabular-nums">Set {setIndexLabel}</span>
+      </div>
+
+      {/* PREVIOUS (no editable) */}
+      <div className="hidden sm:flex w-36 justify-end text-xs text-muted-foreground tabular-nums pr-2 select-none">
+        {previousText ?? "—"}
       </div>
 
       <div className="flex-1 grid grid-cols-3 gap-2">
