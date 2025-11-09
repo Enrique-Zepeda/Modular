@@ -39,17 +39,84 @@ interface WorkoutLogState {
   previousSetsByExercise: PreviousSetsMap; // cache opcional
 }
 
-const initialState: WorkoutLogState = {
-  currentSession: null,
-  isLogging: false,
-  previousSetsByExercise: {},
-};
+/* =======================
+   Persistencia local (NEW)
+   ======================= */
+export const LIVE_STORAGE_KEY = "workout_live_v1";
+
+/** Guarda solo lo necesario para reanudar el entrenamiento en vivo */
+export function saveLiveWorkoutToStorage(state: Pick<WorkoutLogState, "currentSession" | "isLogging">) {
+  try {
+    const payload = state.currentSession
+      ? {
+          isLogging: state.isLogging,
+          // serializa startTime a string ISO
+          currentSession: {
+            ...state.currentSession,
+            startTime:
+              (state.currentSession.startTime as any)?.toISOString?.() ?? String(state.currentSession.startTime),
+          },
+        }
+      : { isLogging: false, currentSession: null };
+    localStorage.setItem(LIVE_STORAGE_KEY, JSON.stringify(payload));
+  } catch {
+    // noop
+  }
+}
+
+/** Lee una sesión guardada (si existe) y rehidrata tipos básicos */
+export function loadLiveWorkoutFromStorage(): { isLogging: boolean; currentSession: WorkoutSession | null } | null {
+  try {
+    const raw = localStorage.getItem(LIVE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed?.currentSession?.startTime) {
+      parsed.currentSession.startTime = new Date(parsed.currentSession.startTime);
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function clearLiveWorkoutStorage() {
+  try {
+    localStorage.removeItem(LIVE_STORAGE_KEY);
+  } catch {
+    // noop
+  }
+}
+
+/** Estado inicial ahora rehidrata desde localStorage si había una sesión viva */
+function getInitialState(): WorkoutLogState {
+  const persisted = loadLiveWorkoutFromStorage();
+  if (persisted?.isLogging && persisted.currentSession) {
+    return {
+      currentSession: persisted.currentSession,
+      isLogging: true,
+      previousSetsByExercise: {},
+    };
+  }
+  return {
+    currentSession: null,
+    isLogging: false,
+    previousSetsByExercise: {},
+  };
+}
+
+const initialState: WorkoutLogState = getInitialState();
 
 const workoutLogSlice = createSlice({
   name: "workoutLog",
   initialState,
   reducers: {
-    // por si decides cachearlo globalmente en otra vista
+    // Restaura explícitamente (por si quieres llamarlo desde UI)
+    restoreWorkoutSession: (state, action: PayloadAction<WorkoutSession>) => {
+      state.currentSession = action.payload;
+      state.isLogging = true;
+    },
+
+    // Cache opcional de previous sets
     setPreviousSetsBatch: (state, action: PayloadAction<PreviousSetsMap>) => {
       const incoming = action.payload || {};
       for (const [exIdStr, setsByIdx] of Object.entries(incoming)) {
@@ -59,7 +126,7 @@ const workoutLogSlice = createSlice({
       }
     },
 
-    // --- resto de reducers sin cambios relevantes ---
+    // --- resto de reducers existentes ---
     startWorkoutSession: (
       state,
       action: PayloadAction<{ routineId: number; routineName: string; exercises: any[] }>
@@ -255,6 +322,7 @@ const workoutLogSlice = createSlice({
 });
 
 export const {
+  restoreWorkoutSession,
   setPreviousSetsBatch,
   startWorkoutSession,
   updateSetValue,

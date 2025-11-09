@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo, useMemo, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,8 @@ import {
 } from "@/features/workouts/utils/numberInput";
 
 import { useGetPreviousSetsForExercisesQuery } from "@/features/workouts/api/workoutsApi";
+import { useAppSelector } from "@/hooks";
+import { saveLiveWorkoutToStorage, clearLiveWorkoutStorage } from "@/features/workouts/store/workoutLogSlice";
 
 const RPE_OPTIONS = ["Fácil", "Moderado", "Difícil", "Muy difícil", "Al fallo"] as const;
 
@@ -29,17 +31,29 @@ type Props = {
 };
 
 export function WorkoutExerciseItem({ ex, ei, onAskDelete, onAddSet, onUpdateSet, onToggleSet, onRemoveSet }: Props) {
+  const session = useAppSelector((s) => (s as any)?.workoutLog?.currentSession);
+  const isLogging = useAppSelector((s) => (s as any)?.workoutLog?.isLogging as boolean);
+  const sessionId = session?.id as string | undefined;
+
+  // Id del ejercicio con compat de shapes
   const exerciseId = useMemo<number | undefined>(() => {
     return (ex as any).id_ejercicio ?? (ex as any).exerciseId ?? (ex as any).id;
   }, [ex]);
 
+  // --- PREVIOUS ---
   const args = useMemo(() => (exerciseId ? [Number(exerciseId)] : []), [exerciseId]);
-  const { data: prevBatch } = useGetPreviousSetsForExercisesQuery(args, { skip: !exerciseId });
+  const { data: prevBatch, refetch } = useGetPreviousSetsForExercisesQuery(args, {
+    skip: !exerciseId,
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  });
+  useEffect(() => {
+    if (!exerciseId || !sessionId) return;
+    refetch();
+  }, [sessionId, exerciseId, refetch]);
 
-  // PREVIOUS para este ejercicio, claves = índice real (1..N) o fallback a ordinal
   const prevForExercise = exerciseId ? prevBatch?.[Number(exerciseId)] : undefined;
-
-  // Usar idx si es válido (>=1). Si no, usar si+1 (ordinal visual).
   const formatPrev = (rawIdx: any, visualIndex: number) => {
     if (!prevForExercise) return "—";
     const idxNum = Number(rawIdx);
@@ -53,6 +67,62 @@ export function WorkoutExerciseItem({ ex, ei, onAskDelete, onAddSet, onUpdateSet
     return `${kg} kg × ${reps}${rpe ? ` @ ${rpe}` : ""}`;
   };
 
+  /* ===========================================================
+     Persistencia del entrenamiento en vivo (solo en ei===0)
+     =========================================================== */
+  const saveTimerRef = useRef<number | null>(null);
+
+  // Guardado con debounce cuando cambia la sesión
+  useEffect(() => {
+    if (ei !== 0) return;
+    if (!isLogging || !session) return;
+
+    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = window.setTimeout(() => {
+      saveLiveWorkoutToStorage({ currentSession: session, isLogging: true });
+    }, 800); // un poco más rápido
+    return () => {
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    };
+  }, [ei, isLogging, session]);
+
+  // Guardar al perder foco / ocultar / congelar / cerrar pestaña (cubrir iOS/Android)
+  useEffect(() => {
+    if (ei !== 0) return;
+
+    const handler = () => {
+      if (isLogging && session) {
+        saveLiveWorkoutToStorage({ currentSession: session, isLogging: true });
+      }
+    };
+
+    const onFreeze = (e: any) => {
+      // @ts-expect-error: pageshow/pagehide/freeze no siempre tipados
+      handler();
+    };
+
+    document.addEventListener("visibilitychange", handler);
+    window.addEventListener("pagehide", handler); // Safari/iOS
+    // @ts-ignore
+    window.addEventListener("freeze", onFreeze); // Chrome Android
+    window.addEventListener("beforeunload", handler);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handler);
+      window.removeEventListener("pagehide", handler);
+      // @ts-ignore
+      window.removeEventListener("freeze", onFreeze);
+      window.removeEventListener("beforeunload", handler);
+    };
+  }, [ei, isLogging, session]);
+
+  // Limpiar storage cuando finaliza/cancela
+  useEffect(() => {
+    if (ei !== 0) return;
+    if (!isLogging) clearLiveWorkoutStorage();
+  }, [ei, isLogging]);
+
+  // --- UI existente ---
   return (
     <div className="group relative bg-card/30 backdrop-blur-sm rounded-2xl p-4 border border-border/40 hover:border-border/60 hover:bg-card/50 transition-all duration-300 shadow-sm hover:shadow-lg">
       <div className="flex items-start gap-3 mb-4">
@@ -95,7 +165,7 @@ export function WorkoutExerciseItem({ ex, ei, onAskDelete, onAddSet, onUpdateSet
         {(ex as any).sets.map((s: any, si: number) => (
           <SetRow
             key={`${s.idx}-${si}`}
-            previousText={formatPrev(s.idx, si)} // ← PREVIOUS del set equivalente
+            previousText={formatPrev(s.idx, si)}
             setIndexLabel={s.idx}
             values={{ ...s }}
             onChange={(field, val) => onUpdateSet(ei, si, field, val)}
