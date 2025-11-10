@@ -135,8 +135,8 @@ export function WorkoutExerciseItem({ ex, ei, onAskDelete, onAddSet, onUpdateSet
 
   return (
     <div
-      className="relative rounded-3xl p-5 border border-border/10 bg-card/70
-             transition-all duration-150 hover:border-border/30"
+      className="group relative rounded-3xl p-5 border border-border/10 bg-card/70
+          transition-all duration-150 hover:border-border/30"
     >
       <div className="flex items-start gap-4 mb-5">
         <div className="flex-shrink-0">
@@ -168,7 +168,11 @@ export function WorkoutExerciseItem({ ex, ei, onAskDelete, onAddSet, onUpdateSet
           size="icon"
           onClick={() => onAskDelete(ei, (ex as any).nombre ?? ex.exerciseName)}
           title="Eliminar ejercicio"
-          className="opacity-0 group-hover:opacity-100 hover:bg-destructive/15 hover:text-destructive text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-destructive rounded-2xl h-9 w-9 transition-all duration-300 hover:scale-105"
+          aria-label="Eliminar ejercicio"
+          className="opacity-100 md:opacity-0 md:group-hover:opacity-100
+              hover:bg-destructive/15 hover:text-destructive
+              text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-destructive
+              rounded-2xl h-9 w-9 transition-all duration-300 hover:scale-105"
         >
           <Trash2 className="h-4 w-4" />
         </Button>
