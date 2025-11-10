@@ -18,7 +18,7 @@ import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 import { diffSecondsSafe, formatDurationShort } from "@/lib/duration";
 import { SocialActionsBar } from "@/features/social/components/SocialActionsBar";
-import { normalizeSensation, sensationPillClasses } from "@/features/workouts/utils/sensation";
+import { normalizeSensation, sensationPillClasses, getSensationStyles } from "@/features/workouts/utils/sensation";
 import { WorkoutDetailsDialog } from "./WorkoutDetailsDialog";
 import type { Sexo } from "@/lib/avatar";
 import UserAvatar from "@/components/ui/user-avatar";
@@ -162,6 +162,7 @@ export function WorkoutCard({
   };
 
   const sensationText = (sensacionFinal && sensacionFinal.trim()) || "Sin sensaciones";
+  const sensationStyles = getSensationStyles(sensationText);
 
   const durationSeconds = useMemo(() => {
     if (duracionSeg != null) return Math.max(0, Math.floor(duracionSeg));
@@ -335,6 +336,9 @@ export function WorkoutCard({
                   title={`Sensación: ${normalizeSensation(sensationText)}`}
                   aria-label={`Sensación: ${normalizeSensation(sensationText)}`}
                 >
+                  {sensationStyles.icon ? (
+                    <sensationStyles.icon className="h-4 w-4 opacity-90" aria-hidden="true" />
+                  ) : null}
                   {normalizeSensation(sensationText)}
                 </div>
               </div>
