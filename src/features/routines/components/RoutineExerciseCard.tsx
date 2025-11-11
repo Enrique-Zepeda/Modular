@@ -2,6 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ExerciseImage } from "@/components/ui/exercise-image";
 import { Dumbbell } from "lucide-react";
+import { useWeightUnit } from "@/hooks";
+import { presentInUserUnit } from "@/lib/weight";
 
 export function RoutineExerciseCard({
   title,
@@ -22,6 +24,8 @@ export function RoutineExerciseCard({
   onRemove: () => void;
   removing: boolean;
 }) {
+  const { unit } = useWeightUnit(); // 👈 leemos preferencia global
+  const displayWeight = presentInUserUnit(weight ?? 0, unit);
   return (
     <Card className="h-full border-2 border-border/60  transition-all duration-300  bg-gradient-to-br from-background to-primary/5 overflow-hidden group">
       <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-purple-500/5 opacity-0  transition-opacity duration-300 pointer-events-none" />
@@ -57,7 +61,10 @@ export function RoutineExerciseCard({
             <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mt-1">Reps</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-primary">{weight}kg</p>
+            <p className="text-2xl font-bold text-primary">
+              {displayWeight}
+              {unit}
+            </p>
             <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mt-1">Peso</p>
           </div>
         </div>
