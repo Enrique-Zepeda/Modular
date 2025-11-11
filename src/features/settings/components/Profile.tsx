@@ -18,13 +18,15 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { canChangeUsername } from "@/features/settings/utils/checkUsername";
 import { AvatarUploader } from "./AvatarUploader";
 
+// hook global de unidad
+import { useWeightUnit } from "@/hooks/useWeightUnit";
+
 /* -------------------- Opciones en línea para los selects -------------------- */
 const SEX_OPTIONS = ["masculino", "femenino"] as const;
 const OBJETIVO_OPTIONS = ["hipertrofia", "fuerza", "resistencia"] as const;
 const NIVEL_OPTIONS = ["principiante", "intermedio", "avanzado"] as const;
 
 /* ---------------------------- Validación con Zod ---------------------------- */
-/** Validamos DOB (13–100 años) y eliminamos 'edad' del formulario */
 const PerfilSchema = z.object({
   nombre: z.string().trim().max(120, "Máximo 120 caracteres").optional().or(z.literal("")),
   username: z
@@ -85,20 +87,21 @@ export function Perfil() {
   );
   const initialUsernameRef = useRef("");
 
+  const { unit, setUnit } = useWeightUnit();
+
   const parseLocalISODate = (s?: string | null): Date | undefined => {
     if (!s) return undefined;
-    const clean = String(s).slice(0, 10); // soporta "2001-05-08" o "2001-05-08T00:00:00Z"
+    const clean = String(s).slice(0, 10);
     const d = parse(clean, "yyyy-MM-dd", new Date());
     return isValid(d) ? d : undefined;
   };
-  // límites de DOB: min = hoy - 100 años, max = hoy - 13 años
+
   const { minDOB, maxDOB } = useMemo(() => {
     const today = new Date();
     const min = new Date(today);
     min.setFullYear(min.getFullYear() - 100);
     const max = new Date(today);
     max.setFullYear(max.getFullYear() - 13);
-    // ponerlas a mediodía local para evitar bordes de DST
     min.setHours(12, 0, 0, 0);
     max.setHours(12, 0, 0, 0);
     return { minDOB: min, maxDOB: max };
@@ -133,7 +136,6 @@ export function Perfil() {
   const dobWatch = watch("fecha_nacimiento");
   const calculatedAge = ageFromDOB(dobWatch || "");
 
-  /* ----------------------------- Cargar perfil ------------------------------ */
   const loadProfile = async () => {
     try {
       setLoading(true);
@@ -155,7 +157,6 @@ export function Perfil() {
         nombre: data?.nombre ?? "",
         username: data?.username ?? "",
         correo: data?.correo ?? "",
-        // ✅ usamos DOB desde BD (si existe)
         fecha_nacimiento: data?.fecha_nacimiento ? String(data.fecha_nacimiento).slice(0, 10) : "",
         peso: data?.peso ?? "",
         altura: data?.altura ?? "",
@@ -176,7 +177,6 @@ export function Perfil() {
     loadProfile();
   }, []);
 
-  /* --------- Botón/función para comprobar si se puede cambiar username ------- */
   const handleCheckUsername = async () => {
     try {
       setCheckingUser(true);
@@ -214,12 +214,10 @@ export function Perfil() {
     }
   };
 
-  /* ------------------------------ Guardar datos ----------------------------- */
   const onSubmit = async (values: z.infer<typeof PerfilSchema>) => {
     try {
       setSaving(true);
 
-      // Vuelve a validar username antes de guardar
       const res = await canChangeUsername(initialUsernameRef.current, values.username || "");
       if (!res.canChange) {
         if (res.reason === "taken") toast.error("Ese username ya está en uso.");
@@ -239,7 +237,6 @@ export function Perfil() {
       const payload: Record<string, any> = {
         nombre: norm(values.nombre),
         username: norm(values.username?.toLowerCase()),
-        // ✅ Enviamos fecha_nacimiento; 'edad' la calcula el trigger en BD (si está configurado)
         fecha_nacimiento: norm(values.fecha_nacimiento),
         peso: values.peso ?? null,
         altura: values.altura ?? null,
@@ -266,7 +263,6 @@ export function Perfil() {
         return;
       }
 
-      // Sincroniza y feedback
       reset({
         nombre: data?.nombre ?? "",
         username: data?.username ?? "",
@@ -303,7 +299,6 @@ export function Perfil() {
 
   return (
     <div className="grid gap-12">
-      {/* Región aria-live */}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {justSaved ? "Cambios guardados correctamente." : ""}
       </div>
@@ -433,7 +428,7 @@ export function Perfil() {
                 </p>
               </div>
 
-              {/* Fecha de nacimiento (calendario) */}
+              {/* Fecha de nacimiento */}
               <div className="space-y-4">
                 <Label htmlFor="fecha_nacimiento" className="text-base font-semibold">
                   Fecha de nacimiento
@@ -466,19 +461,37 @@ export function Perfil() {
                 )}
               </div>
 
-              {/* Peso */}
+              {/* Peso + Unidad de medida */}
               <div className="space-y-4">
                 <Label htmlFor="peso" className="text-base font-semibold">
                   Peso (kg)
                 </Label>
-                <Input
-                  id="peso"
-                  type="number"
-                  step="0.1"
-                  {...register("peso")}
-                  className="h-14 glass-input border-0 bg-transparent text-base placeholder:text-muted-foreground/60"
-                  placeholder="70.5"
-                />
+                <div className="flex gap-3">
+                  <Input
+                    id="peso"
+                    type="number"
+                    step="0.1"
+                    {...register("peso")}
+                    className="h-14 glass-input border-0 bg-transparent text-base placeholder:text-muted-foreground/60"
+                    placeholder="70.5"
+                  />
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground/90">Unidad de medida</Label>
+                    <Select value={unit} onValueChange={(v) => setUnit(v as "kg" | "lbs")}>
+                      <SelectTrigger className="w-36 h-10 glass-input bg-muted/20 border border-border/60 text-base">
+                        <SelectValue placeholder="Unidad" />
+                      </SelectTrigger>
+                      <SelectContent className="glass-card border">
+                        <SelectItem value="kg" className="text-base py-2">
+                          Kilogramos (kg)
+                        </SelectItem>
+                        <SelectItem value="lbs" className="text-base py-2">
+                          Libras (lbs)
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
                 {renderError("peso")}
               </div>
 
@@ -505,11 +518,7 @@ export function Perfil() {
                   value={watch("objetivo") ?? ""}
                   onValueChange={(v) => setValue("objetivo", v, { shouldDirty: true })}
                 >
-                  <SelectTrigger
-                    className="h-14 glass-input text-base bg-muted/20 hover:bg-muted/20
-             focus:bg-muted/20 border border-border/60
-             data-[placeholder]:text-muted-foreground"
-                  >
+                  <SelectTrigger className="h-14 glass-input text-base bg-muted/20 hover:bg-muted/20 focus:bg-muted/20 border border-border/60 data-[placeholder]:text-muted-foreground">
                     <SelectValue placeholder="Selecciona tu objetivo" />
                   </SelectTrigger>
                   <SelectContent className="glass-card border">
@@ -530,11 +539,7 @@ export function Perfil() {
                   value={watch("nivel_experiencia") ?? ""}
                   onValueChange={(v) => setValue("nivel_experiencia", v, { shouldDirty: true })}
                 >
-                  <SelectTrigger
-                    className="h-14 glass-input text-base bg-muted/20 hover:bg-muted/20
-             focus:bg-muted/20 border border-border/60
-             data-[placeholder]:text-muted-foreground"
-                  >
+                  <SelectTrigger className="h-14 glass-input text-base bg-muted/20 hover:bg-muted/20 focus:bg-muted/20 border border-border/60 data-[placeholder]:text-muted-foreground">
                     <SelectValue placeholder="Selecciona tu nivel" />
                   </SelectTrigger>
                   <SelectContent className="glass-card border">
@@ -552,11 +557,7 @@ export function Perfil() {
               <div className="space-y-4">
                 <Label className="text-base font-semibold">Sexo</Label>
                 <Select value={watch("sexo") ?? ""} onValueChange={(v) => setValue("sexo", v, { shouldDirty: true })}>
-                  <SelectTrigger
-                    className="h-14 glass-input text-base bg-muted/20 hover:bg-muted/20
-             focus:bg-muted/20 border border-border/60
-             data-[placeholder]:text-muted-foreground"
-                  >
+                  <SelectTrigger className="h-14 glass-input text-base bg-muted/20 hover:bg-muted/20 focus:bg-muted/20 border border-border/60 data-[placeholder]:text-muted-foreground">
                     <SelectValue placeholder="Selecciona tu sexo" />
                   </SelectTrigger>
                   <SelectContent className="glass-card border">

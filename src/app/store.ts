@@ -14,12 +14,14 @@ import { setupListeners } from "@reduxjs/toolkit/query";
 import { friendsApi } from "@/features/friends/api/friendsApi";
 import { friendsFeedApi } from "@/features/friends/api/friendsFeedApi";
 import { userProfileApi } from "@/features/profile/api/userProfileApi";
+import preferencesReducer from "@/features/preferences/preferencesSlice";
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
     theme: themeReducer,
     rutinas: rutinasReducer,
+    preferences: preferencesReducer,
 
     // RTK Query reducers
     [dashboardApi.reducerPath]: dashboardApi.reducer,
