@@ -15,6 +15,8 @@ import { agregarEjercicioSchema, type AgregarEjercicioFormData } from "@/lib/val
 import { ExerciseImage } from "@/components/ui/exercise-image";
 import { normalizeExerciseData } from "@/utils/exerciseNormalization";
 import type { Ejercicio } from "@/features/routines/api/rutinasApi";
+import { useWeightUnit } from "@/hooks";
+import { toKg } from "@/lib/weight";
 
 interface RoutineBuilderLibraryProps {
   onAddExercise: (exerciseData: AgregarEjercicioFormData & { exerciseDetails?: Ejercicio }) => void;
@@ -47,6 +49,7 @@ const buildExerciseDetailsForBuilder = (ex: any) => {
 };
 
 export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: RoutineBuilderLibraryProps) {
+  const { unit } = useWeightUnit();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string>("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
@@ -400,7 +403,7 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
               <span>Configurar Ejercicio</span>
             </DialogTitle>
             <DialogDescription className="text-base leading-relaxed">
-              Configura las series, repeticiones y peso para{" "}
+              Configura las series, repeticiones y peso para
               <span className="font-extrabold text-foreground bg-primary/10 px-2 py-0.5 rounded">
                 {selectedExercise?.nombre}
               </span>
@@ -411,7 +414,14 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
             <form
               onSubmit={form.handleSubmit((data) => {
                 const details = selectedExercise ? buildExerciseDetailsForBuilder(selectedExercise) : undefined;
-                onAddExercise({ ...data, exerciseDetails: details });
+                const userValue = data.peso_sugerido;
+                const pesoSugeridoKg =
+                  typeof userValue === "number" && !Number.isNaN(userValue) ? toKg(userValue, unit) : undefined;
+                onAddExercise({
+                  ...data,
+                  peso_sugerido: pesoSugeridoKg,
+                  exerciseDetails: details,
+                });
                 setIsConfigDialogOpen(false);
                 setSelectedExercise(null);
                 form.reset({
@@ -473,7 +483,7 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
                   name="peso_sugerido"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm font-bold">Peso (kg)</FormLabel>
+                      <FormLabel className="text-sm font-bold">Peso ({unit})</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -481,7 +491,7 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
                           min="0"
                           max="1000"
                           step="any"
-                          placeholder="0"
+                          placeholder={unit === "kg" ? "0" : "0"}
                           {...field}
                           onChange={(e) => {
                             const v = e.target.value;

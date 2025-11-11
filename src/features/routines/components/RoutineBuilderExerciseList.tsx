@@ -12,6 +12,8 @@ import { DeleteExerciseDialog } from "@/components/ui/delete-exercise-dialog";
 import { useDragAndDrop } from "@/hooks/useDragAndDrop";
 import { normalizeExerciseData } from "@/utils/exerciseNormalization";
 import type { EjercicioRutina, SetEntry } from "@/features/routines/api/rutinasApi";
+import { useWeightUnit } from "@/hooks";
+import { presentInUserUnit, toKg } from "@/lib/weight";
 
 type ExtendedEjercicioRutina = EjercicioRutina & { sets?: SetEntry[] };
 
@@ -50,6 +52,7 @@ export function RoutineBuilderExerciseList({
   onRemoveSet,
   isLoading,
 }: RoutineBuilderExerciseListProps) {
+  const { unit } = useWeightUnit();
   const { sensors, handleDragEnd, DndContext, SortableContext, verticalListSortingStrategy, closestCenter } =
     useDragAndDrop(exercises, onReorderExercises || (() => {}));
 
@@ -77,7 +80,14 @@ export function RoutineBuilderExerciseList({
   };
 
   const handleSetChange = (exerciseId: number, setIndex: number, field: "kg" | "reps", value: string) => {
-    onSetChange?.(exerciseId, setIndex, field, value);
+    if (field === "kg") {
+      // value viene en la unidad del usuario → convertimos a kg antes de subir
+      const numeric = Number(value.replace(",", "."));
+      const kgValue = Number.isFinite(numeric) ? toKg(numeric, unit) : 0;
+      onSetChange?.(exerciseId, setIndex, "kg", kgValue.toString());
+    } else {
+      onSetChange?.(exerciseId, setIndex, field, value);
+    }
   };
 
   const handleAddSet = (exerciseId: number) => {
@@ -204,7 +214,7 @@ export function RoutineBuilderExerciseList({
                             </div>
                             <div className="flex items-center gap-1.5">
                               <Weight className="h-3.5 w-3.5" />
-                              KG
+                              {unit.toUpperCase()}
                             </div>
                             <div className="flex items-center gap-1.5">
                               <Repeat className="h-3.5 w-3.5" />
@@ -225,12 +235,12 @@ export function RoutineBuilderExerciseList({
                                 <Input
                                   type="text"
                                   inputMode="decimal"
-                                  value={set.kg ?? ""}
+                                  value={set.kg != null ? presentInUserUnit(set.kg, unit).toString() : ""}
                                   onChange={(e) =>
                                     handleSetChange(exercise.id_ejercicio, setIndex, "kg", e.target.value)
                                   }
                                   className="h-12 bg-background/80 border-border/50 rounded-xl text-center text-base font-semibold tabular-nums focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                  placeholder="100"
+                                  placeholder={unit === "kg" ? "100" : "220"}
                                 />
                               </div>
 
