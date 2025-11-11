@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -7,12 +8,12 @@ import { cn } from "@/lib/utils";
 import { formatDurationShort } from "@/lib/duration";
 import { useWeightUnit } from "@/hooks";
 import { presentInUserUnit } from "@/lib/weight";
+import { getRPEStyles } from "@/features/workouts/utils/rpeStyles";
 
 type Props = {
   sessionId: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** semillas (del Card) */
   durationLabelSeed?: string | null;
   sensacionSeed?: string | number | null;
 };
@@ -24,8 +25,8 @@ export function WorkoutDetailsDialog({ sessionId, open, onOpenChange, durationLa
   });
 
   const { unit } = useWeightUnit();
-  // Mostrar duración inmediata usando la semilla del Card;
-  // si el hook trae segundos, formatearlos; si trae label, usarla.
+
+  // duración
   const displayDuration =
     data?.durationLabel ??
     durationLabelSeed ??
@@ -33,6 +34,34 @@ export function WorkoutDetailsDialog({ sessionId, open, onOpenChange, durationLa
       ? formatDurationShort(Math.max(0, Math.floor(data.durationSeconds)))
       : undefined) ??
     "—";
+
+  // volumen solo de sets realizados
+  const completedVolumeKg = useMemo(() => {
+    if (!data) return 0;
+    let total = 0;
+    for (const ex of data.exercises ?? []) {
+      for (const s of ex.sets ?? []) {
+        if (!s.done) continue;
+        const kg = typeof s.kg === "number" ? s.kg : Number(s.kg);
+        const reps = typeof s.reps === "number" ? s.reps : Number(s.reps);
+        if (!Number.isFinite(kg) || !Number.isFinite(reps)) continue;
+        total += kg * reps;
+      }
+    }
+    return total;
+  }, [data]);
+
+  // sensación global con tus estilos
+  const sensationText =
+    (data?.sensacion_global != null
+      ? String(data.sensacion_global)
+      : sensacionSeed != null
+      ? String(sensacionSeed)
+      : ""
+    ).trim() || "Sin sensaciones";
+
+  const sensationStyles = getRPEStyles(sensationText);
+  const SensationIcon = sensationStyles.icon;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -51,7 +80,6 @@ export function WorkoutDetailsDialog({ sessionId, open, onOpenChange, durationLa
             </DialogHeader>
           </div>
 
-          {/* Body con scroll interno */}
           <div className="flex-1 overflow-hidden">
             <ScrollArea className="h-full">
               <div className="p-4 sm:p-6 space-y-6">
@@ -76,6 +104,7 @@ export function WorkoutDetailsDialog({ sessionId, open, onOpenChange, durationLa
                 ) : (
                   <div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                      {/* Duración */}
                       <div className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
                         <div className="flex items-center gap-3">
                           <div className="p-2 rounded-lg bg-primary/20">
@@ -90,6 +119,7 @@ export function WorkoutDetailsDialog({ sessionId, open, onOpenChange, durationLa
                         </div>
                       </div>
 
+                      {/* Volumen realizado */}
                       <div className="p-4 rounded-xl bg-gradient-to-br from-chart-1/10 to-chart-1/5 border border-chart-1/20">
                         <div className="flex items-center gap-3">
                           <div className="p-2 rounded-lg bg-chart-1/20">
@@ -97,33 +127,41 @@ export function WorkoutDetailsDialog({ sessionId, open, onOpenChange, durationLa
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                              Volumen Total
+                              Volumen realizado
                             </p>
                             <p className="text-lg font-bold text-foreground truncate">
-                              {Intl.NumberFormat("es-MX").format(presentInUserUnit(data.totalVolume ?? 0, unit))}
+                              {Intl.NumberFormat("es-MX").format(presentInUserUnit(completedVolumeKg ?? 0, unit))}
                               {unit}
                             </p>
                           </div>
                         </div>
                       </div>
 
-                      {data.sensacion_global != null && (
-                        <div className="p-4 rounded-xl bg-gradient-to-br from-chart-2/10 to-chart-2/5 border border-chart-2/20">
-                          <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-chart-2/20">
-                              <Activity className="h-4 w-4 text-chart-2" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                                Sensación
-                              </p>
-                              <p className="text-lg font-bold text-foreground">{String(data.sensacion_global)}</p>
-                            </div>
+                      {/* Sensación con icono */}
+                      <div
+                        className={cn(
+                          "p-4 rounded-xl border bg-gradient-to-br",
+                          sensationStyles.bgClass,
+                          sensationStyles.borderClass
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-background/40">
+                            <SensationIcon className={cn("h-6 w-6", sensationStyles.iconColor)} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                              Sensación
+                            </p>
+                            <p className={cn("text-lg font-bold truncate", sensationStyles.textClass)}>
+                              {sensationText}
+                            </p>
                           </div>
                         </div>
-                      )}
+                      </div>
                     </div>
 
+                    {/* Ejercicios */}
                     <div className="space-y-4 mt-6">
                       <div className="flex items-center gap-2">
                         <div className="h-6 w-1 bg-gradient-to-b from-primary to-primary/50 rounded-full" />
@@ -145,7 +183,7 @@ export function WorkoutDetailsDialog({ sessionId, open, onOpenChange, durationLa
                       ) : (
                         data.exercises.map((ex, idx) => (
                           <div
-                            key={ex.id_ejercicio}
+                            key={ex.id_ejercicio ?? idx}
                             className="rounded-xl border-2 border-border/60 bg-card overflow-hidden shadow-sm hover:shadow-md transition-shadow"
                           >
                             <div className="p-4 sm:p-5 bg-gradient-to-r from-muted/30 to-transparent border-b">

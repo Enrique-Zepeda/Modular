@@ -30,7 +30,7 @@ import {
 } from "@/features/workouts/utils/numberInput";
 
 import { useGetPreviousSetsForExercisesQuery } from "@/features/workouts/api/workoutsApi";
-import { useAppSelector } from "@/hooks";
+import { useAppSelector, useWeightUnit } from "@/hooks";
 import { saveLiveWorkoutToStorage, clearLiveWorkoutStorage } from "@/features/workouts/store/workoutLogSlice";
 import { useExercisePRs, invalidateExercisePRsCache } from "@/features/workouts/hooks/useExercisePRs";
 
@@ -49,7 +49,24 @@ type Props = {
 export function WorkoutExerciseItem({ ex, ei, onAskDelete, onAddSet, onUpdateSet, onToggleSet, onRemoveSet }: Props) {
   const session = useAppSelector((s) => (s as any)?.workoutLog?.currentSession);
   const isLogging = useAppSelector((s) => (s as any)?.workoutLog?.isLogging as boolean);
+  const { unit } = useWeightUnit();
   const sessionId = session?.id as string | undefined;
+
+  const kgToUser = (kg: number | null | undefined): string => {
+    if (kg == null || Number.isNaN(Number(kg))) return "";
+    if (unit === "kg") return String(kg);
+    const lbs = kg * 2.20462;
+    return String(Math.round(lbs)); // mostrarnos entero en la UI
+  };
+
+  const userToKg = (val: string): string => {
+    if (!val) return "";
+    const num = Number(val);
+    if (Number.isNaN(num)) return "";
+    if (unit === "kg") return String(num);
+    const kg = num / 2.20462;
+    return String(kg);
+  };
 
   const exerciseId = useMemo<number | undefined>(() => {
     return (ex as any).id_ejercicio ?? (ex as any).exerciseId ?? (ex as any).id;
@@ -88,7 +105,8 @@ export function WorkoutExerciseItem({ ex, ei, onAskDelete, onAddSet, onUpdateSet
     const reps = p.reps ?? null;
     const rpe = p.rpe ?? null;
     if (kg == null || reps == null) return "—";
-    return `${kg} kg × ${reps}${rpe ? ` @ ${rpe}` : ""}`;
+    const displayWeight = kgToUser(Number(kg));
+    return `${displayWeight} ${unit} × ${reps}${rpe ? ` @ ${rpe}` : ""}`;
   };
 
   const saveTimerRef = useRef<number | null>(null);
@@ -188,14 +206,27 @@ export function WorkoutExerciseItem({ ex, ei, onAskDelete, onAddSet, onUpdateSet
                 done: s?.done,
               });
 
+          const displayKg = kgToUser(s?.kg != null ? Number(s.kg) : null);
+
           return (
             <SetRow
               key={`${s.idx}-${si}`}
               previousText={formatPrev(s.idx, si)}
               setIndexLabel={s.idx}
-              values={{ ...s }}
+              values={{
+                ...s,
+                kg: displayKg,
+              }}
+              unit={unit}
               prInfo={prInfo}
-              onChange={(field, val) => onUpdateSet(ei, si, field, val)}
+              onChange={(field, val) => {
+                if (field === "kg") {
+                  const kgVal = userToKg(val);
+                  onUpdateSet(ei, si, "kg", kgVal);
+                } else {
+                  onUpdateSet(ei, si, field, val);
+                }
+              }}
               onToggleDone={() => onToggleSet(ei, si)}
               onRemove={() => onRemoveSet(ei, si)}
             />
@@ -222,6 +253,7 @@ export function WorkoutExerciseItem({ ex, ei, onAskDelete, onAddSet, onUpdateSet
 type RowProps = {
   setIndexLabel: number;
   values: { idx: number; kg: string; reps: string; rpe: string; done: boolean; doneAt?: string };
+  unit?: "kg" | "lbs";
   onChange: (field: "kg" | "reps" | "rpe", val: string) => void;
   onToggleDone: () => void;
   onRemove: () => void;
@@ -300,16 +332,28 @@ const getRPEStyles = (rpeValue: string) => {
 const SetRow = memo(function SetRow({
   setIndexLabel,
   values,
+  unit = "kg",
   onChange,
   onToggleDone,
   onRemove,
   previousText,
   prInfo,
 }: RowProps) {
-  const round05 = (x: number) => Math.round(x * 2) / 2;
+  const formatPRValue = (kg: number | null) => {
+    if (kg == null) return "";
+    if (unit === "kg") {
+      // tú antes redondeabas a .5
+      const round05 = (x: number) => Math.round(x * 2) / 2;
+      return `${round05(kg)} kg`;
+    }
+    // lbs
+    const lbs = kg * 2.20462;
+    return `${Math.round(lbs)} lbs`;
+  };
+
   const prTitle =
     prInfo?.type && prInfo.value != null
-      ? `🏅 PR ${prInfo.type === "1RM" ? "1RM estimada" : "Peso"}: ${round05(prInfo.value)} kg`
+      ? `🏅 PR ${prInfo.type === "1RM" ? "1RM estimada" : "Peso"}: ${formatPRValue(prInfo.value)}`
       : "";
 
   const rpeStyles = getRPEStyles(values.rpe);
@@ -339,7 +383,9 @@ const SetRow = memo(function SetRow({
 
       <div className="flex-1 grid grid-cols-3 gap-4">
         <div className="space-y-2">
-          <label className="text-[10px] font-black text-primary/80 uppercase tracking-widest">KG</label>
+          <label className="text-[10px] font-black text-primary/80 uppercase tracking-widest">
+            {unit.toUpperCase()}
+          </label>
           <Input
             inputMode="decimal"
             value={values.kg}

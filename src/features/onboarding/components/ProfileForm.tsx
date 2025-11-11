@@ -25,6 +25,8 @@ import { CalendarIcon, Loader2, Check, X, User, AlertCircle, Sparkles, Target, S
 import { format, parse, isValid, isAfter, isBefore } from "date-fns";
 import toast from "react-hot-toast";
 import { DatePicker } from "@/components/ui/date-picker";
+import { useAppDispatch } from "@/hooks";
+import { setWeightUnit } from "@/features/preferences/preferencesSlice";
 
 type Props = {
   defaults?: Partial<OnboardingFormValues> & { fecha_nacimiento?: string | null };
@@ -57,6 +59,7 @@ const ageFromDOB = (dob: string | null | undefined): number | null => {
 };
 
 export default function ProfileForm({ defaults, onCompleted }: Props) {
+  const dispatch = useAppDispatch();
   const [checking, setChecking] = useState(false);
   const [available, setAvailable] = useState<boolean | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -73,18 +76,18 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
     return { minDOB: min, maxDOB: max };
   }, []);
 
-  const form = useForm<OnboardingFormValues & { fecha_nacimiento?: string }>({
+  const form = useForm<OnboardingFormValues & { fecha_nacimiento?: string; weight_unit?: "kg" | "lbs" }>({
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
       username: defaults?.username ?? "",
       nombre: defaults?.nombre ?? "",
-      // 👇 normalizamos a "yyyy-MM-dd" (local)
       fecha_nacimiento: (defaults?.fecha_nacimiento ? String(defaults.fecha_nacimiento).slice(0, 10) : "") as any,
       peso: (defaults?.peso ?? ("" as unknown as number)) as number,
       altura: (defaults?.altura ?? ("" as unknown as number)) as number,
       nivel_experiencia: (defaults?.nivel_experiencia as any) ?? ("" as any),
       objetivo: (defaults?.objetivo as any) ?? ("" as any),
       sexo: (defaults?.sexo as any) ?? ("" as any),
+      weight_unit: (typeof window !== "undefined" && (localStorage.getItem("app_weight_unit") as "kg" | "lbs")) || "kg",
     },
     mode: "onChange",
     reValidateMode: "onChange",
@@ -124,7 +127,7 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.watch("username")]);
 
-  const onSubmit = async (values: OnboardingFormValues & { fecha_nacimiento?: string }) => {
+  const onSubmit = async (values: OnboardingFormValues & { fecha_nacimiento?: string; weight_unit?: "kg" | "lbs" }) => {
     setSubmitError(null);
     try {
       log("submit values", values);
@@ -152,6 +155,12 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
         objetivo: values.objetivo,
         sexo: values.sexo as any,
       });
+
+      if (typeof window !== "undefined") {
+        const unit = form.getValues("weight_unit") ?? "kg";
+        localStorage.setItem("app_weight_unit", unit);
+        dispatch(setWeightUnit(unit));
+      }
 
       toast.success("Perfil completado. ¡Bienvenido!");
       await onCompleted?.();
@@ -567,6 +576,38 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                       <p className="text-xs text-destructive">{form.formState.errors.sexo.message}</p>
                     )}
                   </div>
+                  <div className="space-y-3">
+                    <Label htmlFor="weight_unit" className="text-sm font-medium">
+                      Unidad de peso preferida
+                    </Label>
+                    <Controller
+                      control={form.control}
+                      name="weight_unit"
+                      render={({ field }) => (
+                        <Select
+                          value={field.value ?? "kg"}
+                          onValueChange={(val) => {
+                            field.onChange(val);
+                            if (typeof window !== "undefined") {
+                              window.localStorage.setItem("app_weight_unit", val);
+                            }
+                            dispatch(setWeightUnit(val as "kg" | "lbs"));
+                          }}
+                        >
+                          <SelectTrigger id="weight_unit" className="h-11">
+                            <SelectValue placeholder="Elige una unidad" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="kg">Kilogramos (kg)</SelectItem>
+                            <SelectItem value="lbs">Libras (lbs)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Esto se usará como unidad por defecto en tus entrenamientos.
+                    </p>
+                  </div>
                 </div>
 
                 <AnimatePresence>
@@ -655,6 +696,12 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Altura:</span>
                       <span className="text-sm font-medium">{(watchedValues as any).altura} cm</span>
+                    </div>
+                  )}
+                  {(watchedValues as any).weight_unit && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Unidad de peso:</span>
+                      <Badge variant="secondary">{(watchedValues as any).weight_unit?.toUpperCase()}</Badge>
                     </div>
                   )}
                   {(watchedValues as any).nivel_experiencia && (
