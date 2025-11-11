@@ -3,9 +3,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp, Zap } from "lucide-react";
 import { useTopExercises } from "@/features/profile/hooks/useTopExercises";
+import { useWeightUnit } from "@/hooks";
+import { presentInUserUnit } from "@/lib/weight";
 
 export default function ProfileTopExercises({ username, topN = 3 }: { username: string; topN?: number }) {
   const { top, isLoading } = useTopExercises(username, topN);
+  const { unit } = useWeightUnit();
 
   // ✅ Calcular maxVolume ANTES de cualquier early return para cumplir reglas de hooks
   const items = top ?? [];
@@ -13,6 +16,8 @@ export default function ProfileTopExercises({ username, topN = 3 }: { username: 
     if (items.length === 0) return 0;
     return Math.max(0, ...items.map((ex) => (Number.isFinite(ex.volumen_kg) ? Number(ex.volumen_kg) : 0)));
   }, [items]);
+
+  const displayMaxVolume = presentInUserUnit(maxVolume, unit);
 
   if (isLoading) return <Skeleton className="h-32 w-full rounded-xl" />;
 
@@ -46,8 +51,9 @@ export default function ProfileTopExercises({ username, topN = 3 }: { username: 
 
         <div className="space-y-4">
           {items.map((ex, idx) => {
-            const vol = Number(ex.volumen_kg) || 0;
-            const pct = maxVolume > 0 ? Math.min(100, Math.max(0, (vol / maxVolume) * 100)) : 0;
+            const volKg = Number(ex.volumen_kg) || 0;
+            const pct = maxVolume > 0 ? Math.min(100, Math.max(0, (volKg / maxVolume) * 100)) : 0;
+            const displayVol = presentInUserUnit(volKg, unit);
 
             return (
               <div key={ex.id} className="flex items-start gap-5">
@@ -82,15 +88,19 @@ export default function ProfileTopExercises({ username, topN = 3 }: { username: 
                       <span className="text-emerald-600/80 dark:text-emerald-300/80 text-xs font-medium">sesiones</span>
                     </div>
                     <div className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/20 border-2 border-purple-500/50 rounded-lg shadow-sm">
-                      <span className="text-purple-700 dark:text-purple-200 font-bold">{vol.toLocaleString()}</span>
-                      <span className="text-purple-600/80 dark:text-purple-300/80 text-xs font-medium">kg</span>
+                      <span className="text-purple-700 dark:text-purple-200 font-bold">
+                        {displayVol.toLocaleString()}
+                      </span>
+                      <span className="text-purple-600/80 dark:text-purple-300/80 text-xs font-medium">{unit}</span>
                     </div>
                   </div>
 
                   <div className="pt-2">
                     <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
                       <span className="font-semibold">Volumen acumulado</span>
-                      <span className="font-bold">{vol.toLocaleString()} kg</span>
+                      <span className="font-bold">
+                        {displayVol.toLocaleString()} {unit}
+                      </span>
                     </div>
                     <div
                       className="h-2 bg-muted/60 rounded-full overflow-hidden shadow-inner"
@@ -99,7 +109,7 @@ export default function ProfileTopExercises({ username, topN = 3 }: { username: 
                       aria-valuemax={100}
                       aria-valuenow={Math.round(pct)}
                       aria-label={`Volumen acumulado de ${ex.nombre}`}
-                      title={`${Math.round(pct)}% del mayor volumen (${maxVolume.toLocaleString()} kg)`}
+                      title={`${Math.round(pct)}% del mayor volumen (${displayMaxVolume.toLocaleString()} ${unit})`}
                     >
                       <div
                         className="h-full bg-gradient-to-r from-primary via-purple-500 to-primary rounded-full transition-all duration-700 shadow-lg"

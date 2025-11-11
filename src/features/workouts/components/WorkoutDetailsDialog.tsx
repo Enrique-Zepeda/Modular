@@ -5,6 +5,8 @@ import { Dumbbell, Timer, TrendingUp, Activity, CheckCircle2, XCircle } from "lu
 import { useWorkoutDetails } from "@/features/workouts/hooks/useWorkoutDetails";
 import { cn } from "@/lib/utils";
 import { formatDurationShort } from "@/lib/duration";
+import { useWeightUnit } from "@/hooks";
+import { presentInUserUnit } from "@/lib/weight";
 
 type Props = {
   sessionId: number;
@@ -21,6 +23,7 @@ export function WorkoutDetailsDialog({ sessionId, open, onOpenChange, durationLa
     sensacion: sensacionSeed ?? undefined,
   });
 
+  const { unit } = useWeightUnit();
   // Mostrar duración inmediata usando la semilla del Card;
   // si el hook trae segundos, formatearlos; si trae label, usarla.
   const displayDuration =
@@ -97,7 +100,8 @@ export function WorkoutDetailsDialog({ sessionId, open, onOpenChange, durationLa
                               Volumen Total
                             </p>
                             <p className="text-lg font-bold text-foreground truncate">
-                              {Intl.NumberFormat("es-MX").format(data.totalVolume ?? 0)} kg
+                              {Intl.NumberFormat("es-MX").format(presentInUserUnit(data.totalVolume ?? 0, unit))}
+                              {unit}
                             </p>
                           </div>
                         </div>
@@ -214,7 +218,9 @@ export function WorkoutDetailsDialog({ sessionId, open, onOpenChange, durationLa
                                           </td>
                                           <td className="py-3 px-2 font-medium">
                                             {s.kg != null ? (
-                                              <span className="text-foreground">{s.kg} kg</span>
+                                              <span className="text-foreground">
+                                                {presentInUserUnit(s.kg, unit)} {unit}
+                                              </span>
                                             ) : (
                                               <span className="text-muted-foreground">—</span>
                                             )}

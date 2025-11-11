@@ -27,6 +27,15 @@ export function normalizeToKg(valueInUserUnit: number, userUnit: WeightUnit): nu
 }
 
 // la BD nos da kg → lo mostramos en la unidad del usuario
-export function presentInUserUnit(valueInKg: number, userUnit: WeightUnit): number {
-  return convertWeight(valueInKg, "kg", userUnit, { precision: 2 });
+export function presentInUserUnit(valueInKg: number, unit: WeightUnit): number {
+  if (typeof valueInKg !== "number" || Number.isNaN(valueInKg)) return 0;
+
+  // DB siempre en kg
+  if (unit === "kg") {
+    return Math.round(valueInKg); // 👈 entero
+  }
+
+  // a lbs y redondeamos
+  const lbs = valueInKg / KG_PER_LB;
+  return Math.round(lbs); // 👈 entero
 }

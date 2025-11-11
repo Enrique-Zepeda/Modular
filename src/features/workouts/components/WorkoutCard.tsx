@@ -22,7 +22,9 @@ import { normalizeSensation, sensationPillClasses, getSensationStyles } from "@/
 import { WorkoutDetailsDialog } from "./WorkoutDetailsDialog";
 import type { Sexo } from "@/lib/avatar";
 import UserAvatar from "@/components/ui/user-avatar";
-import { Link } from "react-router-dom"; // 👈 nuevo
+import { Link } from "react-router-dom";
+import { useWeightUnit } from "@/hooks";
+import { presentInUserUnit } from "@/lib/weight";
 
 type ExerciseItem = {
   id?: number | string | null;
@@ -128,6 +130,9 @@ export function WorkoutCard({
 
   const canDelete = isMine && !readOnly;
   const isAnyDialogOpen = openConfirm || openDetails;
+
+  const { unit } = useWeightUnit();
+  const displayTotalVolume = presentInUserUnit(totalVolume, unit);
 
   const handleOpenDetails = useCallback<React.MouseEventHandler<HTMLDivElement>>(
     (e) => {
@@ -309,9 +314,9 @@ export function WorkoutCard({
                 >
                   <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
                   <span className="font-bold text-emerald-700 dark:text-emerald-300">
-                    {Intl.NumberFormat("es-MX").format(totalVolume)}
+                    {Intl.NumberFormat("es-MX").format(displayTotalVolume)}
                   </span>
-                  <span className="text-xs text-emerald-600/80 dark:text-emerald-400/80 font-semibold">kg</span>
+                  <span className="text-xs text-emerald-600/80 dark:text-emerald-400/80 font-semibold">{unit}</span>
                 </div>
 
                 {!!durationLabel && (
@@ -390,7 +395,8 @@ export function WorkoutCard({
                         )}
                         {ex.volume && (
                           <span className="inline-flex items-center justify-center gap-1 min-w-[70px] px-2.5 py-1 bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/40 rounded-lg text-xs font-bold text-emerald-700 dark:text-emerald-300 shadow-sm">
-                            {Intl.NumberFormat("es-MX").format(Number(ex.volume))} kg
+                            {Intl.NumberFormat("es-MX").format(presentInUserUnit(Number(ex.volume), unit))}
+                            {unit}
                           </span>
                         )}
                       </div>
