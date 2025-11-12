@@ -1,4 +1,3 @@
-import type * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,6 +26,7 @@ import toast from "react-hot-toast";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useAppDispatch } from "@/hooks";
 import { setWeightUnit } from "@/features/preferences/preferencesSlice";
+import PrivacyConsentDialog from "./PrivacyConsentDialog";
 
 type Props = {
   defaults?: Partial<OnboardingFormValues> & { fecha_nacimiento?: string | null };
@@ -63,6 +63,7 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
   const [checking, setChecking] = useState(false);
   const [available, setAvailable] = useState<boolean | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [consentOpen, setConsentOpen] = useState(false);
 
   // límites del input date (min: hoy - 100 años, max: hoy - 13 años) a mediodía local
   const { minDOB, maxDOB } = useMemo(() => {
@@ -627,9 +628,12 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
 
                 <div className="pt-4">
                   <Button
-                    type="submit"
+                    type="button"
                     className="w-full h-12 text-base font-medium"
                     disabled={form.formState.isSubmitting}
+                    onClick={() => {
+                      setConsentOpen(true);
+                    }}
                   >
                     {form.formState.isSubmitting ? (
                       <>
@@ -644,6 +648,15 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                     )}
                   </Button>
                 </div>
+                <PrivacyConsentDialog
+                  open={consentOpen}
+                  onOpenChange={setConsentOpen}
+                  confirming={form.formState.isSubmitting}
+                  onConfirm={() => {
+                    setConsentOpen(false);
+                    form.handleSubmit(onSubmit)();
+                  }}
+                />
               </form>
             </CardContent>
           </Card>
