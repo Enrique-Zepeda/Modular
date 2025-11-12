@@ -3,6 +3,7 @@ export type UserPublicProfile = {
   username: string;
   nombre: string | null;
   url_avatar: string | null;
+  sexo?: "masculino" | "femenino" | null;
 };
 
 export type Friend = {
@@ -11,6 +12,7 @@ export type Friend = {
   username: string;
   nombre: string | null;
   url_avatar: string | null;
+  sexo?: "masculino" | "femenino" | null;
   created_at?: string | null;
 };
 

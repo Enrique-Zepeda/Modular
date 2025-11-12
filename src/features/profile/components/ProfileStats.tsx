@@ -4,15 +4,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Activity, Clock, Users, History, Dumbbell } from "lucide-react";
 import type { ProfileSummary } from "../types";
+import { presentInUserUnit } from "@/lib/weight";
+import { useWeightUnit } from "@/hooks";
 
 function formatHM(totalSec: number) {
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
   return `${h}h ${m.toString().padStart(2, "0")}m`;
 }
-function formatKg(n: number) {
-  const fixed = Number.isInteger(n) ? n : Number(n.toFixed(1));
-  return `${fixed.toLocaleString()} kg`;
+function formatVolume(n: number, unit: "kg" | "lbs") {
+  const converted = presentInUserUnit(n, unit); // DB -> unidad usuario
+  return `${converted.toLocaleString()} ${unit}`;
 }
 
 function formatDate(dateString: string | null) {
@@ -87,6 +89,8 @@ export default function ProfileStats({
   hideLastPanel?: boolean;
   onFriendsClick?: () => void;
 }) {
+  const { unit } = useWeightUnit();
+
   if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
@@ -123,7 +127,7 @@ export default function ProfileStats({
         <Stat
           icon={<Dumbbell className="h-6 w-6 text-primary" />}
           label="Volumen total"
-          value={formatKg(summary.total_volume_kg)}
+          value={formatVolume(summary.total_volume_kg, unit)}
         />
         <Stat
           icon={<Users className="h-6 w-6 text-primary" />}

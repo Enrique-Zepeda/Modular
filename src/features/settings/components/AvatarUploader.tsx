@@ -1,36 +1,50 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import * as React from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Upload } from "lucide-react";
 import toast from "react-hot-toast";
+import { UserAvatar } from "@/components/ui/user-avatar";
+
+type Sexo = "masculino" | "femenino" | null;
+
+type Props = {
+  /** URL actual persistida en BD (puede ser null) */
+  url: string | null;
+  /** Sexo del usuario para fallback cuando no hay url */
+  sexo?: Sexo;
+  /** Callback tras persistir la nueva URL */
+  onUpdated?: (publicUrl: string | null) => void;
+};
 
 /**
  * Muestra/actualiza la foto de perfil.
  * - Sube a Supabase Storage (bucket 'avatars', prefijo auth.uid()).
  * - Intenta persistir vía RPC update_current_user_avatar(p_url text).
- * - Si la RPC no existe aún (404/PGRST202), hace fallback a UPDATE directo en "Usuarios".
+ * - Si la RPC no existe (404/PGRST202), hace UPDATE directo en "Usuarios".
  */
-export function AvatarUploader({ url, onUpdated }) {
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef(null);
+export function AvatarUploader({ url, sexo, onUpdated }: Props) {
+  const [uploading, setUploading] = React.useState(false);
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(url ?? null);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
-  const fallback = useMemo(() => "👤", []);
+  React.useEffect(() => {
+    setPreviewUrl(url ?? null);
+  }, [url]);
 
-  const handleSelectClick = useCallback(() => {
+  const handleSelectClick = React.useCallback(() => {
     fileInputRef.current?.click();
   }, []);
 
-  const persistUrl = useCallback(async (publicUrl) => {
+  const persistUrl = React.useCallback(async (publicUrl: string) => {
     // 1) Intentar RPC
     const { error: rpcErr, status } = await supabase.rpc("update_current_user_avatar", { p_url: publicUrl });
     if (!rpcErr) return true;
 
     // 2) Si la RPC no existe aún, fallback a UPDATE directo por auth_uid
-    const rpcNotFound = rpcErr?.code === "PGRST202" || status === 404;
+    const rpcNotFound = (rpcErr as any)?.code === "PGRST202" || status === 404;
     if (rpcNotFound) {
       const { data: authData, error: authErr } = await supabase.auth.getUser();
       if (authErr || !authData?.user) {
@@ -49,12 +63,12 @@ export function AvatarUploader({ url, onUpdated }) {
 
     // 3) Otro error de RPC
     console.error(rpcErr);
-    toast.error(rpcErr?.message ?? "Error al guardar el avatar.");
+    toast.error((rpcErr as any)?.message ?? "Error al guardar el avatar.");
     return false;
   }, []);
 
-  const onFileChange = useCallback(
-    async (e) => {
+  const onFileChange = React.useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
 
@@ -76,6 +90,10 @@ export function AvatarUploader({ url, onUpdated }) {
         const user = authData?.user;
         if (!user) throw new Error("No hay sesión activa.");
 
+        // Preview local
+        const local = URL.createObjectURL(file);
+        setPreviewUrl(local);
+
         const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
         const fileName = `avatar_${Date.now()}.${ext}`;
         const filePath = `${user.id}/${fileName}`;
@@ -91,16 +109,19 @@ export function AvatarUploader({ url, onUpdated }) {
         if (!ok) throw new Error("No se pudo guardar el avatar en tu perfil.");
 
         toast.success("Avatar actualizado.");
+        setPreviewUrl(publicUrl);
         onUpdated?.(publicUrl);
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
         toast.error(err?.message ?? "No se pudo actualizar el avatar.");
+        // revert preview en fallo
+        setPreviewUrl(url ?? null);
       } finally {
         setUploading(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
     },
-    [persistUrl, onUpdated]
+    [persistUrl, url, onUpdated]
   );
 
   return (
@@ -109,18 +130,20 @@ export function AvatarUploader({ url, onUpdated }) {
         <CardTitle className="text-lg font-semibold">Foto de perfil</CardTitle>
         <p className="text-sm text-muted-foreground">Sube una imagen para personalizar tu perfil</p>
       </CardHeader>
+
       <CardContent className="flex items-center gap-8 pt-0">
         <div className="relative">
-          <Avatar className="h-24 w-24 border-4 border-primary/20 shadow-lg">
-            {url ? (
-              <AvatarImage src={url || "/placeholder.svg"} alt="Avatar" loading="lazy" className="object-cover" />
-            ) : (
-              <AvatarFallback className="bg-primary/10 text-primary text-xl font-semibold">{fallback}</AvatarFallback>
-            )}
-          </Avatar>
-          {url && (
+          <UserAvatar
+            url={previewUrl}
+            sexo={sexo}
+            alt="Avatar"
+            size={96} // h-24 w-24
+            className="border-4 border-primary/20 shadow-lg"
+            fallbackText="AV"
+          />
+          {previewUrl && (
             <div className="absolute -bottom-1 -right-1 h-6 w-6 bg-green-500 border-2 border-background rounded-full flex items-center justify-center">
-              <div className="h-2 w-2 bg-white rounded-full"></div>
+              <div className="h-2 w-2 bg-white rounded-full" />
             </div>
           )}
         </div>
@@ -129,6 +152,7 @@ export function AvatarUploader({ url, onUpdated }) {
           <Label htmlFor="avatar-file" className="sr-only">
             Subir avatar
           </Label>
+
           <Input
             id="avatar-file"
             ref={fileInputRef}
@@ -170,3 +194,5 @@ export function AvatarUploader({ url, onUpdated }) {
     </Card>
   );
 }
+
+export default AvatarUploader;

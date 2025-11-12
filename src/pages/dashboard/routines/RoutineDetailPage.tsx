@@ -5,6 +5,33 @@ import { RoutineDetailHeader, RoutineExercisesSection, RoutineStats } from "@/fe
 import { useRoutineDetail } from "@/features/routines/hooks";
 import { useNavigate, useParams } from "react-router-dom";
 
+function deriveSeriesRepsWeight(er: {
+  series?: number | null;
+  repeticiones?: number | null;
+  peso_sugerido?: number | null;
+  sets?: { kg?: number | null; reps?: number | null }[];
+}) {
+  const series = er.sets?.length ?? er.series ?? 0;
+
+  const maxRepsFromSets = Math.max(
+    ...(er.sets ?? []).map((s) => (typeof s.reps === "number" ? s.reps : Number.NEGATIVE_INFINITY))
+  );
+  const reps =
+    Number.isFinite(maxRepsFromSets) && maxRepsFromSets !== Number.NEGATIVE_INFINITY
+      ? maxRepsFromSets
+      : er.repeticiones ?? 0;
+
+  const maxKgFromSets = Math.max(
+    ...(er.sets ?? []).map((s) => (typeof s.kg === "number" ? s.kg : Number.NEGATIVE_INFINITY))
+  );
+  const weight =
+    Number.isFinite(maxKgFromSets) && maxKgFromSets !== Number.NEGATIVE_INFINITY
+      ? maxKgFromSets
+      : er.peso_sugerido ?? 0;
+
+  return { series, reps, weight };
+}
+
 export function RoutineDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -84,7 +111,7 @@ export function RoutineDetailPage() {
         description={rutina.descripcion ?? "Sin descripción"}
         onDelete={handleEliminarRutina}
         deleting={isDeleting}
-        routineId={rutina.id_rutina} // Pasando el ID de la rutina
+        routineId={rutina.id_rutina}
       />
 
       <RoutineStats nivel={rutina.nivel_recomendado} objetivo={rutina.objetivo} duracion={rutina.duracion_estimada} />
@@ -93,19 +120,22 @@ export function RoutineDetailPage() {
           Empezar Entrenamiento
         </Button>
       </div>
+
       <RoutineExercisesSection
-        count={rutina.EjerciciosRutinas.length}
-        items={rutina.EjerciciosRutinas.map((er) => ({
-          key: `${er.id_rutina}-${er.id_ejercicio}`,
-          title: er.Ejercicios?.nombre,
-          group: er.Ejercicios?.grupo_muscular,
-          description: er.Ejercicios?.descripcion,
-          series: er.series ?? 0,
-          reps: er.repeticiones ?? 0,
-          weight: er.peso_sugerido ?? 0,
-          image: er.Ejercicios?.ejemplo ?? undefined,
-          onRemove: () => handleRemoverEjercicio(er.id_ejercicio),
-        }))}
+        count={rutina.EjerciciosRutinas?.length ?? 0}
+        items={(rutina.EjerciciosRutinas ?? []).map((er) => {
+          const { series, reps, weight } = deriveSeriesRepsWeight(er);
+          return {
+            title: er.Ejercicios?.nombre ?? "Sin nombre",
+            group: er.Ejercicios?.grupo_muscular ?? undefined,
+            description: er.Ejercicios?.dificultad ?? undefined,
+            series,
+            reps,
+            weight,
+            image: er.Ejercicios?.ejemplo ?? undefined,
+            onRemove: () => handleRemoverEjercicio(er.id_ejercicio),
+          };
+        })}
         isSelectorOpen={isSelectorOpen}
         setIsSelectorOpen={setIsSelectorOpen}
         ejerciciosExistentes={ejerciciosExistentes}

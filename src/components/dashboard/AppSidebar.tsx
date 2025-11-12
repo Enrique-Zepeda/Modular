@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, Calendar, Dumbbell, User, Settings, LogOut, Sparkles } from "lucide-react";
+import { Home, Calendar, Dumbbell, User, Settings, LogOut, Sparkles, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppDispatch } from "@/hooks/useStore";
 import { logoutUser } from "@/features/auth/thunks";
@@ -11,6 +11,7 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Rutinas", href: "/dashboard/routines", icon: Calendar },
   { name: "Ejercicios", href: "/dashboard/ejercicios", icon: Dumbbell },
+  { name: "Agregar amigos", href: "/dashboard/friends", icon: UserPlus },
   { name: "Recomendación de Rutina", href: "/recomendacion", icon: Sparkles },
   { name: "Perfil", href: "/dashboard/profile", icon: User },
   { name: "Configuración", href: "/dashboard/settings", icon: Settings },

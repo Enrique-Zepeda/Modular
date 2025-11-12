@@ -6,8 +6,12 @@ import { Provider } from "react-redux";
 
 import App from "./App.tsx";
 
+import { getInitialColorTheme, applyColorTheme } from "./features/theme/colorTheme";
+
 const theme = localStorage.getItem("theme") ?? "light";
 document.documentElement.classList.add(theme);
+
+applyColorTheme(getInitialColorTheme());
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

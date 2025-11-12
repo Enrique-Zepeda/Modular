@@ -1,0 +1,91 @@
+:root[data-theme="summer"] {
+  --background: hsl(38 65% 97%);
+  --foreground: hsl(28 15% 25%);
+  --card: hsl(33 85% 95%);
+  --card-foreground: hsl(28 15% 25%);
+  --popover: hsl(39 100% 92%);
+  --popover-foreground: hsl(28 15% 25%);
+  --primary: hsl(6 89% 67%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(35 97% 62%);
+  --secondary-foreground: hsl(28 15% 25%);
+  --muted: hsl(27 82% 91%);
+  --muted-foreground: hsl(26 26% 51%);
+  --accent: hsl(4 91% 58%);
+  --accent-foreground: hsl(0 0% 100%);
+  --destructive: hsl(0 66% 51%);
+  --border: hsl(30 89% 79%);
+  --input: hsl(36 89% 93%);
+  --ring: hsl(6 89% 67%);
+  --chart-1: hsl(6 89% 67%);
+  --chart-2: hsl(35 97% 62%);
+  --chart-3: hsl(14 97% 63%);
+  --chart-4: hsl(46 100% 67%);
+  --chart-5: hsl(14 81% 46%);
+  --sidebar: hsl(33 85% 95%);
+  --sidebar-foreground: hsl(28 15% 25%);
+  --sidebar-primary: hsl(6 89% 67%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(35 97% 62%);
+  --sidebar-accent-foreground: hsl(28 15% 25%);
+  --sidebar-border: hsl(30 89% 79%);
+  --sidebar-ring: hsl(6 89% 67%);
+
+  --font-sans: Nunito, Segoe UI, Tahoma, Geneva, Verdana, sans-serif;
+  --font-serif: Lora, ui-serif, Georgia, Cambria, Times New Roman, Times, serif;
+  --font-mono: Fira Code, ui-monospace, SFMono-Regular;
+
+  --radius: 1.4rem;
+
+  --shadow-2xs: 0px 1px 3px 0px hsl(6 89% 67% / 0.3 / 0.03);
+  --shadow-xs: 0px 1px 3px 0px hsl(6 89% 67% / 0.3 / 0.03);
+  --shadow-sm: 0px 1px 3px 0px hsl(6 89% 67% / 0.3 / 0.05), 0px 1px 2px -1px hsl(6 89% 67% / 0.3 / 0.05);
+  --shadow: 0px 1px 3px 0px hsl(6 89% 67% / 0.3 / 0.05), 0px 1px 2px -1px hsl(6 89% 67% / 0.3 / 0.05);
+  --shadow-md: 0px 1px 3px 0px hsl(6 89% 67% / 0.3 / 0.05), 0px 2px 4px -1px hsl(6 89% 67% / 0.3 / 0.05);
+  --shadow-lg: 0px 1px 3px 0px hsl(6 89% 67% / 0.3 / 0.05), 0px 4px 6px -1px hsl(6 89% 67% / 0.3 / 0.05);
+  --shadow-xl: 0px 1px 3px 0px hsl(6 89% 67% / 0.3 / 0.05), 0px 8px 10px -1px hsl(6 89% 67% / 0.3 / 0.05);
+  --shadow-2xl: 0px 1px 3px 0px hsl(6 89% 67% / 0.3 / 0.13);
+}
+
+.dark[data-theme="summer"] {
+  --background: hsl(28 25% 14%);
+  --foreground: hsl(30 89% 79%);
+  --card: hsl(27 29% 18%);
+  --card-foreground: hsl(30 89% 79%);
+  --popover: hsl(24 23% 24%);
+  --popover-foreground: hsl(30 89% 79%);
+  --primary: hsl(6 89% 67%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(35 97% 62%);
+  --secondary-foreground: hsl(28 25% 14%);
+  --muted: hsl(27 23% 44%);
+  --muted-foreground: hsl(33 43% 70%);
+  --accent: hsl(1 78% 55%);
+  --accent-foreground: hsl(0 0% 100%);
+  --destructive: hsl(360 75% 41%);
+  --border: hsl(27 30% 32%);
+  --input: hsl(27 28% 27%);
+  --ring: hsl(6 89% 67%);
+  --chart-1: hsl(6 89% 67%);
+  --chart-2: hsl(35 97% 62%);
+  --chart-3: hsl(14 97% 63%);
+  --chart-4: hsl(46 100% 67%);
+  --chart-5: hsl(14 81% 46%);
+  --sidebar: hsl(27 29% 18%);
+  --sidebar-foreground: hsl(30 89% 79%);
+  --sidebar-primary: hsl(6 89% 67%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(35 97% 62%);
+  --sidebar-accent-foreground: hsl(28 25% 14%);
+  --sidebar-border: hsl(27 30% 32%);
+  --sidebar-ring: hsl(6 89% 67%);
+
+  --shadow-2xs: 0px 1px 3px 0px hsl(6 89% 67% / 0.7 / 0.03);
+  --shadow-xs: 0px 1px 3px 0px hsl(6 89% 67% / 0.7 / 0.03);
+  --shadow-sm: 0px 1px 3px 0px hsl(6 89% 67% / 0.7 / 0.05), 0px 1px 2px -1px hsl(6 89% 67% / 0.7 / 0.05);
+  --shadow: 0px 1px 3px 0px hsl(6 89% 67% / 0.7 / 0.05), 0px 1px 2px -1px hsl(6 89% 67% / 0.7 / 0.05);
+  --shadow-md: 0px 1px 3px 0px hsl(6 89% 67% / 0.7 / 0.05), 0px 2px 4px -1px hsl(6 89% 67% / 0.7 / 0.05);
+  --shadow-lg: 0px 1px 3px 0px hsl(6 89% 67% / 0.7 / 0.05), 0px 4px 6px -1px hsl(6 89% 67% / 0.7 / 0.05);
+  --shadow-xl: 0px 1px 3px 0px hsl(6 89% 67% / 0.7 / 0.05), 0px 8px 10px -1px hsl(6 89% 67% / 0.7 / 0.05);
+  --shadow-2xl: 0px 1px 3px 0px hsl(6 89% 67% / 0.7 / 0.13);
+}

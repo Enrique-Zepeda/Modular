@@ -228,21 +228,40 @@ export function RoutineBuilderPage() {
     setExercises((prev) =>
       prev.map((er) => {
         if (er.id_ejercicio !== id_ejercicio) return er;
+
         const sets = (er.sets ?? []).slice();
         const v = value === "" ? null : Number(value);
-        sets[idx0] = { ...sets[idx0], [field]: v, idx: idx0 + 1 };
-        return { ...er, sets, series: sets.length };
+        const current = sets[idx0] ?? { idx: idx0 + 1, kg: null as number | null, reps: null as number | null };
+        const next = { ...current, idx: idx0 + 1, [field]: v };
+        sets[idx0] = next;
+
+        let newReps = er.repeticiones;
+        let newKg = er.peso_sugerido;
+
+        if (field === "reps") newReps = v;
+        if (field === "kg") newKg = v;
+
+        return {
+          ...er,
+          sets,
+          series: sets.length,
+          repeticiones: newReps,
+          peso_sugerido: newKg,
+        };
       })
     );
     setHasUnsavedChanges(true);
   };
 
   // Add set clonando el último (LOCAL)
+  // Add set clonando el último (LOCAL)
   const handleAddSet = async (id_ejercicio: number) => {
     setExercises((prev) =>
       prev.map((er) => {
         if (er.id_ejercicio !== id_ejercicio) return er;
+
         const sets = er.sets ?? [];
+        const wasEmpty = sets.length === 0;
 
         const last = sets[sets.length - 1] ?? {
           kg: er.peso_sugerido ?? null,
@@ -251,21 +270,39 @@ export function RoutineBuilderPage() {
 
         const next = { idx: sets.length + 1, kg: last.kg ?? null, reps: last.reps ?? null };
         const newSets = [...sets, next];
-        return { ...er, sets: newSets, series: newSets.length };
+
+        return {
+          ...er,
+          sets: newSets,
+          series: newSets.length,
+          repeticiones: wasEmpty ? next.reps ?? null : er.repeticiones ?? null,
+          peso_sugerido: wasEmpty ? next.kg ?? null : er.peso_sugerido ?? null,
+        };
       })
     );
     setHasUnsavedChanges(true);
   };
 
   // Remove set (LOCAL)
+  // Remove set (LOCAL)
   const handleRemoveSet = async (id_ejercicio: number, idx0: number) => {
     setExercises((prev) =>
       prev.map((er) => {
         if (er.id_ejercicio !== id_ejercicio) return er;
+
         const sets = (er.sets ?? []).slice();
         sets.splice(idx0, 1);
         const densified = sets.map((s, i) => ({ ...s, idx: i + 1 }));
-        return { ...er, sets: densified, series: densified.length };
+
+        const top = densified[0] ?? null;
+
+        return {
+          ...er,
+          sets: densified,
+          series: densified.length,
+          repeticiones: top?.reps ?? null,
+          peso_sugerido: top?.kg ?? null,
+        };
       })
     );
     setHasUnsavedChanges(true);

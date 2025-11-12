@@ -147,7 +147,7 @@ export default function UserResultCard({ user, status = "none", onSend }: Props)
               onSend?.(user.id_usuario);
             }}
           >
-            <UserPlus className="h-4 w-4" /> Solicitar
+            <UserPlus className="h-4 w-4" /> Enviar solicitud
           </Button>
         )}
       </CardContent>

@@ -14,6 +14,8 @@ export type PublicProfile = Pick<
   | "nivel_experiencia"
   | "objetivo"
   | "sexo"
+  | "fecha_nacimiento"
+  | "edad"
 >;
 
 export const userProfileApi = createApi({
@@ -31,7 +33,21 @@ export const userProfileApi = createApi({
 
           const { data, error } = await supabase
             .from("Usuarios")
-            .select("id_usuario, auth_uid, username, nombre, correo, url_avatar, nivel_experiencia, objetivo, sexo")
+            .select(
+              [
+                "id_usuario",
+                "auth_uid",
+                "username",
+                "nombre",
+                "correo",
+                "url_avatar",
+                "nivel_experiencia",
+                "objetivo",
+                "sexo",
+                "fecha_nacimiento",
+                "edad",
+              ].join(", ")
+            )
             .eq("auth_uid", u.id)
             .single();
 
@@ -50,9 +66,24 @@ export const userProfileApi = createApi({
           const uname = username.replace(/^@+/, "");
           const { data, error } = await supabase
             .from("Usuarios")
-            .select("id_usuario, auth_uid, username, nombre, correo, url_avatar, nivel_experiencia, objetivo, sexo")
+            .select(
+              [
+                "id_usuario",
+                "auth_uid",
+                "username",
+                "nombre",
+                "correo",
+                "url_avatar",
+                "nivel_experiencia",
+                "objetivo",
+                "sexo",
+                "fecha_nacimiento",
+                "edad",
+              ].join(", ")
+            )
             .ilike("username", uname)
             .maybeSingle();
+
           if (error) return { error };
           return { data: (data as PublicProfile) ?? null };
         } catch (e: any) {

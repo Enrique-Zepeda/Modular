@@ -16,35 +16,49 @@ import {
   handlePasteInteger,
   handlePasteDecimal,
   sanitizeInteger,
-  sanitizeDecimal,
 } from "@/features/workouts/utils/numberInput";
+
+import { useAppSelector } from "@/hooks";
+import { presentInUserUnit, normalizeToKg } from "@/lib/weight";
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   exerciseName?: string;
-  defaults?: { series?: number; reps?: number; kg?: number };
-  onConfirm: (cfg: { series: number; reps: number; kg: number }) => void;
+  defaults?: { series?: number; reps?: number; kg?: number }; // kg desde la DB
+  onConfirm: (cfg: { series: number; reps: number; kg: number }) => void; // kg hacia la DB
 };
 
 export function ExerciseQuickConfigDialog({ open, onOpenChange, exerciseName, defaults, onConfirm }: Props) {
-  const [series, setSeries] = useState<number>(defaults?.series ?? 3);
-  const [reps, setReps] = useState<number>(defaults?.reps ?? 10);
-  const [kg, setKg] = useState<number>(defaults?.kg ?? 0);
+  const userUnit = useAppSelector((s) => s.preferences?.weightUnit ?? "kg");
+
+  const [series, setSeries] = useState<number>(3);
+  const [reps, setReps] = useState<number>(10);
+  const [weight, setWeight] = useState<number>(0); // mostrado en unidad del usuario
 
   useEffect(() => {
     if (open) {
       setSeries(defaults?.series ?? 3);
       setReps(defaults?.reps ?? 10);
-      setKg(defaults?.kg ?? 0);
+
+      // 👇 viene en kg → lo muestro en la unidad del usuario usando la regla global
+      const shown = typeof defaults?.kg === "number" ? presentInUserUnit(defaults.kg, userUnit) : 0;
+      setWeight(shown);
     }
-  }, [open, defaults?.series, defaults?.reps, defaults?.kg]);
+  }, [open, defaults?.series, defaults?.reps, defaults?.kg, userUnit]);
 
   const confirm = () => {
     const s = Math.max(1, Math.floor(series || 1));
     const r = Math.max(1, Math.floor(reps || 1));
-    const w = Math.max(0, Number.isFinite(kg) ? kg : 0);
-    onConfirm({ series: s, reps: r, kg: w });
+
+    // 👇 el usuario escribió en su unidad → lo mando a kg con tu redondeo global (ceil cuando es kg)
+    const weightInKg = normalizeToKg(Math.max(0, weight || 0), userUnit);
+
+    onConfirm({
+      series: s,
+      reps: r,
+      kg: weightInKg,
+    });
   };
 
   return (
@@ -81,14 +95,23 @@ export function ExerciseQuickConfigDialog({ open, onOpenChange, exerciseName, de
             />
           </div>
           <div>
-            <label className="text-sm font-medium">Peso (kg)</label>
+            <label className="text-sm font-medium">Peso ({userUnit})</label>
             <Input
               type="text"
               inputMode="decimal"
-              value={String(kg ?? "")}
-              onChange={(e) => setKg(Number(sanitizeDecimal(e.target.value)) || 0)}
+              value={String(weight ?? "")}
+              onChange={(e) => {
+                // si quieres solo enteros en la UI:
+                const v = sanitizeInteger(e.target.value);
+                setWeight(Number(v) || 0);
+              }}
               onKeyDown={onDecimalKeyDown}
-              onPaste={(e) => handlePasteDecimal(e, (v) => setKg(Number(v) || 0))}
+              onPaste={(e) =>
+                handlePasteDecimal(e, (v) => {
+                  const clean = sanitizeInteger(v);
+                  setWeight(Number(clean) || 0);
+                })
+              }
             />
           </div>
         </div>

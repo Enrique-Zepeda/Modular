@@ -1,5 +1,5 @@
-// Utilidad pequeña y estable para normalizar etiquetas de sensación.
-// Si no coincide, devolvemos "Sin sensaciones".
+import { CircleHelp, Feather, Skull, TriangleAlert, FlameIcon, ThumbsUp } from "lucide-react";
+
 const MAP: Record<string, string> = {
   facil: "Fácil",
   fácil: "Fácil",
@@ -18,34 +18,74 @@ export function normalizeSensation(v: unknown): string {
   return MAP[key] ?? (v.trim() ? v.trim() : "Sin sensaciones");
 }
 
-/**
- * Devuelve clases Tailwind para pintar el chip/badge de sensación
- * según el diseño solicitado:
- * - Sin sensaciones → gris claro
- * - Fácil → verde
- * - Moderado → amarillo/dorado (amber)
- * - Difícil → naranja
- * - Muy difícil → naranja intenso
- * - Al fallo → rojo
- *
- * Nota: Solo incluye las clases de color. Combínalas con tu contenedor base.
- */
-export function sensationPillClasses(label?: string | null): string {
+// estilos compatibles con los del RPE
+export function getSensationStyles(label?: string | null) {
   const l = normalizeSensation(label ?? undefined);
+
   switch (l) {
-    case "Sin sensaciones":
-      return "border-gray-300 bg-gray-50 text-gray-700 dark:bg-gray-900/40 dark:text-gray-300 dark:border-gray-700 hover:shadow-gray-500/10";
     case "Fácil":
-      return "border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800 hover:shadow-emerald-500/20";
+      return {
+        bgClass: "from-emerald-50 to-emerald-100/70 dark:from-emerald-950/20 dark:to-emerald-900/10",
+        borderClass: "border-emerald-300/70 dark:border-emerald-700/40",
+        textClass: "text-emerald-700 dark:text-emerald-400",
+        iconColor: "text-emerald-600 dark:text-emerald-400",
+        icon: Feather,
+        shadowClass: "shadow-emerald-200/30 dark:shadow-emerald-950/20",
+      };
     case "Moderado":
-      return "border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800 hover:shadow-amber-500/20";
+      return {
+        bgClass: "from-blue-50 to-blue-100/70 dark:from-blue-950/20 dark:to-blue-900/10",
+        borderClass: "border-blue-300/70 dark:border-blue-700/40",
+        textClass: "text-blue-700 dark:text-blue-400",
+        iconColor: "text-blue-600 dark:text-blue-400",
+        icon: ThumbsUp,
+        shadowClass: "shadow-blue-200/30 dark:shadow-blue-950/20",
+      };
     case "Difícil":
-      return "border-orange-300 bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800 hover:shadow-orange-500/20";
+      return {
+        bgClass: "from-orange-50 to-orange-100/70 dark:from-orange-950/20 dark:to-orange-900/10",
+        borderClass: "border-orange-300/70 dark:border-orange-700/40",
+        textClass: "text-orange-700 dark:text-orange-400",
+        iconColor: "text-orange-600 dark:text-orange-400",
+        icon: FlameIcon,
+        shadowClass: "shadow-orange-200/30 dark:shadow-orange-950/30",
+      };
     case "Muy difícil":
-      return "border-orange-400 bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-200 dark:border-orange-700 hover:shadow-orange-500/30";
+      return {
+        bgClass: "from-red-50 to-red-100/70 dark:from-red-950/20 dark:to-red-900/10",
+        borderClass: "border-red-300/70 dark:border-red-700/40",
+        textClass: "text-red-700 dark:text-red-400",
+        iconColor: "text-red-600 dark:text-red-400",
+        icon: TriangleAlert,
+        shadowClass: "shadow-red-200/30 dark:shadow-red-950/30",
+      };
     case "Al fallo":
-      return "border-red-300 bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800 hover:shadow-red-500/20";
+      return {
+        // 👇 le metemos animate-pulse solo aquí
+        bgClass: "from-purple-50 to-purple-100/70 dark:from-purple-950/20 dark:to-purple-900/10 animate-pulse",
+        borderClass: "border-purple-400/80 dark:border-purple-600/50",
+        textClass: "text-purple-800 dark:text-purple-300 font-black",
+        iconColor: "text-purple-700 dark:text-purple-400",
+        icon: Skull,
+        shadowClass: "shadow-purple-300/40 dark:shadow-purple-950/30",
+      };
+    case "Sin sensaciones":
     default:
-      return "border-muted bg-muted/30 text-muted-foreground";
+      return {
+        bgClass: "from-muted/30 to-muted/20",
+        borderClass: "border-border/50",
+        textClass: "text-muted-foreground",
+        iconColor: "text-muted-foreground/60",
+        icon: CircleHelp,
+        shadowClass: "shadow-muted/20",
+      };
   }
+}
+
+// lo que usa la card
+export function sensationPillClasses(label?: string | null): string {
+  const styles = getSensationStyles(label);
+  return ["bg-gradient-to-br", styles.bgClass, "border-2", styles.borderClass, styles.textClass, styles.shadowClass]
+    .filter(Boolean)
+    .join(" ");
 }

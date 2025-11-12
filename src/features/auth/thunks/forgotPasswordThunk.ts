@@ -12,11 +12,11 @@ export const forgotPassword = (email: string) => async (dispatch: AppDispatch) =
     });
 
     if (error) {
-      toast.error("Failed to send reset email");
+      toast.error("No se pudo enviar el correo de restablecimiento.");
       throw error;
     }
 
-    toast.success("Password reset link sent to your email");
+    toast.success("Enlace de restablecimiento enviado a tu correo.");
   } catch (error) {
     console.error("Forgot password error:", error);
   } finally {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { ExitConfirmationDialog } from "@/components/ui/exit-confirmation-dialog";
@@ -17,6 +17,67 @@ import {
   WorkoutHeader,
   WorkoutKpisBar,
 } from "@/features/workouts/components";
+
+/* =========================
+   Persistencia local (NEW)
+   ========================= */
+const SNAPSHOT_PREFIX = "workout_live_v1";
+const START_PREFIX = "workout_live_start_v1";
+const SNAPSHOT_TTL_MS = 12 * 60 * 60 * 1000; // 12h
+
+function snapKey(routineId: number) {
+  return `${SNAPSHOT_PREFIX}:${routineId}`;
+}
+function startKey(routineId: number) {
+  return `${START_PREFIX}:${routineId}`;
+}
+function loadSnapshot(routineId: number) {
+  try {
+    const raw = localStorage.getItem(snapKey(routineId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const savedAt = Number(parsed?.savedAt ?? 0);
+    if (!Number.isFinite(savedAt) || Date.now() - savedAt > SNAPSHOT_TTL_MS) return null;
+    return parsed?.workout ?? null;
+  } catch {
+    return null;
+  }
+}
+function saveSnapshot(routineId: number, workout: any) {
+  try {
+    localStorage.setItem(snapKey(routineId), JSON.stringify({ savedAt: Date.now(), workout }));
+  } catch {
+    /* noop */
+  }
+}
+function clearSnapshot(routineId: number) {
+  try {
+    localStorage.removeItem(snapKey(routineId));
+  } catch {
+    /* noop */
+  }
+}
+function loadStartedAt(routineId: number): string | null {
+  try {
+    return localStorage.getItem(startKey(routineId));
+  } catch {
+    return null;
+  }
+}
+function saveStartedAt(routineId: number, iso: string) {
+  try {
+    localStorage.setItem(startKey(routineId), iso);
+  } catch {
+    /* noop */
+  }
+}
+function clearStartedAt(routineId: number) {
+  try {
+    localStorage.removeItem(startKey(routineId));
+  } catch {
+    /* noop */
+  }
+}
 
 export default function WorkoutLivePage() {
   const { id } = useParams();
@@ -44,32 +105,105 @@ export default function WorkoutLivePage() {
     addExtraExerciseConfigured,
   } = useWorkoutEditor();
 
-  // Seed desde datos
+  /* --------------------------------------------------
+     Rehidratación: si hay snapshot, úsalo como semilla
+     -------------------------------------------------- */
+  const [rehydrated, setRehydrated] = useState(false);
+  useEffect(() => {
+    if (!Number.isFinite(id_rutina) || id_rutina <= 0) return;
+    if (rehydrated || workout) return;
+    const snap = loadSnapshot(id_rutina);
+    if (snap) {
+      setFromInitial(snap);
+      setRehydrated(true);
+    } else {
+      setRehydrated(true);
+    }
+  }, [id_rutina, rehydrated, workout, setFromInitial]);
+
+  // Seed normal desde la rutina (solo si no hay workout aún)
   const initialState = useMemo(() => (data ? buildInitialWorkoutState(data) : null), [data]);
   useEffect(() => {
-    if (!workout && initialState) setFromInitial(initialState);
-  }, [initialState, workout, setFromInitial]);
+    if (!workout && initialState && rehydrated) setFromInitial(initialState);
+  }, [initialState, workout, setFromInitial, rehydrated]);
 
-  const elapsed = useStopwatch(Boolean(workout));
+  /* --------------------------------------------
+     Cronómetro persistente basado en startedAt
+     -------------------------------------------- */
+  const [startedAt, setStartedAt] = useState<string | null>(() =>
+    Number.isFinite(id_rutina) && id_rutina > 0 ? loadStartedAt(id_rutina) : null
+  );
+
+  useEffect(() => {
+    if (!Number.isFinite(id_rutina) || id_rutina <= 0) return;
+    if (!workout) return;
+    // si no hay startedAt guardado, lo seteamos ahora
+    if (!startedAt) {
+      const iso = new Date().toISOString();
+      saveStartedAt(id_rutina, iso);
+      setStartedAt(iso);
+    }
+  }, [id_rutina, workout, startedAt]);
+
+  const elapsed = useStopwatch(Boolean(workout), startedAt ?? undefined);
   const { doneSets, totalVolume, totalSets } = useWorkoutKpis(workout);
 
-  // navegación/salida
+  /* ----------------------------------------------------
+     Autosave (debounce) + guardado al ocultar/cerrar
+     ---------------------------------------------------- */
+  const debounceRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!Number.isFinite(id_rutina) || id_rutina <= 0) return;
+    if (!workout) return;
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    debounceRef.current = window.setTimeout(() => {
+      saveSnapshot(id_rutina, workout);
+    }, 900);
+    return () => {
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    };
+  }, [id_rutina, workout]);
+
+  useEffect(() => {
+    if (!Number.isFinite(id_rutina) || id_rutina <= 0) return;
+    const handler = () => {
+      if (workout) saveSnapshot(id_rutina, workout);
+    };
+    document.addEventListener("visibilitychange", handler);
+    window.addEventListener("pagehide", handler);
+    window.addEventListener("beforeunload", handler);
+    return () => {
+      document.removeEventListener("visibilitychange", handler);
+      window.removeEventListener("pagehide", handler);
+      window.removeEventListener("beforeunload", handler);
+    };
+  }, [id_rutina, workout]);
+
+  /* -----------------------------
+     navegación / salida
+     ----------------------------- */
   const routinePath = useMemo(
     () => (Number.isFinite(id_rutina) && id_rutina > 0 ? `/dashboard/routines/${id_rutina}` : "/dashboard/routines"),
     [id_rutina]
   );
   const [exitOpen, setExitOpen] = useState(false);
   const handleExitNow = useCallback(() => {
+    // limpiar snapshot de esta rutina
+    if (Number.isFinite(id_rutina) && id_rutina > 0) {
+      clearSnapshot(id_rutina);
+      clearStartedAt(id_rutina);
+    }
     setExitOpen(false);
     navigate(routinePath, { replace: true });
-  }, [navigate, routinePath]);
+  }, [navigate, routinePath, id_rutina]);
 
   const [configDlg, setConfigDlg] = useState<{ open: boolean; exercise: any | null }>({
     open: false,
     exercise: null,
   });
 
-  // Guardado
+  // Guardado final
   const [createError, setCreateError] = useState<string | null>(null);
   const handleFinalizar = useCallback(async () => {
     if (!workout) return;
@@ -82,12 +216,17 @@ export default function WorkoutLivePage() {
       setCreateError(null);
       const res: any = await createWorkout(payload).unwrap();
       toast.success(`Entrenamiento guardado #${res.id_sesion}`);
+      // limpiar snapshot tras guardar
+      if (Number.isFinite(id_rutina) && id_rutina > 0) {
+        clearSnapshot(id_rutina);
+        clearStartedAt(id_rutina);
+      }
       navigate("/dashboard");
     } catch (e: any) {
       setCreateError(e?.data?.message || e?.message || "Error desconocido");
       toast.error("No se pudo guardar el entrenamiento");
     }
-  }, [workout, createWorkout, navigate]);
+  }, [workout, createWorkout, navigate, id_rutina]);
 
   return (
     <div className="mx-auto max-w-7xl p-4 space-y-6">

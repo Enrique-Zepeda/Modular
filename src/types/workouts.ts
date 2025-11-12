@@ -3,7 +3,7 @@ export interface FinishedWorkoutExercise {
   nombre: string | null;
   grupo_muscular: string | null;
   equipamento: string | null;
-  ejemplo?: string | null; // 🔹 URL imagen
+  ejemplo?: string | null;
   sets_done: number | null;
   volume?: number | string | null;
 }
@@ -18,6 +18,7 @@ export interface FinishedWorkoutRich {
   total_volume: number | string;
   titulo: string;
   username: string | null;
+  sexo?: import("@/components/ui/user-avatar").Sexo | null;
   url_avatar: string | null;
   ejercicios?: FinishedWorkoutExercise[];
   sensacion_final?: string | null;

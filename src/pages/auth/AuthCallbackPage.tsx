@@ -6,61 +6,161 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, ArrowRight, Mail, Loader2 } from "lucide-react";
+import { syncProviderAvatarIfNeeded } from "@/features/auth/utils/syncProviderAvatar";
+
+/** Params del hash (#...) como SearchParams */
+function getHashParams(): URLSearchParams {
+  const raw = (typeof window !== "undefined" ? window.location.hash : "")?.replace(/^#/, "");
+  return new URLSearchParams(raw);
+}
+
+/** Verificación por email SOLO si el hash trae el tipo típico de correos */
+function isEmailVerificationFlow(): boolean {
+  try {
+    const h = getHashParams();
+    const type = (h.get("type") || "").toLowerCase();
+    // Importante: NO decidir por "access_token", porque Google también puede regresar con hash
+    return ["signup", "invite", "email_change", "magiclink", "recovery"].includes(type);
+  } catch {
+    return false;
+  }
+}
+
+/** Lee el provider actual de la sesión (google/email) */
+function providerFromSession(sessionUser: any | null): string | null {
+  if (!sessionUser) return null;
+  const p1 = sessionUser?.app_metadata?.provider || null;
+  const p2 = (sessionUser?.identities?.[0]?.provider as string | undefined) || null;
+  return (p1 || p2 || null)?.toLowerCase() ?? null;
+}
+
+/** ¿El perfil necesita onboarding? (no hay fila o no tiene username) */
+async function shouldGoToOnboarding(): Promise<boolean> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return true;
+
+  const { data: row } = await supabase
+    .from("Usuarios")
+    .select("id_usuario, username")
+    .eq("auth_uid", user.id)
+    .maybeSingle();
+
+  if (!row) return true;
+  return !row.username || String(row.username).trim().length === 0;
+}
+
+/** Redirección dura para salir 100% de /auth/callback (evita quedarse ahí) */
+function hardRedirect(path: string) {
+  try {
+    window.location.replace(path);
+  } catch {
+    window.location.href = path;
+  }
+}
 
 export function AuthCallbackPage() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Estado UI para la verificación por correo
   const [countdown, setCountdown] = useState(5);
   const [progress, setProgress] = useState(100);
+  const [showEmailVerifyUI, setShowEmailVerifyUI] = useState(false);
 
   useEffect(() => {
+    let iv: ReturnType<typeof setInterval> | undefined;
+    let to: ReturnType<typeof setTimeout> | undefined;
+
     (async () => {
       try {
-        // 1) OAuth PKCE → ?code=...
+        // 1) Verificación por correo → NO mantener sesión → mostrar UI y redirigir a /login a los 5s
+        if (isEmailVerificationFlow()) {
+          await supabase.auth.signOut().catch(() => {});
+          try {
+            window.history.replaceState({}, "", "/auth/callback");
+          } catch {}
+          setShowEmailVerifyUI(true);
+
+          // Inicia cuenta regresiva de 5s y barra de progreso
+          iv = setInterval(() => {
+            setCountdown((p) => (p > 0 ? p - 1 : 0));
+            setProgress((p) => (p > 0 ? p - 20 : 0));
+          }, 1000);
+          to = setTimeout(() => {
+            navigate("/login", { replace: true, state: { verified: true } });
+          }, 5000);
+
+          return; // ¡OJO! No continuar con la lógica de Google/normal
+        }
+
+        // 2) Google OAuth (PKCE): si viene ?code=..., intercambia por si detectSessionInUrl no lo hizo
         const qs = new URLSearchParams(location.search);
         const code = qs.get("code");
         if (code) {
-          await supabase.auth.exchangeCodeForSession(code);
+          try {
+            await supabase.auth.exchangeCodeForSession(code);
+          } catch {
+            /* puede que ya esté hecho */
+          }
         }
 
-        // 2) Email link / verificación → #access_token=...
-        const hasAccessTokenHash = typeof window !== "undefined" && window.location.hash.includes("access_token");
-
-        // 3) Cerrar sesión SIEMPRE para forzar login manual
-        await supabase.auth.signOut();
-
-        // 4) Limpiar URL para que no se reprocese el token
-        try {
-          window.history.replaceState({}, "", "/auth/callback");
-        } catch {
-          /* no-op */
+        // 3) Espera breve a que exista sesión (hasta 3s)
+        let sessionUser = null;
+        for (let i = 0; i < 30; i++) {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+          sessionUser = session?.user ?? null;
+          if (sessionUser) break;
+          await new Promise((r) => setTimeout(r, 100));
         }
 
-        // 5) Redirigir a /login (con estado "verified" para mostrar un toast)
-        const nextState = hasAccessTokenHash || code ? { verified: true } : undefined;
+        // 4) Con sesión → Google entra directo; email sin verificación también entra
+        if (sessionUser) {
+          const provider = providerFromSession(sessionUser);
 
-        const iv = setInterval(() => {
-          setCountdown((prev) => (prev > 0 ? prev - 1 : 0));
-          setProgress((prev) => (prev > 0 ? prev - 20 : 0));
-        }, 1000);
+          if (provider === "google") {
+            // Google: sincroniza avatar y decide destino
+            try {
+              await syncProviderAvatarIfNeeded();
+            } catch {}
+            const goOnboarding = await shouldGoToOnboarding();
+            try {
+              window.history.replaceState({}, "", "/");
+            } catch {}
+            hardRedirect(goOnboarding ? "/onboarding" : "/dashboard");
+            return;
+          }
 
-        const to = setTimeout(() => {
-          navigate("/login", { replace: true, state: nextState });
-        }, 5000);
+          // Provider email pero NO venimos de verificación → deja pasar a dashboard (o tu guard hará lo suyo)
+          try {
+            window.history.replaceState({}, "", "/");
+          } catch {}
+          hardRedirect("/dashboard");
+          return;
+        }
 
-        return () => {
-          clearInterval(iv);
-          clearTimeout(to);
-        };
+        // 5) Sin sesión → /login
+        hardRedirect("/login");
       } catch (e) {
         console.error("[AuthCallback] error:", e);
-        await supabase.auth.signOut();
-        navigate("/login", { replace: true });
+        await supabase.auth.signOut().catch(() => {});
+        hardRedirect("/login");
       }
     })();
-    // solo al montar
+
+    // Cleanup timers si el componente se desmonta
+    return () => {
+      if (iv) clearInterval(iv);
+      if (to) clearTimeout(to);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // UI SOLO para verificación por email (muestra la cuenta regresiva de 5s)
+  if (!showEmailVerifyUI) return null;
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
@@ -70,13 +170,15 @@ export function AuthCallbackPage() {
             <CheckCircle className="h-8 w-8 text-primary" />
           </div>
           <CardTitle className="text-2xl font-bold">¡Correo verificado!</CardTitle>
-          <CardDescription className="text-base">Tu cuenta ha sido verificada exitosamente</CardDescription>
+          <CardDescription className="text-base">
+            Tu cuenta fue verificada. Te enviaremos al inicio de sesión.
+          </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-6">
           <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground">
             <Mail className="h-4 w-4" />
-            <span>Ahora inicia sesión con tu cuenta</span>
+            <span>Entra con tu correo y contraseña para continuar.</span>
           </div>
 
           <div className="space-y-3">

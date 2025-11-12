@@ -1,13 +1,14 @@
-import { RequestsList } from "@/features/friends/components/RequestsPanels";
-import { useFriendRequests } from "@/features/friends/hooks";
-import { useFriendActions } from "@/features/friends/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bell, Inbox, Send, Loader2 } from "lucide-react";
+
+import { Inbox, Send, Loader2, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-/**
- * Página de Notificaciones: muestra solicitudes de amistad entrantes/salientes
- */
+// Hooks existentes (ajusta si tus nombres difieren)
+import { useFriendRequests } from "@/features/friends/hooks";
+import { useFriendActions } from "@/features/friends/hooks";
+
+import NavigableRequestsList from "@/features/friends/components/NavigableRequestsList";
+
 export default function NotificationsPage() {
   const { incoming, outgoing, isLoading } = useFriendRequests();
   const actions = useFriendActions();
@@ -17,17 +18,18 @@ export default function NotificationsPage() {
       <div className="space-y-3">
         <div className="flex items-center gap-3">
           <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/30">
-            <Bell className="h-6 w-6 text-purple-400" />
+            <UserPlus className="h-6 w-6 text-purple-400" />
           </div>
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              Notificaciones
+              Solicitudes de amistad
             </h1>
             <p className="text-sm text-muted-foreground mt-1">Gestiona tus solicitudes de amistad</p>
           </div>
         </div>
       </div>
 
+      {/* Entrantes */}
       <Card className="border-muted/60 bg-gradient-to-br from-background to-muted/20 shadow-lg hover:shadow-xl transition-shadow">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
@@ -54,7 +56,7 @@ export default function NotificationsPage() {
               <span>Cargando solicitudes...</span>
             </div>
           ) : (
-            <RequestsList
+            <NavigableRequestsList
               items={incoming}
               variant="incoming"
               onAccept={(id) => actions.accept(id)}
@@ -64,6 +66,7 @@ export default function NotificationsPage() {
         </CardContent>
       </Card>
 
+      {/* Enviadas */}
       <Card className="border-muted/60 bg-gradient-to-br from-background to-muted/20 shadow-lg hover:shadow-xl transition-shadow">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
@@ -87,7 +90,7 @@ export default function NotificationsPage() {
               <span>Cargando solicitudes...</span>
             </div>
           ) : (
-            <RequestsList items={outgoing} variant="outgoing" onCancel={(id) => actions.cancel(id)} />
+            <NavigableRequestsList items={outgoing} variant="outgoing" onCancel={(id) => actions.cancel(id)} />
           )}
         </CardContent>
       </Card>

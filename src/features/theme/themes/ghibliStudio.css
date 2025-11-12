@@ -1,0 +1,91 @@
+:root[data-theme="ghibliStudio"] {
+  --background: hsl(39 67% 84%);
+  --foreground: hsl(40 81% 21%);
+  --card: hsl(40 60% 86%);
+  --card-foreground: hsl(37 77% 22%);
+  --popover: hsl(40 60% 86%);
+  --popover-foreground: hsl(37 77% 22%);
+  --primary: hsl(64 30% 51%);
+  --primary-foreground: hsl(347 100% 98%);
+  --secondary: hsl(39 52% 80%);
+  --secondary-foreground: hsl(38 49% 34%);
+  --muted: hsl(39 54% 77%);
+  --muted-foreground: hsl(36 48% 34%);
+  --accent: hsl(40 46% 78%);
+  --accent-foreground: hsl(340 16% 15%);
+  --destructive: hsl(3 95% 55%);
+  --border: hsl(37 33% 63%);
+  --input: hsl(37 33% 63%);
+  --ring: hsl(36 48% 34%);
+  --chart-1: hsl(20 85% 52%);
+  --chart-2: hsl(174 73% 41%);
+  --chart-3: hsl(188 79% 26%);
+  --chart-4: hsl(45 98% 53%);
+  --chart-5: hsl(32 93% 51%);
+  --sidebar: hsl(40 57% 78%);
+  --sidebar-foreground: hsl(40 81% 21%);
+  --sidebar-primary: hsl(340 16% 15%);
+  --sidebar-primary-foreground: hsl(347 100% 98%);
+  --sidebar-accent: hsl(40 46% 73%);
+  --sidebar-accent-foreground: hsl(340 16% 15%);
+  --sidebar-border: hsl(0 0% 88%);
+  --sidebar-ring: hsl(0 0% 63%);
+
+  --font-sans: Nunito, sans-serif;
+  --font-serif: PT Serif, serif;
+  --font-mono: JetBrains Mono, monospace;
+
+  --radius: 1.4rem;
+
+  --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+  --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+  --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+  --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+  --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+  --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+  --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
+  --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+}
+
+.dark[data-theme="ghibliStudio"] {
+  --background: hsl(23 18% 9%);
+  --foreground: hsl(37 55% 81%);
+  --card: hsl(20 13% 13%);
+  --card-foreground: hsl(37 55% 81%);
+  --popover: hsl(20 13% 13%);
+  --popover-foreground: hsl(37 55% 81%);
+  --primary: hsl(69 13% 50%);
+  --primary-foreground: hsl(347 100% 98%);
+  --secondary: hsl(27 17% 20%);
+  --secondary-foreground: hsl(39 52% 80%);
+  --muted: hsl(15 10% 15%);
+  --muted-foreground: hsl(37 33% 63%);
+  --accent: hsl(27 17% 20%);
+  --accent-foreground: hsl(40 46% 78%);
+  --destructive: hsl(3 95% 55%);
+  --border: hsl(27 17% 20%);
+  --input: hsl(27 17% 20%);
+  --ring: hsl(69 13% 50%);
+  --chart-1: hsl(20 85% 52%);
+  --chart-2: hsl(174 73% 41%);
+  --chart-3: hsl(188 79% 26%);
+  --chart-4: hsl(45 98% 53%);
+  --chart-5: hsl(32 93% 51%);
+  --sidebar: hsl(27 16% 11%);
+  --sidebar-foreground: hsl(37 55% 81%);
+  --sidebar-primary: hsl(69 13% 50%);
+  --sidebar-primary-foreground: hsl(347 100% 98%);
+  --sidebar-accent: hsl(27 17% 20%);
+  --sidebar-accent-foreground: hsl(40 46% 78%);
+  --sidebar-border: hsl(27 17% 20%);
+  --sidebar-ring: hsl(69 13% 50%);
+
+  --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+  --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+  --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+  --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+  --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+  --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+  --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
+  --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+}

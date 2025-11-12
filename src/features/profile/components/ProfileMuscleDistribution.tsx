@@ -1,6 +1,8 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMuscleVolumeDistribution } from "@/features/profile/hooks/useMuscleVolumeDistribution";
+import { useWeightUnit } from "@/hooks";
+import { presentInUserUnit } from "@/lib/weight";
 import { ResponsiveContainer, PieChart, Pie, Tooltip, Cell, Legend } from "recharts";
 
 const COLORS = [
@@ -24,7 +26,8 @@ export default function ProfileMuscleDistribution({
   recentDays?: number;
 }) {
   const { data, total, isLoading } = useMuscleVolumeDistribution(username, recentDays);
-
+  const { unit } = useWeightUnit();
+  const displayTotal = presentInUserUnit(total, unit);
   if (isLoading) return <Skeleton className="h-80 w-full rounded-xl" />;
 
   if (!data.length || total <= 0) {
@@ -50,7 +53,10 @@ export default function ProfileMuscleDistribution({
               {recentDays > 0 ? `Últimos ${recentDays} días` : "Histórico"}
             </div>
             <div className="text-sm font-bold">
-              Total: <span className="text-primary">{Math.round(total).toLocaleString()} kg</span>
+              Total:
+              <span className="text-primary">
+                {displayTotal.toLocaleString()} {unit}
+              </span>
             </div>
           </div>
         </div>
@@ -73,11 +79,10 @@ export default function ProfileMuscleDistribution({
               </Pie>
               <Tooltip
                 formatter={(value: any, _name: any, props: any) => {
+                  const raw = Number(value) || 0; // viene en kg
+                  const displayVal = presentInUserUnit(raw, unit);
                   const pct = props?.payload?.value && total ? (props.payload.value / total) * 100 : 0;
-                  return [
-                    `${Math.round(Number(value)).toLocaleString()} kg (${pct.toFixed(1)}%)`,
-                    props?.payload?.name,
-                  ];
+                  return [`${displayVal.toLocaleString()} ${unit} (${pct.toFixed(1)}%)`, props?.payload?.name];
                 }}
               />
               <Legend />

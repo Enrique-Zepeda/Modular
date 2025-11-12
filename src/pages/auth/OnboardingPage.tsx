@@ -6,7 +6,7 @@ import { Target } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProfileCompletion } from "@/features/onboarding/hooks/useProfileCompletion";
-import ProfileForm from "@/features/onboarding/components/ProfileForm";
+import ProfileForm from "@/features/onboarding/components/ProfileForm"; // ⬅️ Asegúrate de tener este import
 
 export default function OnboardingPage() {
   const { loading, profile, complete, refresh } = useProfileCompletion();
@@ -79,10 +79,11 @@ export default function OnboardingPage() {
           </div>
 
           <ProfileForm
+            // ⬇️ Pasamos DOB y el resto de campos. La edad se calculará automáticamente dentro del form.
             defaults={{
               username: profile?.username ?? "",
               nombre: profile?.nombre ?? "",
-              edad: (profile?.edad ?? undefined) as any,
+              fecha_nacimiento: (profile?.fecha_nacimiento ?? "") as any,
               peso: (profile?.peso ?? undefined) as any,
               altura: (profile?.altura ?? undefined) as any,
               nivel_experiencia: profile?.nivel_experiencia ?? "",

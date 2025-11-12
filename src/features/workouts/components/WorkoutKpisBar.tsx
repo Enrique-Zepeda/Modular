@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { KpiProgress } from "./KpiProgress";
+import { useAppSelector } from "@/hooks";
+import { presentInUserUnit } from "@/lib/weight";
 
 type Props = {
   doneSets: number;
@@ -12,6 +14,8 @@ type Props = {
 };
 
 export function WorkoutKpisBar({ doneSets, totalSets, totalVolume, onExit, onFinish, saving }: Props) {
+  const userUnit = useAppSelector((s) => s.preferences?.weightUnit ?? "kg");
+  const displayVolume = presentInUserUnit(totalVolume ?? 0, userUnit);
   return (
     <div className="sticky top-0 z-10 bg-background/80 backdrop-blur supports-[backdrop-filter]:backdrop-blur border rounded-2xl px-4 py-3 shadow-sm">
       <div className="flex items-center justify-between">
@@ -23,7 +27,10 @@ export function WorkoutKpisBar({ doneSets, totalSets, totalVolume, onExit, onFin
           </div>
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground">Volumen total:</span>
-            <span className="font-semibold tabular-nums">{totalVolume.toLocaleString()} kg</span>
+            <span className="font-semibold tabular-nums">
+              {displayVolume.toLocaleString()}
+              {userUnit}
+            </span>
           </div>
           <KpiProgress done={doneSets} total={totalSets} />
         </div>

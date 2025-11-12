@@ -1,15 +1,15 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
+type PrevSet = { kg: number | null; reps: number | null; rpe: string | null };
+export type PreviousSetsMap = Record<number, Record<number, PrevSet>>;
+
 export interface WorkoutSet {
   id: string;
   weight: number | null;
   reps: number | null;
   rpe: number | null;
   completed: boolean;
-  previous?: {
-    weight: number;
-    reps: number;
-  };
+  previous?: { weight: number; reps: number };
 }
 
 export interface WorkoutExercise {
@@ -36,17 +36,97 @@ export interface WorkoutSession {
 interface WorkoutLogState {
   currentSession: WorkoutSession | null;
   isLogging: boolean;
+  previousSetsByExercise: PreviousSetsMap; // cache opcional
 }
 
-const initialState: WorkoutLogState = {
-  currentSession: null,
-  isLogging: false,
-};
+/* =======================
+   Persistencia local (NEW)
+   ======================= */
+export const LIVE_STORAGE_KEY = "workout_live_v1";
+
+/** Guarda solo lo necesario para reanudar el entrenamiento en vivo */
+export function saveLiveWorkoutToStorage(state: Pick<WorkoutLogState, "currentSession" | "isLogging">) {
+  try {
+    const payload = state.currentSession
+      ? {
+          isLogging: state.isLogging,
+          // serializa startTime a string ISO
+          currentSession: {
+            ...state.currentSession,
+            startTime:
+              (state.currentSession.startTime as any)?.toISOString?.() ?? String(state.currentSession.startTime),
+          },
+        }
+      : { isLogging: false, currentSession: null };
+    localStorage.setItem(LIVE_STORAGE_KEY, JSON.stringify(payload));
+  } catch {
+    // noop
+  }
+}
+
+/** Lee una sesión guardada (si existe) y rehidrata tipos básicos */
+export function loadLiveWorkoutFromStorage(): { isLogging: boolean; currentSession: WorkoutSession | null } | null {
+  try {
+    const raw = localStorage.getItem(LIVE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed?.currentSession?.startTime) {
+      parsed.currentSession.startTime = new Date(parsed.currentSession.startTime);
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function clearLiveWorkoutStorage() {
+  try {
+    localStorage.removeItem(LIVE_STORAGE_KEY);
+  } catch {
+    // noop
+  }
+}
+
+/** Estado inicial ahora rehidrata desde localStorage si había una sesión viva */
+function getInitialState(): WorkoutLogState {
+  const persisted = loadLiveWorkoutFromStorage();
+  if (persisted?.isLogging && persisted.currentSession) {
+    return {
+      currentSession: persisted.currentSession,
+      isLogging: true,
+      previousSetsByExercise: {},
+    };
+  }
+  return {
+    currentSession: null,
+    isLogging: false,
+    previousSetsByExercise: {},
+  };
+}
+
+const initialState: WorkoutLogState = getInitialState();
 
 const workoutLogSlice = createSlice({
   name: "workoutLog",
   initialState,
   reducers: {
+    // Restaura explícitamente (por si quieres llamarlo desde UI)
+    restoreWorkoutSession: (state, action: PayloadAction<WorkoutSession>) => {
+      state.currentSession = action.payload;
+      state.isLogging = true;
+    },
+
+    // Cache opcional de previous sets
+    setPreviousSetsBatch: (state, action: PayloadAction<PreviousSetsMap>) => {
+      const incoming = action.payload || {};
+      for (const [exIdStr, setsByIdx] of Object.entries(incoming)) {
+        const exId = Number(exIdStr);
+        if (!state.previousSetsByExercise[exId]) state.previousSetsByExercise[exId] = {} as any;
+        Object.assign(state.previousSetsByExercise[exId], setsByIdx);
+      }
+    },
+
+    // --- resto de reducers existentes ---
     startWorkoutSession: (
       state,
       action: PayloadAction<{ routineId: number; routineName: string; exercises: any[] }>
@@ -70,13 +150,6 @@ const workoutLogSlice = createSlice({
                 reps: ex.repeticiones || null,
                 rpe: null,
                 completed: false,
-                previous:
-                  Math.random() > 0.5
-                    ? {
-                        weight: (ex.peso_sugerido || 50) - 5,
-                        reps: (ex.repeticiones || 10) + Math.floor(Math.random() * 3),
-                      }
-                    : undefined,
               }))
             : [
                 {
@@ -116,7 +189,6 @@ const workoutLogSlice = createSlice({
 
       set[field] = value;
 
-      // Recalculate totals
       state.currentSession.totalVolume = state.currentSession.exercises.reduce((total, ex) => {
         return (
           total +
@@ -139,7 +211,6 @@ const workoutLogSlice = createSlice({
 
       set.completed = !set.completed;
 
-      // Recalculate total sets
       state.currentSession.totalSets = state.currentSession.exercises.reduce((total, ex) => {
         return total + ex.sets.filter((s) => s.completed).length;
       }, 0);
@@ -251,6 +322,8 @@ const workoutLogSlice = createSlice({
 });
 
 export const {
+  restoreWorkoutSession,
+  setPreviousSetsBatch,
   startWorkoutSession,
   updateSetValue,
   toggleSetCompleted,

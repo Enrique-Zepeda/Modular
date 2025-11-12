@@ -1,0 +1,92 @@
+:root[data-theme="spotify"] {
+  --background: hsl(0 0% 99%);
+  --foreground: hsl(152 12% 22%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(152 12% 22%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(152 12% 22%);
+  --primary: hsl(153 100% 35%);
+  --primary-foreground: hsl(161 100% 97%);
+  --secondary: hsl(205 36% 87%);
+  --secondary-foreground: hsl(222 27% 10%);
+  --muted: hsl(206 35% 87%);
+  --muted-foreground: hsl(223 12% 41%);
+  --accent: hsl(206 35% 87%);
+  --accent-foreground: hsl(152 12% 22%);
+  --destructive: hsl(348 89% 51%);
+  --border: hsl(205 30% 92%);
+  --input: hsl(206 24% 81%);
+  --ring: hsl(153 100% 35%);
+  --chart-1: hsl(153 100% 35%);
+  --chart-2: hsl(226 34% 46%);
+  --chart-3: hsl(183 81% 42%);
+  --chart-4: hsl(52 47% 62%);
+  --chart-5: hsl(264 49% 60%);
+  --sidebar: hsl(205 100% 98%);
+  --sidebar-foreground: hsl(152 12% 22%);
+  --sidebar-primary: hsl(153 100% 35%);
+  --sidebar-primary-foreground: hsl(205 100% 98%);
+  --sidebar-accent: hsl(206 35% 87%);
+  --sidebar-accent-foreground: hsl(152 12% 22%);
+  --sidebar-border: hsl(206 24% 81%);
+  --sidebar-ring: hsl(153 100% 35%);
+
+  --font-sans: Lato, sans-serif;
+  --font-serif: Merriweather, Geist, Geist Fallback, ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono: Roboto Mono, Geist Mono, Geist Mono Fallback, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+
+  --radius: 1.4rem;
+
+  --shadow-2xs: 0px 1px 3px 0px hsl(153 37% 19% / 0.02);
+  --shadow-xs: 0px 1px 3px 0px hsl(153 37% 19% / 0.02);
+  --shadow-sm: 0px 1px 3px 0px hsl(153 37% 19% / 0.04), 0px 1px 2px -1px hsl(153 37% 19% / 0.04);
+  --shadow: 0px 1px 3px 0px hsl(153 37% 19% / 0.04), 0px 1px 2px -1px hsl(153 37% 19% / 0.04);
+  --shadow-md: 0px 1px 3px 0px hsl(153 37% 19% / 0.04), 0px 2px 4px -1px hsl(153 37% 19% / 0.04);
+  --shadow-lg: 0px 1px 3px 0px hsl(153 37% 19% / 0.04), 0px 4px 6px -1px hsl(153 37% 19% / 0.04);
+  --shadow-xl: 0px 1px 3px 0px hsl(153 37% 19% / 0.04), 0px 8px 10px -1px hsl(153 37% 19% / 0.04);
+  --shadow-2xl: 0px 1px 3px 0px hsl(153 37% 19% / 0.1);
+}
+
+.dark[data-theme="spotify"] {
+  --background: hsl(225 43% 5%);
+  --foreground: hsl(205 38% 94%);
+  --card: hsl(222 27% 10%);
+  --card-foreground: hsl(205 38% 94%);
+  --popover: hsl(222 27% 10%);
+  --popover-foreground: hsl(205 38% 94%);
+  --primary: hsl(153 100% 35%);
+  --primary-foreground: hsl(225 43% 5%);
+  --secondary: hsl(226 21% 20%);
+  --secondary-foreground: hsl(205 38% 94%);
+  --muted: hsl(226 21% 20%);
+  --muted-foreground: hsl(224 11% 53%);
+  --accent: hsl(226 21% 20%);
+  --accent-foreground: hsl(205 38% 94%);
+  --destructive: hsl(347 100% 54%);
+  --border: hsl(205 38% 94% / 0.15);
+  --input: hsl(205 38% 94% / 0.2);
+  --ring: hsl(153 100% 35%);
+  --chart-1: hsl(153 100% 35%);
+  --chart-2: hsl(226 38% 57%);
+  --chart-3: hsl(183 81% 42%);
+  --chart-4: hsl(52 47% 62%);
+  --chart-5: hsl(264 49% 60%);
+  --sidebar: hsl(222 27% 10%);
+  --sidebar-foreground: hsl(205 38% 94%);
+  --sidebar-primary: hsl(153 100% 35%);
+  --sidebar-primary-foreground: hsl(225 43% 5%);
+  --sidebar-accent: hsl(226 21% 20%);
+  --sidebar-accent-foreground: hsl(205 38% 94%);
+  --sidebar-border: hsl(205 38% 94% / 0.15);
+  --sidebar-ring: hsl(153 100% 35%);
+
+  --shadow-2xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.01);
+  --shadow-xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.01);
+  --shadow-sm: 0px 1px 2px 0px hsl(0 0% 0% / 0.01), 0px 1px 2px -1px hsl(0 0% 0% / 0.01);
+  --shadow: 0px 1px 2px 0px hsl(0 0% 0% / 0.01), 0px 1px 2px -1px hsl(0 0% 0% / 0.01);
+  --shadow-md: 0px 1px 2px 0px hsl(0 0% 0% / 0.01), 0px 2px 4px -1px hsl(0 0% 0% / 0.01);
+  --shadow-lg: 0px 1px 2px 0px hsl(0 0% 0% / 0.01), 0px 4px 6px -1px hsl(0 0% 0% / 0.01);
+  --shadow-xl: 0px 1px 2px 0px hsl(0 0% 0% / 0.01), 0px 8px 10px -1px hsl(0 0% 0% / 0.01);
+  --shadow-2xl: 0px 1px 2px 0px hsl(0 0% 0% / 0.03);
+}

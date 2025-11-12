@@ -188,6 +188,7 @@ export function FinishedWorkoutsSection({ limit = 20 }: Props) {
                         totalVolume={parseVolume(w.total_volume)}
                         username={w.username ?? "Usuario"}
                         avatarUrl={w.url_avatar ?? undefined}
+                        sexo={(w as any).sexo ?? null}
                         ejercicios={w.ejercicios as any}
                         sensacionFinal={w.sensacion_final ?? null}
                       />

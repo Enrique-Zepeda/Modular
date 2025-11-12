@@ -6,13 +6,15 @@ export interface UserProfile {
   correo: string;
   username: string | null;
   nombre: string | null;
-  edad: number | null;
+  fecha_nacimiento: string | null; // ✅ Nuevo
+  edad: number | null; // sigue existiendo (compatibilidad)
   peso: number | null;
   altura: number | null;
   nivel_experiencia: "principiante" | "intermedio" | "avanzado" | null;
   objetivo: "fuerza" | "hipertrofia" | "resistencia" | null;
   sexo: Sexo | null;
   fecha_registro?: string | null;
+  // ... (si tenías más campos, mantenlos)
 }
 
 export function isProfileComplete(p: UserProfile | null): boolean {
@@ -20,11 +22,11 @@ export function isProfileComplete(p: UserProfile | null): boolean {
   return Boolean(
     p.username &&
       p.nombre &&
-      p.edad !== null &&
+      (p.fecha_nacimiento !== null || p.edad !== null) &&
       p.peso !== null &&
       p.altura !== null &&
       p.nivel_experiencia &&
       p.objetivo &&
-      p.sexo // 👈 requerido ahora
+      p.sexo
   );
 }

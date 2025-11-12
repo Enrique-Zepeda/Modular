@@ -1,13 +1,11 @@
-"use client"
+import type React from "react";
 
-import type React from "react"
-
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import {
   Loader2,
   Sparkles,
@@ -21,58 +19,58 @@ import {
   Dumbbell,
   User,
   TrendingUp,
-} from "lucide-react"
-import { useGetProgramByNameQuery, useCloneProgramForUserMutation } from "@/features/routines/api/rutinasApi"
-import toast from "react-hot-toast"
+} from "lucide-react";
+import { useGetProgramByNameQuery, useCloneProgramForUserMutation } from "@/features/routines/api/rutinasApi";
+import toast from "react-hot-toast";
 
 export default function RecomendacionPage() {
-  const [objetivo, setObjetivo] = useState<string>("Ganar_Musculo")
-  const [nivel, setNivel] = useState<string>("Principiante")
-  const [dias, setDias] = useState<string>("3")
-  const [tiempo, setTiempo] = useState<string>("60")
-  const [equipo, setEquipo] = useState<string>("Gym_Completo")
-  const [edad, setEdad] = useState<string>("25")
-  const [sexo, setSexo] = useState<string>("Masculino")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [resultado, setResultado] = useState<string | null>(null)
+  const [objetivo, setObjetivo] = useState<string>("Ganar_Musculo");
+  const [nivel, setNivel] = useState<string>("Principiante");
+  const [dias, setDias] = useState<string>("3");
+  const [tiempo, setTiempo] = useState<string>("60");
+  const [equipo, setEquipo] = useState<string>("Gym_Completo");
+  const [edad, setEdad] = useState<string>("25");
+  const [sexo, setSexo] = useState<string>("Masculino");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [resultado, setResultado] = useState<string | null>(null);
   const {
     data: programa,
     isLoading: loadingPrograma,
     isError: errorPrograma,
-  } = useGetProgramByNameQuery(resultado ?? "", { skip: !resultado })
+  } = useGetProgramByNameQuery(resultado ?? "", { skip: !resultado });
 
-  const [cloneProgram, { isLoading: isCloning }] = useCloneProgramForUserMutation()
+  const [cloneProgram, { isLoading: isCloning }] = useCloneProgramForUserMutation();
 
   const validateForm = () => {
-    const edadNum = Number.parseInt(edad)
+    const edadNum = Number.parseInt(edad);
     if (isNaN(edadNum) || edadNum < 16 || edadNum > 90) {
-      setError("La edad debe estar entre 16 y 90 años")
-      return false
+      setError("La edad debe estar entre 16 y 90 años");
+      return false;
     }
-    return true
-  }
+    return true;
+  };
 
   const handleCopyProgram = async () => {
-    if (!programa) return
+    if (!programa) return;
 
     toast.promise(cloneProgram(programa.id).unwrap(), {
       loading: 'Copiando programa a "Mis Rutinas"...',
       success: <b>¡Programa copiado con éxito! Ahora puedes verlo en tu lista de rutinas.</b>,
       error: <b>No se pudo copiar el programa. Inténtalo de nuevo.</b>,
-    })
-  }
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!validateForm()) {
-      return
+      return;
     }
 
-    setLoading(true)
-    setError(null)
-    setResultado(null)
+    setLoading(true);
+    setError(null);
+    setResultado(null);
 
     const payload = {
       objetivo,
@@ -82,25 +80,25 @@ export default function RecomendacionPage() {
       equipo,
       edad: Number.parseInt(edad),
       sexo,
-    }
+    };
 
     try {
       const res = await fetch("https://apirecomendador.onrender.com/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      })
-      const data = await res.json()
+      });
+      const data = await res.json();
       if (!res.ok) {
-        throw new Error(data?.error || "Error al obtener recomendación")
+        throw new Error(data?.error || "Error al obtener recomendación");
       }
-      setResultado(data.rutina_recomendada)
+      setResultado(data.rutina_recomendada);
     } catch (err: any) {
-      setError(err.message || "Error desconocido")
+      setError(err.message || "Error desconocido");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="space-y-8 pb-8">
@@ -478,5 +476,5 @@ export default function RecomendacionPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
