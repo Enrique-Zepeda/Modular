@@ -1,3 +1,5 @@
+import type React from "react";
+
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -577,36 +579,54 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                       <p className="text-xs text-destructive">{form.formState.errors.sexo.message}</p>
                     )}
                   </div>
-                  <div className="space-y-3">
-                    <Label htmlFor="weight_unit" className="text-sm font-medium">
+
+                  {/* Unidad de peso preferida */}
+                  <div className="space-y-3 col-span-full">
+                    <Label htmlFor="weight_unit" className="text-sm font-semibold">
                       Unidad de peso preferida
                     </Label>
                     <Controller
                       control={form.control}
                       name="weight_unit"
                       render={({ field }) => (
-                        <Select
-                          value={field.value ?? "kg"}
-                          onValueChange={(val) => {
-                            field.onChange(val);
-                            if (typeof window !== "undefined") {
-                              window.localStorage.setItem("app_weight_unit", val);
-                            }
-                            dispatch(setWeightUnit(val as "kg" | "lbs"));
-                          }}
-                        >
-                          <SelectTrigger id="weight_unit" className="h-11">
-                            <SelectValue placeholder="Elige una unidad" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="kg">Kilogramos (kg)</SelectItem>
-                            <SelectItem value="lbs">Libras (lbs)</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <div className="grid grid-cols-2 gap-3">
+                          {[
+                            { value: "kg", label: "Kilogramos", icon: "⚖️", description: "Sistema métrico" },
+                            { value: "lbs", label: "Libras", icon: "🏋️", description: "Sistema imperial" },
+                          ].map((unit) => (
+                            <button
+                              key={unit.value}
+                              type="button"
+                              onClick={() => {
+                                field.onChange(unit.value);
+                                if (typeof window !== "undefined") {
+                                  window.localStorage.setItem("app_weight_unit", unit.value);
+                                }
+                                dispatch(setWeightUnit(unit.value as "kg" | "lbs"));
+                              }}
+                              className={`relative p-4 rounded-xl border-2 transition-all duration-300 flex flex-col items-center gap-2 cursor-pointer group ${
+                                field.value === unit.value
+                                  ? "border-primary bg-primary/5 shadow-md shadow-primary/20"
+                                  : "border-border bg-card hover:border-primary/50 hover:bg-card/80"
+                              }`}
+                            >
+                              <span className="text-3xl group-hover:scale-110 transition-transform">{unit.icon}</span>
+                              <div className="text-center w-full">
+                                <p className="font-semibold text-foreground">{unit.label}</p>
+                                <p className="text-xs text-muted-foreground">{unit.description}</p>
+                              </div>
+                              {field.value === unit.value && (
+                                <div className="absolute top-2 right-2 p-1 rounded-full bg-primary text-primary-foreground">
+                                  <Check className="h-3 w-3" />
+                                </div>
+                              )}
+                            </button>
+                          ))}
+                        </div>
                       )}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Esto se usará como unidad por defecto en tus entrenamientos.
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Esta unidad se usará por defecto en todos tus entrenamientos y mediciones.
                     </p>
                   </div>
                 </div>

@@ -4,13 +4,12 @@ import { z } from "zod";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import toast from "react-hot-toast";
-import { Loader2, UserCheck } from "lucide-react";
+import { Loader2, UserCheck, Calendar, Weight, Zap, Target, TrendingUp, User, Mail } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { format, parse, isValid, isAfter, isBefore } from "date-fns";
 
 import { DatePicker } from "@/components/ui/date-picker";
@@ -295,7 +294,7 @@ export function Perfil() {
     ) : null;
 
   const sexoValue = watch("sexo");
-  const sexoForAvatar = (sexoValue === "femenino" ? "femenino" : "masculino") as Sexo;
+  const sexoForAvatar = (sexoValue === "femenino" ? "femenino" : "masculino") as string;
 
   return (
     <div className="grid gap-12">
@@ -341,10 +340,10 @@ export function Perfil() {
           </Button>
         </CardHeader>
 
-        <CardContent className="grid gap-8 md:grid-cols-2 pt-0">
+        <CardContent className="grid gap-8 pt-0">
           {loading ? (
             <>
-              <div className="h-16 glass-effect rounded-xl animate-shimmer md:col-span-2" />
+              <div className="h-16 glass-effect rounded-xl animate-shimmer" />
               <div className="h-16 glass-effect rounded-xl animate-shimmer" />
               <div className="h-16 glass-effect rounded-xl animate-shimmer" />
               <div className="h-16 glass-effect rounded-xl animate-shimmer" />
@@ -354,221 +353,349 @@ export function Perfil() {
             </>
           ) : (
             <>
-              {/* Nombre */}
-              <div className="space-y-4">
-                <Label htmlFor="nombre" className="text-base font-semibold">
-                  Nombre completo
-                </Label>
-                <Input
-                  id="nombre"
-                  {...register("nombre")}
-                  className="h-14 glass-input border-0 bg-transparent text-base placeholder:text-muted-foreground/60"
-                  placeholder="Ingresa tu nombre completo"
-                />
-                {renderError("nombre")}
-              </div>
+              {/* SECTION 1: Identidad del usuario (sin cambios, color base) */}
+              <div className="space-y-6 p-8 rounded-2xl border-2 border-primary/40 bg-gradient-to-br from-primary/15 to-primary/5 dark:from-primary/10 dark:to-primary/5">
+                <h3 className="text-lg font-bold text-primary flex items-center gap-2">
+                  <User className="w-6 h-6" />
+                  Datos personales
+                </h3>
 
-              {/* Username + Verificar */}
-              <div className="space-y-4">
-                <Label htmlFor="username" className="text-base font-semibold">
-                  Nombre de usuario
-                </Label>
-                <div className="flex gap-4">
-                  <Input
-                    id="username"
-                    {...register("username")}
-                    className="h-14 glass-input border-0 bg-transparent text-base placeholder:text-muted-foreground/60"
-                    placeholder="tu_username"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleCheckUsername}
-                    disabled={checkingUser}
-                    className="h-14 px-6 glass-effect border-0 hover:glass-card premium-hover bg-transparent"
-                    aria-label="Verificar disponibilidad de username"
-                  >
-                    {checkingUser ? <Loader2 className="h-5 w-5 animate-spin" /> : <UserCheck className="h-5 w-5" />}
-                  </Button>
-                </div>
-                {usernameStatus === "available" && (
-                  <div className="flex items-center gap-3 text-base text-green-400">
-                    <div className="status-dot status-available"></div>
-                    Disponible ✅
-                  </div>
-                )}
-                {usernameStatus === "taken" && (
-                  <div className="flex items-center gap-3 text-base text-destructive">
-                    <div className="status-dot status-error"></div>
-                    No disponible. Elige otro.
-                  </div>
-                )}
-                {usernameStatus === "unchanged" && (
-                  <div className="flex items-center gap-3 text-base text-muted-foreground">
-                    <div className="status-dot status-warning"></div>
-                    Es tu username actual.
-                  </div>
-                )}
-                {renderError("username")}
-              </div>
-
-              {/* Correo */}
-              <div className="space-y-4 md:col-span-2">
-                <Label htmlFor="correo" className="text-base font-semibold">
-                  Correo electrónico
-                </Label>
-                <Input
-                  id="correo"
-                  {...register("correo")}
-                  disabled
-                  className="h-14 glass-effect border-0 bg-transparent text-muted-foreground cursor-not-allowed opacity-60"
-                />
-                <p className="text-sm text-muted-foreground/80">
-                  El correo electrónico no se puede modificar por seguridad
-                </p>
-              </div>
-
-              {/* Fecha de nacimiento */}
-              <div className="space-y-4">
-                <Label htmlFor="fecha_nacimiento" className="text-base font-semibold">
-                  Fecha de nacimiento
-                </Label>
-                <Controller
-                  control={control}
-                  name="fecha_nacimiento"
-                  render={({ field }) => (
-                    <DatePicker
-                      date={parseLocalISODate(field.value)}
-                      onDateChange={(date) => {
-                        if (date) field.onChange(format(date, "yyyy-MM-dd"));
-                      }}
-                      placeholder="Selecciona tu fecha"
-                      disabled={(date) => isAfter(date, maxDOB) || isBefore(date, minDOB)}
-                      minDate={minDOB}
-                      maxDate={maxDOB}
-                      className="h-14 glass-input border-0 bg-transparent text-base"
+                <div className="grid gap-6 md:grid-cols-2">
+                  {/* Nombre */}
+                  <div className="space-y-4 p-6 rounded-xl bg-white dark:bg-black/20 border-2 border-primary/30 shadow-sm">
+                    <Label
+                      htmlFor="nombre"
+                      className="text-sm font-semibold uppercase text-muted-foreground flex items-center gap-2"
+                    >
+                      <User className="w-4 h-4 text-primary" />
+                      Nombre completo
+                    </Label>
+                    <Input
+                      id="nombre"
+                      {...register("nombre")}
+                      className="h-14 border-2 border-primary/20 bg-primary/5 dark:bg-primary/10 text-base placeholder:text-muted-foreground/60 focus:border-primary/60 focus:bg-primary/10 dark:focus:bg-primary/15 transition-colors"
+                      placeholder="Ingresa tu nombre"
                     />
-                  )}
-                />
-                {renderError("fecha_nacimiento")}
-                {dobWatch && calculatedAge !== null && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Edad:</span>
-                    <Badge variant="secondary" className="text-base px-3 py-1">
-                      {calculatedAge} años
-                    </Badge>
+                    {renderError("nombre")}
                   </div>
-                )}
+
+                  {/* Email */}
+                  <div className="space-y-4 p-6 rounded-xl bg-white dark:bg-black/20 border-2 border-primary/30 shadow-sm">
+                    <Label
+                      htmlFor="correo"
+                      className="text-sm font-semibold uppercase text-muted-foreground flex items-center gap-2"
+                    >
+                      <Mail className="w-4 h-4 text-primary" />
+                      Correo electrónico
+                    </Label>
+                    <Input
+                      id="correo"
+                      {...register("correo")}
+                      disabled
+                      className="h-14 border-2 border-primary/20 bg-muted/30 text-muted-foreground cursor-not-allowed opacity-70"
+                    />
+                    <p className="text-xs text-muted-foreground/70">No se puede modificar por seguridad</p>
+                  </div>
+
+                  {/* Username */}
+                  <div className="space-y-4 p-6 rounded-xl bg-white dark:bg-black/20 border-2 border-primary/30 shadow-sm md:col-span-2">
+                    <Label
+                      htmlFor="username"
+                      className="text-sm font-semibold uppercase text-muted-foreground flex items-center gap-2"
+                    >
+                      <UserCheck className="w-4 h-4 text-primary" />
+                      Nombre de usuario
+                    </Label>
+                    <div className="flex gap-3">
+                      <Input
+                        id="username"
+                        {...register("username")}
+                        className="h-14 border-2 border-primary/20 bg-transparent text-base placeholder:text-muted-foreground/60 focus:border-primary/60 transition-colors flex-1"
+                        placeholder="tu_username"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleCheckUsername}
+                        disabled={checkingUser}
+                        className="h-14 px-6 border-2 border-primary/30 bg-white dark:bg-black/20 hover:border-primary/50 transition-colors"
+                        aria-label="Verificar disponibilidad de username"
+                      >
+                        {checkingUser ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <UserCheck className="h-5 w-5" />
+                        )}
+                      </Button>
+                    </div>
+                    {usernameStatus === "available" && (
+                      <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400 font-semibold">
+                        <div className="status-dot status-available"></div>
+                        Disponible ✅
+                      </div>
+                    )}
+                    {usernameStatus === "taken" && (
+                      <div className="flex items-center gap-2 text-sm text-destructive font-semibold">
+                        <div className="status-dot status-error"></div>
+                        No disponible. Elige otro.
+                      </div>
+                    )}
+                    {usernameStatus === "unchanged" && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground font-semibold">
+                        <div className="status-dot status-warning"></div>
+                        Es tu username actual.
+                      </div>
+                    )}
+                    {renderError("username")}
+                  </div>
+                </div>
               </div>
 
-              {/* Peso + Unidad de medida */}
-              <div className="space-y-4">
-                <Label htmlFor="peso" className="text-base font-semibold">
-                  Peso (kg)
-                </Label>
-                <div className="flex gap-3">
-                  <Input
-                    id="peso"
-                    type="number"
-                    step="0.1"
-                    {...register("peso")}
-                    className="h-14 glass-input border-0 bg-transparent text-base placeholder:text-muted-foreground/60"
-                    placeholder="70.5"
-                  />
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground/90">Unidad de medida</Label>
-                    <Select value={unit} onValueChange={(v) => setUnit(v as "kg" | "lbs")}>
-                      <SelectTrigger className="w-36 h-10 glass-input bg-muted/20 border border-border/60 text-base">
-                        <SelectValue placeholder="Unidad" />
+              {/* SECTION 2: Edad y Fecha de nacimiento (alineada a primary) */}
+              <div className="space-y-6 p-8 rounded-2xl border-2 border-primary/40 bg-gradient-to-br from-primary/15 to-primary/5 dark:from-primary/10 dark:to-primary/5 shadow-sm">
+                <h3 className="text-lg font-bold text-primary flex items-center gap-2">
+                  <Calendar className="w-6 h-6" />
+                  Información de edad
+                </h3>
+                <div className="grid gap-6 md:grid-cols-2">
+                  {/* Fecha de nacimiento */}
+                  <div className="space-y-4 p-6 rounded-xl bg-white dark:bg-black/20 border-2 border-primary/30 shadow-sm">
+                    <Label htmlFor="fecha_nacimiento" className="text-sm font-semibold uppercase text-muted-foreground">
+                      Fecha de nacimiento
+                    </Label>
+                    <Controller
+                      control={control}
+                      name="fecha_nacimiento"
+                      render={({ field }) => (
+                        <DatePicker
+                          date={parseLocalISODate(field.value)}
+                          onDateChange={(date) => {
+                            if (date) field.onChange(format(date, "yyyy-MM-dd"));
+                          }}
+                          placeholder="Selecciona tu fecha"
+                          disabled={(date) => isAfter(date, maxDOB) || isBefore(date, minDOB)}
+                          minDate={minDOB}
+                          maxDate={maxDOB}
+                          className="h-14 border-2 border-primary/20 bg-transparent text-base w-full focus:border-primary/60 transition-colors"
+                        />
+                      )}
+                    />
+                    {renderError("fecha_nacimiento")}
+                  </div>
+
+                  {/* Edad Display */}
+                  <div className="p-6 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 dark:from-primary/15 dark:to-primary/8 border-2 border-primary/60 flex flex-col items-center justify-center shadow-sm">
+                    <div className="text-center space-y-3 w-full">
+                      <p className="text-xs font-bold text-primary/80 uppercase tracking-widest">Tu edad</p>
+                      {dobWatch && calculatedAge !== null ? (
+                        <div className="space-y-2">
+                          <div className="text-7xl font-black bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                            {calculatedAge}
+                          </div>
+                          <p className="text-sm font-semibold text-primary/70">años cumplidos</p>
+                        </div>
+                      ) : (
+                        <div className="text-muted-foreground/60 text-sm py-8 font-medium">Selecciona tu fecha</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 3: Medidas y Unidad (unificada a primary) */}
+              <div className="space-y-6 p-8 rounded-2xl border-2 border-primary/40 bg-gradient-to-br from-primary/15 to-primary/5 dark:from-primary/10 dark:to-primary/5">
+                <h3 className="text-lg font-bold text-primary flex items-center gap-2">
+                  <Weight className="w-6 h-6" />
+                  Medidas corporales
+                </h3>
+
+                {/* Interactive Button Selector */}
+                <div className="p-6 rounded-xl bg-gradient-to-r from-primary/20 to-primary/10 dark:from-primary/15 dark:to-primary/8 border-2 border-primary/50 shadow-sm">
+                  <div className="flex flex-col gap-6">
+                    <div className="space-y-2">
+                      <p className="text-sm font-bold text-primary uppercase tracking-widest">
+                        Unidad de peso preferida
+                      </p>
+                      <p className="text-primary/80 text-sm font-medium">Selecciona la unidad que prefieres usar</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* KG Card */}
+                      <button
+                        type="button"
+                        onClick={() => setUnit("kg")}
+                        className={`relative p-6 rounded-xl border-2 transition-all duration-300 flex flex-col items-center gap-3 cursor-pointer group ${
+                          unit === "kg"
+                            ? "border-primary bg-primary/10 shadow-lg shadow-primary/30 scale-105"
+                            : "border-primary/30 bg-white dark:bg-black/30 hover:border-primary/60 hover:bg-primary/5 dark:hover:bg-primary/10 shadow-sm"
+                        }`}
+                        aria-pressed={unit === "kg"}
+                        aria-label="Seleccionar kilogramos"
+                      >
+                        <span className="text-4xl group-hover:scale-110 transition-transform">⚖️</span>
+                        <div className="text-center w-full">
+                          <p className="font-bold text-base text-foreground">Kilogramos</p>
+                        </div>
+
+                        {/* Checkmark for selected state */}
+                        {unit === "kg" && (
+                          <div className="absolute top-3 right-3 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center animate-scale-in">
+                            <div className="w-2.5 h-2.5 bg-primary-foreground rounded-full" />
+                          </div>
+                        )}
+                      </button>
+
+                      {/* LBS Card */}
+                      <button
+                        type="button"
+                        onClick={() => setUnit("lbs")}
+                        className={`relative p-6 rounded-xl border-2 transition-all duration-300 flex flex-col items-center gap-3 cursor-pointer group ${
+                          unit === "lbs"
+                            ? "border-primary bg-primary/10 shadow-lg shadow-primary/30 scale-105"
+                            : "border-primary/30 bg-white dark:bg-black/30 hover:border-primary/60 hover:bg-primary/5 dark:hover:bg-primary/10 shadow-sm"
+                        }`}
+                        aria-pressed={unit === "lbs"}
+                        aria-label="Seleccionar libras"
+                      >
+                        <span className="text-4xl group-hover:scale-110 transition-transform">🏋️</span>
+                        <div className="text-center w-full">
+                          <p className="font-bold text-base text-foreground">Libras</p>
+                        </div>
+
+                        {/* Checkmark for selected state */}
+                        {unit === "lbs" && (
+                          <div className="absolute top-3 right-3 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center animate-scale-in">
+                            <div className="w-2.5 h-2.5 bg-primary-foreground rounded-full" />
+                          </div>
+                        )}
+                      </button>
+                    </div>
+                    {/* </CHANGE> */}
+                  </div>
+                </div>
+
+                {/* Peso y Altura (simétricas y con primary) */}
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-4 p-6 rounded-xl bg-white dark:bg-black/20 border-2 border-primary/30 shadow-sm">
+                    <Label
+                      htmlFor="peso"
+                      className="text-sm font-semibold uppercase text-muted-foreground flex items-center gap-2"
+                    >
+                      <Weight className="w-4 h-4 text-primary" />
+                      Peso actual
+                    </Label>
+                    <Input
+                      id="peso"
+                      type="number"
+                      step="0.1"
+                      {...register("peso")}
+                      className="h-14 border-2 border-primary/20 bg-transparent text-base placeholder:text-muted-foreground/60 focus:border-primary/60 transition-colors font-semibold"
+                      placeholder="70.5"
+                    />
+                    {renderError("peso")}
+                  </div>
+
+                  <div className="space-y-4 p-6 rounded-xl bg-white dark:bg-black/20 border-2 border-primary/30 shadow-sm">
+                    <Label
+                      htmlFor="altura"
+                      className="text-sm font-semibold uppercase text-muted-foreground flex items-center gap-2"
+                    >
+                      <TrendingUp className="w-4 h-4 text-primary" />
+                      Altura
+                    </Label>
+                    <Input
+                      id="altura"
+                      type="number"
+                      step="0.1"
+                      {...register("altura")}
+                      className="h-14 border-2 border-primary/20 bg-transparent text-base placeholder:text-muted-foreground/60 focus:border-primary/60 transition-colors font-semibold"
+                      placeholder="175"
+                    />
+                    {renderError("altura")}
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 4: Entrenamiento (unificada a primary) */}
+              <div className="space-y-6 p-8 rounded-2xl border-2 border-primary/40 bg-gradient-to-br from-primary/15 to-primary/5 dark:from-primary/10 dark:to-primary/5 shadow-sm">
+                <h3 className="text-lg font-bold text-primary flex items-center gap-2">
+                  <Zap className="w-6 h-6" />
+                  Preferencias de entrenamiento
+                </h3>
+
+                <div className="grid gap-6 md:grid-cols-2">
+                  {/* Objetivo */}
+                  <div className="space-y-4 p-6 rounded-xl bg-white dark:bg-black/20 border-2 border-primary/30 shadow-sm">
+                    <Label className="text-sm font-semibold uppercase text-muted-foreground flex items-center gap-2">
+                      <Target className="w-4 h-4 text-primary" />
+                      Objetivo
+                    </Label>
+                    <Select
+                      value={watch("objetivo") ?? ""}
+                      onValueChange={(v) => setValue("objetivo", v, { shouldDirty: true })}
+                    >
+                      <SelectTrigger className="h-14 border-2 border-primary/20 bg-white dark:bg-black/20 text-base hover:border-primary/40 transition-colors">
+                        <SelectValue placeholder="Selecciona tu objetivo" />
                       </SelectTrigger>
                       <SelectContent className="glass-card border">
-                        <SelectItem value="kg" className="text-base py-2">
-                          Kilogramos (kg)
-                        </SelectItem>
-                        <SelectItem value="lbs" className="text-base py-2">
-                          Libras (lbs)
-                        </SelectItem>
+                        {OBJETIVO_OPTIONS.map((opt) => (
+                          <SelectItem key={opt} value={opt} className="capitalize premium-hover text-base py-3">
+                            {opt}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
+                    {renderError("objetivo")}
+                  </div>
+
+                  {/* Nivel de experiencia */}
+                  <div className="space-y-4 p-6 rounded-xl bg-white dark:bg-black/20 border-2 border-primary/30 shadow-sm">
+                    <Label className="text-sm font-semibold uppercase text-muted-foreground flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-primary" />
+                      Experiencia
+                    </Label>
+                    <Select
+                      value={watch("nivel_experiencia") ?? ""}
+                      onValueChange={(v) => setValue("nivel_experiencia", v, { shouldDirty: true })}
+                    >
+                      <SelectTrigger className="h-14 border-2 border-primary/20 bg-white dark:bg-black/20 text-base hover:border-primary/40 transition-colors">
+                        <SelectValue placeholder="Selecciona tu nivel" />
+                      </SelectTrigger>
+                      <SelectContent className="glass-card border">
+                        {NIVEL_OPTIONS.map((opt) => (
+                          <SelectItem key={opt} value={opt} className="capitalize premium-hover text-base py-3">
+                            {opt}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {renderError("nivel_experiencia")}
+                  </div>
+
+                  {/* Sexo */}
+                  <div className="space-y-4 p-6 rounded-xl bg-white dark:bg-black/20 border-2 border-primary/30 shadow-sm md:col-span-2">
+                    <Label className="text-sm font-semibold uppercase text-muted-foreground flex items-center gap-2">
+                      <User className="w-4 h-4 text-primary" />
+                      Sexo
+                    </Label>
+                    <Select
+                      value={watch("sexo") ?? ""}
+                      onValueChange={(v) => setValue("sexo", v, { shouldDirty: true })}
+                    >
+                      <SelectTrigger className="h-14 border-2 border-primary/20 bg-white dark:bg-black/20 text-base hover:border-primary/40 transition-colors">
+                        <SelectValue placeholder="Selecciona tu sexo" />
+                      </SelectTrigger>
+                      <SelectContent className="glass-card border">
+                        {SEX_OPTIONS.map((opt) => (
+                          <SelectItem key={opt} value={opt} className="capitalize premium-hover text-base py-3">
+                            {opt}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {renderError("sexo")}
                   </div>
                 </div>
-                {renderError("peso")}
-              </div>
-
-              {/* Altura */}
-              <div className="space-y-4">
-                <Label htmlFor="altura" className="text-base font-semibold">
-                  Altura (cm)
-                </Label>
-                <Input
-                  id="altura"
-                  type="number"
-                  step="0.1"
-                  {...register("altura")}
-                  className="h-14 glass-input border-0 bg-transparent text-base placeholder:text-muted-foreground/60"
-                  placeholder="175"
-                />
-                {renderError("altura")}
-              </div>
-
-              {/* Objetivo */}
-              <div className="space-y-4">
-                <Label className="text-base font-semibold">Objetivo de entrenamiento</Label>
-                <Select
-                  value={watch("objetivo") ?? ""}
-                  onValueChange={(v) => setValue("objetivo", v, { shouldDirty: true })}
-                >
-                  <SelectTrigger className="h-14 glass-input text-base bg-muted/20 hover:bg-muted/20 focus:bg-muted/20 border border-border/60 data-[placeholder]:text-muted-foreground">
-                    <SelectValue placeholder="Selecciona tu objetivo" />
-                  </SelectTrigger>
-                  <SelectContent className="glass-card border">
-                    {OBJETIVO_OPTIONS.map((opt) => (
-                      <SelectItem key={opt} value={opt} className="capitalize premium-hover text-base py-3">
-                        {opt}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {renderError("objetivo")}
-              </div>
-
-              {/* Nivel de experiencia */}
-              <div className="space-y-4">
-                <Label className="text-base font-semibold">Nivel de experiencia</Label>
-                <Select
-                  value={watch("nivel_experiencia") ?? ""}
-                  onValueChange={(v) => setValue("nivel_experiencia", v, { shouldDirty: true })}
-                >
-                  <SelectTrigger className="h-14 glass-input text-base bg-muted/20 hover:bg-muted/20 focus:bg-muted/20 border border-border/60 data-[placeholder]:text-muted-foreground">
-                    <SelectValue placeholder="Selecciona tu nivel" />
-                  </SelectTrigger>
-                  <SelectContent className="glass-card border">
-                    {NIVEL_OPTIONS.map((opt) => (
-                      <SelectItem key={opt} value={opt} className="capitalize premium-hover text-base py-3">
-                        {opt}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {renderError("nivel_experiencia")}
-              </div>
-
-              {/* Sexo */}
-              <div className="space-y-4">
-                <Label className="text-base font-semibold">Sexo</Label>
-                <Select value={watch("sexo") ?? ""} onValueChange={(v) => setValue("sexo", v, { shouldDirty: true })}>
-                  <SelectTrigger className="h-14 glass-input text-base bg-muted/20 hover:bg-muted/20 focus:bg-muted/20 border border-border/60 data-[placeholder]:text-muted-foreground">
-                    <SelectValue placeholder="Selecciona tu sexo" />
-                  </SelectTrigger>
-                  <SelectContent className="glass-card border">
-                    {SEX_OPTIONS.map((opt) => (
-                      <SelectItem key={opt} value={opt} className="capitalize premium-hover text-base py-3">
-                        {opt}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {renderError("sexo")}
               </div>
             </>
           )}
