@@ -1,5 +1,5 @@
 import { memo, useMemo, useEffect, useRef } from "react";
-import React from "react"; // Added React import for createElement in SelectItem rendering
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -56,7 +56,7 @@ export function WorkoutExerciseItem({ ex, ei, onAskDelete, onAddSet, onUpdateSet
     if (kg == null || Number.isNaN(Number(kg))) return "";
     if (unit === "kg") return String(kg);
     const lbs = kg * 2.20462;
-    return String(Math.round(lbs)); // mostrarnos entero en la UI
+    return String(Math.round(lbs));
   };
 
   const userToKg = (val: string): string => {
@@ -66,6 +66,13 @@ export function WorkoutExerciseItem({ ex, ei, onAskDelete, onAddSet, onUpdateSet
     if (unit === "kg") return String(num);
     const kg = num / 2.20462;
     return String(kg);
+  };
+
+  const kgToUserInt = (kg: number | null | undefined): string => {
+    if (kg == null || Number.isNaN(Number(kg))) return "";
+    if (unit === "kg") return String(Math.round(Number(kg)));
+    const lbs = Number(kg) * 2.20462;
+    return String(Math.round(lbs));
   };
 
   const exerciseId = useMemo<number | undefined>(() => {
@@ -105,8 +112,21 @@ export function WorkoutExerciseItem({ ex, ei, onAskDelete, onAddSet, onUpdateSet
     const reps = p.reps ?? null;
     const rpe = p.rpe ?? null;
     if (kg == null || reps == null) return "—";
-    const displayWeight = kgToUser(Number(kg));
-    return `${displayWeight} ${unit} × ${reps}${rpe ? ` @ ${rpe}` : ""}`;
+    const displayWeight = kgToUserInt(Number(kg));
+    return `${displayWeight}${unit} × ${reps}${rpe ? ` @ ${rpe}` : ""}`;
+  };
+
+  const formatPrevMobile = (rawIdx: any, visualIndex: number) => {
+    if (!prevForExercise) return "—";
+    const idxNum = Number(rawIdx);
+    const key = Number.isFinite(idxNum) && idxNum >= 1 ? idxNum : visualIndex + 1;
+    const p = prevForExercise[key];
+    if (!p) return "—";
+    const kg = p.kg ?? null;
+    const reps = p.reps ?? null;
+    if (kg == null || reps == null) return "—";
+    const displayWeight = kgToUserInt(Number(kg));
+    return `${displayWeight}×${reps}`;
   };
 
   const saveTimerRef = useRef<number | null>(null);
@@ -152,31 +172,28 @@ export function WorkoutExerciseItem({ ex, ei, onAskDelete, onAddSet, onUpdateSet
   }, [ei, isLogging]);
 
   return (
-    <div
-      className="group relative rounded-3xl p-5 border border-border/10 bg-card/70
-          transition-all duration-150 hover:border-border/30"
-    >
-      <div className="flex items-start gap-4 mb-5">
+    <div className="group relative rounded-3xl p-2.5 sm:p-5 border border-border/10 bg-card/70 transition-all duration-150 hover:border-border/30 max-w-full overflow-hidden touch-pan-y select-none">
+      <div className="flex items-start gap-2 sm:gap-4 mb-3 sm:mb-5">
         <div className="flex-shrink-0">
           {(ex as any).imagen ? (
             <img
               src={(ex as any).imagen || "/placeholder.svg"}
               alt={(ex as any).nombre ?? ex.exerciseName ?? "Ejercicio"}
-              className="w-14 h-14 rounded-2xl object-cover border-2 border-primary/20 shadow-md ring-2 ring-primary/5 hover:ring-primary/20 transition-all duration-300"
+              className="w-10 h-10 sm:w-14 sm:h-14 rounded-2xl object-cover border-2 border-primary/20 shadow-md ring-2 ring-primary/5 hover:ring-primary/20 transition-all duration-300"
               onError={(e) => ((e.currentTarget.src = ""), (e.currentTarget.alt = "Sin imagen"))}
             />
           ) : (
-            <div className="w-14 h-14 grid place-items-center rounded-2xl border-2 border-dashed border-border/40 bg-muted/30">
-              <ImageIcon className="h-6 w-6 text-muted-foreground/60" />
+            <div className="w-10 h-10 sm:w-14 sm:h-14 grid place-items-center rounded-2xl border-2 border-dashed border-border/40 bg-muted/30">
+              <ImageIcon className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground/60" />
             </div>
           )}
         </div>
 
         <div className="flex-1 min-w-0">
-          <CardTitle className="text-xl font-extrabold text-foreground mb-1.5 text-balance leading-tight tracking-tight">
+          <CardTitle className="text-base sm:text-xl font-extrabold text-foreground mb-0.5 sm:mb-1 text-balance leading-tight tracking-tight">
             {(ex as any).nombre ?? ex.exerciseName ?? `Ejercicio ${ei + 1}`}
           </CardTitle>
-          <p className="text-xs font-semibold text-muted-foreground/80 tracking-wide">
+          <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground/80 tracking-wide">
             {(ex as any).sets.length} {(ex as any).sets.length === 1 ? "serie" : "series"}
           </p>
         </div>
@@ -187,16 +204,13 @@ export function WorkoutExerciseItem({ ex, ei, onAskDelete, onAddSet, onUpdateSet
           onClick={() => onAskDelete(ei, (ex as any).nombre ?? ex.exerciseName)}
           title="Eliminar ejercicio"
           aria-label="Eliminar ejercicio"
-          className="opacity-100 md:opacity-0 md:group-hover:opacity-100
-              hover:bg-destructive/15 hover:text-destructive
-              text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-destructive
-              rounded-2xl h-9 w-9 transition-all duration-300 hover:scale-105"
+          className="opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:bg-destructive/15 hover:text-destructive text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-destructive rounded-2xl h-8 w-8 sm:h-9 sm:w-9 transition-all duration-300 hover:scale-105"
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </Button>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2 sm:space-y-3">
         {(ex as any).sets.map((s: any, si: number) => {
           const prInfo = prsLoading
             ? undefined
@@ -212,6 +226,7 @@ export function WorkoutExerciseItem({ ex, ei, onAskDelete, onAddSet, onUpdateSet
             <SetRow
               key={`${s.idx}-${si}`}
               previousText={formatPrev(s.idx, si)}
+              previousTextMobile={formatPrevMobile(s.idx, si)}
               setIndexLabel={s.idx}
               values={{
                 ...s,
@@ -234,14 +249,14 @@ export function WorkoutExerciseItem({ ex, ei, onAskDelete, onAddSet, onUpdateSet
         })}
       </div>
 
-      <div className="mt-5 pt-4 border-t-2 border-border/20">
+      <div className="mt-3 sm:mt-5 pt-2.5 sm:pt-4 border-t border-border/20">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => onAddSet(ei)}
-          className="w-full gap-2.5 rounded-2xl hover:bg-primary/10 hover:text-primary text-muted-foreground border-2 border-dashed border-border/40 hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary transition-all duration-300 h-11 text-sm font-bold shadow-sm hover:shadow-md hover:scale-[1.02]"
+          className="w-full gap-2 sm:gap-2.5 rounded-2xl hover:bg-primary/10 hover:text-primary text-muted-foreground border-2 border-dashed border-border/40 hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary transition-all duration-300 h-10 sm:h-11 text-xs sm:text-sm font-bold shadow-sm hover:shadow-md hover:scale-[1.02]"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           Añadir serie
         </Button>
       </div>
@@ -249,7 +264,6 @@ export function WorkoutExerciseItem({ ex, ei, onAskDelete, onAddSet, onUpdateSet
   );
 }
 
-/* ---------- Subcomponente: SetRow ---------- */
 type RowProps = {
   setIndexLabel: number;
   values: { idx: number; kg: string; reps: string; rpe: string; done: boolean; doneAt?: string };
@@ -258,6 +272,7 @@ type RowProps = {
   onToggleDone: () => void;
   onRemove: () => void;
   previousText?: string;
+  previousTextMobile?: string;
   prInfo?: { type: "1RM" | "WEIGHT" | null; value: number | null };
 };
 
@@ -337,16 +352,15 @@ const SetRow = memo(function SetRow({
   onToggleDone,
   onRemove,
   previousText,
+  previousTextMobile,
   prInfo,
 }: RowProps) {
   const formatPRValue = (kg: number | null) => {
     if (kg == null) return "";
     if (unit === "kg") {
-      // tú antes redondeabas a .5
       const round05 = (x: number) => Math.round(x * 2) / 2;
       return `${round05(kg)} kg`;
     }
-    // lbs
     const lbs = kg * 2.20462;
     return `${Math.round(lbs)} lbs`;
   };
@@ -361,130 +375,157 @@ const SetRow = memo(function SetRow({
 
   return (
     <div
-      className={`group/set flex items-stretch gap-4 p-4 rounded-2xl transition-all duration-500 ${
+      className={`group/set rounded-2xl p-2 sm:p-4 transition-all duration-500 touch-manipulation ${
         values.done
-          ? "bg-gradient-to-br from-emerald-50 to-emerald-100/60 dark:from-emerald-950/30 dark:to-emerald-900/20 border-2 border-emerald-300/60 dark:border-emerald-700/40 shadow-lg shadow-emerald-200/50 dark:shadow-emerald-950/30"
-          : // 👇 SIN hover:
-            "bg-gradient-to-br from-background to-muted/20 border-2 border-border/20 shadow-md"
+          ? "bg-gradient-to-br from-emerald-50 to-emerald-100/60 dark:from-emerald-950/30 dark:to-emerald-900/20 border-2 border-emerald-300/60 dark:border-emerald-700/40 shadow-lg"
+          : "bg-gradient-to-br from-background to-muted/20 border-2 border-border/20 shadow-md"
       }`}
     >
-      <div className="flex-shrink-0 w-14 flex items-center justify-center">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 border-2 border-primary/20 flex items-center justify-center shadow-sm">
-          <span className="text-xl font-black text-primary tabular-nums">{setIndexLabel}</span>
-        </div>
-      </div>
-
-      <div className="flex-shrink-0 w-[150px]">
-        <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-gradient-to-br from-muted/40 to-muted/20 border-2 border-border/30 shadow-sm hover:shadow-md transition-all duration-300">
-          <span className="text-[9px] font-black text-primary/70 uppercase tracking-widest">Anterior</span>
-          <span className="text-sm text-foreground font-bold tabular-nums leading-snug">{previousText ?? "—"}</span>
-        </div>
-      </div>
-
-      <div className="flex-1 grid grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <label className="text-[10px] font-black text-primary/80 uppercase tracking-widest">
-            {unit.toUpperCase()}
-          </label>
-          <Input
-            inputMode="decimal"
-            value={values.kg}
-            onChange={(e) => onChange("kg", sanitizeDecimal(e.target.value))}
-            onKeyDown={onDecimalKeyDown}
-            onPaste={(e) => handlePasteDecimal(e, (v) => onChange("kg", v))}
-            placeholder="0"
-            className="h-12 tabular-nums focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary rounded-xl font-black text-lg border-2 border-border/70 bg-background shadow-md hover:shadow-lg hover:border-primary/50 focus:shadow-xl focus:shadow-primary/20 transition-all"
-          />
+      {/* En mobile: 1 | 3 | 5 | 3  — En sm+: 1 | 3 | 6 | 2 */}
+      <div className="grid grid-cols-12 gap-1 sm:gap-4 items-center">
+        {/* # de set */}
+        <div className="col-span-1 flex justify-center">
+          <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-xl bg-primary/10 border-2 border-primary/20 flex items-center justify-center shadow-sm">
+            <span className="text-xs sm:text-lg font-black text-primary tabular-nums">{setIndexLabel}</span>
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-[10px] font-black text-primary/80 uppercase tracking-widest">REPS</label>
-          <Input
-            inputMode="numeric"
-            value={values.reps}
-            onChange={(e) => onChange("reps", sanitizeInteger(e.target.value))}
-            onKeyDown={onIntegerKeyDown}
-            onPaste={(e) => handlePasteInteger(e, (v) => onChange("reps", v))}
-            placeholder="0"
-            className="h-12 tabular-nums focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary rounded-xl font-black text-lg border-2 border-border/70 bg-background shadow-md hover:shadow-lg hover:border-primary/50 focus:shadow-xl focus:shadow-primary/20 transition-all"
-          />
+        {/* Anterior: +1 col en mobile, título visible y sin RPE */}
+        <div className="col-span-3 sm:col-span-3 min-w-0">
+          <div className="flex flex-col gap-0 sm:gap-1 p-1.5 sm:p-3 rounded-xl bg-gradient-to-br from-muted/40 to-muted/20 border-2 border-border/30 shadow-sm">
+            {/* Título visible en mobile como 'Ant.' */}
+            <span className="text-[10px] sm:text-[9px] font-black text-primary/70 uppercase tracking-widest">
+              <span className="sm:hidden">Ant.</span>
+              <span className="hidden sm:inline">Anterior</span>
+            </span>
+
+            {/* Contenido: mobile = peso×reps (sin RPE), no truncar; desktop = texto completo */}
+            <span className="sm:hidden text-xs text-foreground font-bold tabular-nums leading-snug whitespace-nowrap">
+              {previousTextMobile ?? "—"}
+            </span>
+            <span className="hidden sm:block text-sm text-foreground font-bold tabular-nums leading-snug truncate">
+              {previousText ?? "—"}
+            </span>
+          </div>
         </div>
 
-        <div className="space-y-2">
-          {/* 👇 igual que KG y REPS */}
-          <label className="text-[10px] font-black text-primary/80 uppercase tracking-widest">RPE</label>
+        {/* Inputs: -1 col en mobile para ceder espacio a 'Anterior' (mantiene 3 campos) */}
+        <div className="col-span-5 sm:col-span-6 grid grid-cols-3 gap-0.5 sm:gap-3">
+          {/* KG/LBS */}
+          <div className="space-y-0 sm:space-y-1.5">
+            <label className="text-[7px] sm:text-[10px] font-black text-primary/80 uppercase tracking-widest block text-center sm:text-left">
+              {unit.toUpperCase()}
+            </label>
+            <Input
+              inputMode="decimal"
+              value={values.kg}
+              onChange={(e) => onChange("kg", sanitizeDecimal(e.target.value))}
+              onKeyDown={onDecimalKeyDown}
+              onPaste={(e) => handlePasteDecimal(e, (v) => onChange("kg", v))}
+              placeholder="0"
+              className="h-8 sm:h-12 tabular-nums rounded-lg sm:rounded-xl font-black text-xs sm:text-lg border-2 border-border/70 bg-background shadow-md px-1 sm:px-3 text-center focus-visible:ring-2 focus-visible:ring-primary"
+            />
+          </div>
 
-          <Select value={values.rpe || "Sin sensaciones"} onValueChange={(val) => onChange("rpe", val)}>
-            <SelectTrigger className="relative h-12 rounded-xl border-2 shadow-md transition-all p-0 overflow-hidden [&>svg]:hidden">
-              {/* fondo coloreado */}
-              <div
-                className={`absolute inset-0 bg-gradient-to-br ${rpeStyles.bgClass} ${rpeStyles.shadowClass} opacity-70 pointer-events-none`}
-              />
-              {/* borde */}
-              <div className={`absolute inset-0 rounded-xl pointer-events-none border-2 ${rpeStyles.borderClass}`} />
-              {/* contenido */}
-              <div className="relative flex items-center justify-center w-full h-full">
-                <RPEIcon
-                  className={`h-6 w-6 ${rpeStyles.iconColor} ${values.rpe === "Al fallo" ? "animate-pulse" : ""}`}
+          {/* REPS */}
+          <div className="space-y-0 sm:space-y-1.5">
+            <label className="text-[7px] sm:text-[10px] font-black text-primary/80 uppercase tracking-widest block text-center sm:text-left">
+              Reps
+            </label>
+            <Input
+              inputMode="numeric"
+              value={values.reps}
+              onChange={(e) => onChange("reps", sanitizeInteger(e.target.value))}
+              onKeyDown={onIntegerKeyDown}
+              onPaste={(e) => handlePasteInteger(e, (v) => onChange("reps", v))}
+              placeholder="0"
+              className="h-8 sm:h-12 tabular-nums rounded-lg sm:rounded-xl font-black text-xs sm:text-lg border-2 border-border/70 bg-background shadow-md px-1 sm:px-3 text-center focus-visible:ring-2 focus-visible:ring-primary"
+            />
+          </div>
+
+          {/* RPE selector (se mantiene, no ocupa más espacio) */}
+          <div className="space-y-0 sm:space-y-1.5">
+            <label className="text-[7px] sm:text-[10px] font-black text-primary/80 uppercase tracking-widest block text-center sm:text-left">
+              RPE
+            </label>
+            <Select value={values.rpe || "Sin sensaciones"} onValueChange={(val) => onChange("rpe", val)}>
+              <SelectTrigger className="relative h-8 sm:h-12 rounded-lg sm:rounded-xl border-2 shadow-md p-0 overflow-hidden [&>svg]:hidden">
+                <div
+                  className={`absolute inset-0 bg-gradient-to-br ${rpeStyles.bgClass} ${rpeStyles.shadowClass} opacity-70 pointer-events-none`}
+                />
+                <div
+                  className={`absolute inset-0 rounded-lg sm:rounded-xl pointer-events-none border-2 ${rpeStyles.borderClass}`}
+                />
+                <div className="relative flex items-center justify-center w-full h-full">
+                  <RPEIcon
+                    className={`h-3.5 w-3.5 sm:h-6 sm:w-6 ${rpeStyles.iconColor} ${
+                      values.rpe === "Al fallo" ? "animate-pulse" : ""
+                    }`}
+                  />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-2 border-border">
+                {RPE_OPTIONS.map((opt) => {
+                  const optStyles = getRPEStyles(opt);
+                  return (
+                    <SelectItem key={opt} value={opt} className="cursor-pointer">
+                      <div className="flex items-center gap-2">
+                        {React.createElement(optStyles.icon, {
+                          className: `h-4 w-4 ${optStyles.iconColor}`,
+                          strokeWidth: 2.5,
+                        })}
+                        <span className={optStyles.textClass}>{opt}</span>
+                      </div>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Acciones: en mobile quitamos la medalla PR para ganar ancho */}
+        <div className="col-span-3 sm:col-span-2 flex items-center justify-end gap-1 sm:gap-3">
+          {/* PR medal: oculto en mobile */}
+          <div className="hidden sm:flex w-5 h-5 sm:w-8 sm:h-8 items-center justify-center" title={prTitle}>
+            {prInfo?.type ? (
+              <div className="relative w-6 h-8 flex items-center justify-center">
+                <div className="absolute inset-0 bg-amber-400/25 rounded-full blur-md animate-pulse" />
+                <Medal
+                  className="relative h-6 w-6 text-amber-500 dark:text-amber-400 drop-shadow-lg translate-y-[2px]"
+                  strokeWidth={2.5}
                 />
               </div>
-            </SelectTrigger>
+            ) : null}
+          </div>
 
-            <SelectContent className="rounded-xl border-2 border-border">
-              {RPE_OPTIONS.map((opt) => {
-                const optStyles = getRPEStyles(opt);
-                return (
-                  <SelectItem key={opt} value={opt} className="cursor-pointer">
-                    <div className="flex items-center gap-2">
-                      {React.createElement(optStyles.icon, {
-                        className: `h-4 w-4 ${optStyles.iconColor}`,
-                        strokeWidth: 2.5,
-                      })}
-                      <span className={optStyles.textClass}>{opt}</span>
-                    </div>
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
+          <button
+            type="button"
+            onClick={onToggleDone}
+            className={`p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl transition-all duration-300 focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+              values.done
+                ? "text-emerald-600 bg-gradient-to-br from-emerald-100 to-emerald-200/80 dark:text-emerald-400 dark:from-emerald-950/50 dark:to-emerald-900/40"
+                : "text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:text-emerald-400 dark:hover:bg-emerald-950/30"
+            }`}
+            title={values.done ? "Marcar como no completado" : "Marcar como completado"}
+          >
+            {values.done ? (
+              <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
+            ) : (
+              <Circle className="h-4 w-4 sm:h-5 sm:w-5" />
+            )}
+          </button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onRemove}
+            title="Eliminar serie"
+            className="hover:bg-destructive/15 hover:text-destructive text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-destructive rounded-lg sm:rounded-xl h-7 w-7 sm:h-9 sm:w-9 transition-all"
+          >
+            <Trash2 className="h-3.5 w-3.5 sm:h-3.5 sm:w-3.5" />
+          </Button>
         </div>
-      </div>
-
-      <div className="flex-shrink-0 flex items-center gap-2 w-[110px] justify-center ">
-        <div className="w-8 h-8 flex items-center justify-center" title={prTitle}>
-          {prInfo?.type ? (
-            <div className="relative w-6 h-8 flex items-center justify-center">
-              <div className="absolute inset-0 bg-amber-400/25 rounded-full blur-md animate-pulse" />
-              <Medal
-                className="relative h-6 w-6 text-amber-500 dark:text-amber-400 drop-shadow-lg translate-y-[2px]"
-                strokeWidth={2.5}
-              />
-            </div>
-          ) : null}
-        </div>
-
-        <button
-          type="button"
-          onClick={onToggleDone}
-          className={`p-2.5 rounded-xl transition-all duration-300 focus-visible:ring-2 focus-visible:ring-emerald-500 hover:scale-110 ${
-            values.done
-              ? "text-emerald-600 bg-gradient-to-br from-emerald-100 to-emerald-200/80 hover:from-emerald-200 hover:to-emerald-300/80 dark:text-emerald-400 dark:from-emerald-950/50 dark:to-emerald-900/40 dark:hover:from-emerald-950/70 dark:hover:to-emerald-900/60 shadow-md shadow-emerald-200/50 dark:shadow-emerald-950/30"
-              : "text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:text-emerald-400 dark:hover:bg-emerald-950/30 shadow-sm hover:shadow-md"
-          }`}
-          title={values.done ? "Marcar como no completado" : "Marcar como completado"}
-        >
-          {values.done ? <CheckCircle2 className="h-5 w-5" /> : <Circle className="h-5 w-5" />}
-        </button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onRemove}
-          title="Eliminar serie"
-          className="opacity-0 group-hover/set:opacity-100 hover:bg-destructive/15 hover:text-destructive text-muted-foreground/60 focus-visible:ring-2 focus-visible:ring-destructive rounded-xl h-9 w-9 transition-all duration-300 hover:scale-105 shadow-sm hover:shadow-md"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
       </div>
     </div>
   );

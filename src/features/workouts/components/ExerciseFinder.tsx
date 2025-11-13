@@ -126,14 +126,15 @@ export function ExerciseFinder({
 
   return (
     <Card className="border-2 border-primary/20 rounded-2xl shadow-xl bg-gradient-to-br from-card/90 to-card/60 backdrop-blur-sm">
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+      {/* Topbar: título a la izquierda, contador/acciones a la derecha; apilado en móvil */}
+      <CardHeader className="pb-3 sm:pb-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
             Agregar Ejercicios
           </CardTitle>
 
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs text-foreground/70">
+          <div className="flex items-center gap-2 sm:justify-end">
+            <span className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs text-muted-foreground">
               <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M3 6h18M3 12h18M3 18h18" />
               </svg>
@@ -156,8 +157,9 @@ export function ExerciseFinder({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
-        <div className="space-y-3">
+      <CardContent className="space-y-5 sm:space-y-6">
+        {/* Buscador: compacto en móvil, con botón clear táctil */}
+        <div className="space-y-2.5">
           <label className="text-sm font-bold text-foreground">Buscar ejercicios</label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-primary/60" />
@@ -166,7 +168,7 @@ export function ExerciseFinder({
               value={filters.searchTerm}
               onChange={(e) => filters.setSearchTerm(e.target.value)}
               placeholder="Nombre o descripción del ejercicio"
-              className="pl-12 pr-10 h-12 rounded-xl border-2 border-primary/20 focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary/40 font-medium"
+              className="pl-12 pr-10 h-11 sm:h-12 rounded-xl border-2 border-primary/20 focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary/40 font-medium"
             />
             {!!filters.searchTerm && (
               <button
@@ -177,6 +179,7 @@ export function ExerciseFinder({
                 }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-primary/60 hover:text-primary"
                 title="Limpiar búsqueda"
+                aria-label="Limpiar búsqueda"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -184,57 +187,62 @@ export function ExerciseFinder({
           </div>
         </div>
 
-        <AdvancedFilters
-          expanded
-          muscleGroups={muscleGroups}
-          difficultyLevels={difficultyLevels}
-          equipmentTypes={equipmentTypes}
-          values={{
-            selectedMuscleGroup: filters.selectedMuscleGroup,
-            selectedDifficulty: filters.selectedDifficulty,
-            selectedEquipment: filters.selectedEquipment,
-          }}
-          onChange={{
-            setSelectedMuscleGroup: filters.setSelectedMuscleGroup,
-            setSelectedDifficulty: filters.setSelectedDifficulty,
-            setSelectedEquipment: filters.setSelectedEquipment,
-          }}
-          loading={{
-            isLoadingMuscleGroups: isLoadingMG,
-            isLoadingDifficulty: isLoadingDif,
-            isLoadingEquipment: isLoadingEq,
-          }}
-        />
+        {/* Filtros avanzados: contenedor scroll-x en móvil para no romper layout */}
+        <div className="overflow-x-auto sm:overflow-visible -mx-4 sm:mx-0 px-4 sm:px-0">
+          {/* Nota: el componente interno no cambia; solo manejamos layout/scroll externo */}
+          <AdvancedFilters
+            expanded
+            muscleGroups={muscleGroups}
+            difficultyLevels={difficultyLevels}
+            equipmentTypes={equipmentTypes}
+            values={{
+              selectedMuscleGroup: filters.selectedMuscleGroup,
+              selectedDifficulty: filters.selectedDifficulty,
+              selectedEquipment: filters.selectedEquipment,
+            }}
+            onChange={{
+              setSelectedMuscleGroup: filters.setSelectedMuscleGroup,
+              setSelectedDifficulty: filters.setSelectedDifficulty,
+              setSelectedEquipment: filters.setSelectedEquipment,
+            }}
+            loading={{
+              isLoadingMuscleGroups: isLoadingMG,
+              isLoadingDifficulty: isLoadingDif,
+              isLoadingEquipment: isLoadingEq,
+            }}
+          />
+        </div>
 
         <Separator className="bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
 
-        {/* Lista de resultados (acumulados) */}
+        {/* Lista de resultados: alto relativo en móvil para evitar overflow con teclado */}
         <div
           className="
-    space-y-3 max-h-96 overflow-y-auto pr-2
-    [scrollbar-width:thin]                                  /* Firefox */
-    [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar]:h-1.5
-    [&::-webkit-scrollbar-track]:bg-transparent
-    [&::-webkit-scrollbar-thumb]:bg-border/40
-    hover:[&::-webkit-scrollbar-thumb]:bg-border/60
-    [&::-webkit-scrollbar-thumb]:rounded-full
-  "
+          space-y-2.5 sm:space-y-3 max-h-[60vh] sm:max-h-96 overflow-y-auto pr-1.5 sm:pr-2
+          [scrollbar-width:thin]
+          [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar]:h-1.5
+          [&::-webkit-scrollbar-track]:bg-transparent
+          [&::-webkit-scrollbar-thumb]:bg-border/40
+          hover:[&::-webkit-scrollbar-thumb]:bg-border/60
+          [&::-webkit-scrollbar-thumb]:rounded-full
+        "
+          aria-live="polite"
         >
           {searching && offset === 0 && (
-            <div className="flex items-center gap-3 text-sm text-muted-foreground p-4 rounded-xl bg-gradient-to-r from-muted/40 to-muted/20">
+            <div className="flex items-center gap-3 text-sm text-muted-foreground p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-muted/40 to-muted/20">
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
               Buscando ejercicios…
             </div>
           )}
 
           {!searching && accum.length === 0 && (
-            <div className="text-sm text-muted-foreground p-4 text-center rounded-xl bg-gradient-to-r from-muted/40 to-muted/20">
+            <div className="text-sm text-muted-foreground p-3.5 sm:p-4 text-center rounded-xl bg-gradient-to-r from-muted/40 to-muted/20">
               No se encontraron ejercicios con los filtros aplicados.
             </div>
           )}
 
           {!searching && accum.length > 0 && filteredResults.length === 0 && (
-            <div className="text-sm text-muted-foreground p-4 text-center rounded-xl bg-gradient-to-r from-muted/40 to-muted/20">
+            <div className="text-sm text-muted-foreground p-3.5 sm:p-4 text-center rounded-xl bg-gradient-to-r from-muted/40 to-muted/20">
               Todos los resultados cargados ya están en la rutina.
             </div>
           )}
@@ -242,24 +250,24 @@ export function ExerciseFinder({
           {filteredResults.map((e: any) => (
             <div
               key={e.id}
-              className="flex items-center justify-between gap-4 rounded-xl border-2 border-border/60 p-4 bg-gradient-to-r from-background/80 to-muted/20 hover:from-primary/5 hover:to-primary/10 hover:border-primary/30 transition-all duration-300"
+              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 rounded-xl border-2 border-border/60 p-3.5 sm:p-4 bg-gradient-to-r from-background/80 to-muted/20 hover:from-primary/5 hover:to-primary/10 hover:border-primary/30 transition-all duration-300"
             >
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
                 {e.ejemplo ? (
                   <img
                     src={e.ejemplo || "/placeholder.svg"}
                     alt={e.nombre ?? "Ejercicio"}
-                    className="h-14 w-14 rounded-xl object-cover border-2 border-primary/20 shadow-md"
+                    className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl object-cover border-2 border-primary/20 shadow-md"
                     onError={(ev) => ((ev.currentTarget.src = ""), (ev.currentTarget.alt = "Sin imagen"))}
                   />
                 ) : (
-                  <div className="h-14 w-14 grid place-items-center rounded-xl border-2 border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5">
+                  <div className="h-12 w-12 sm:h-14 sm:w-14 grid place-items-center rounded-xl border-2 border-primary/20 bg-gradient-to-br from-primary/10 to-primary/5">
                     <ImageIcon className="h-6 w-6 text-primary/60" />
                   </div>
                 )}
-                <div className="space-y-1">
-                  <div className="font-bold text-sm text-foreground">{e.nombre ?? `Ejercicio #${e.id}`}</div>
-                  <div className="text-xs text-muted-foreground font-medium">
+                <div className="space-y-0.5 sm:space-y-1 min-w-0">
+                  <div className="font-bold text-sm text-foreground truncate">{e.nombre ?? `Ejercicio #${e.id}`}</div>
+                  <div className="text-[11px] sm:text-xs text-muted-foreground font-medium truncate">
                     {e.grupo_muscular || "—"} · {e.dificultad || "—"} · {e.equipamento || "—"}
                   </div>
                 </div>
@@ -268,7 +276,7 @@ export function ExerciseFinder({
               <Button
                 variant="outline"
                 onClick={() => onAdd(e)}
-                className="gap-2 rounded-xl border-primary/30 hover:bg-primary hover:text-primary-foreground hover:border-primary focus-visible:ring-2 focus-visible:ring-primary font-semibold"
+                className="w-full sm:w-auto h-10 gap-2 rounded-xl border-primary/30 hover:bg-primary hover:text-primary-foreground hover:border-primary focus-visible:ring-2 focus-visible:ring-primary font-semibold"
               >
                 <Plus className="h-4 w-4" />
                 Agregar
@@ -278,7 +286,7 @@ export function ExerciseFinder({
         </div>
 
         {/* Cargar más */}
-        <div className="pt-2">
+        <div className="pt-1.5 sm:pt-2">
           {searching && offset > 0 ? (
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Cargando más…

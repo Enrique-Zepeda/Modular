@@ -40,88 +40,100 @@ export function WorkoutLibraryPanel({ onClose }: WorkoutLibraryPanelProps) {
   };
 
   return (
-    <div className="fixed right-0 top-0 h-full w-80 bg-card border-l shadow-lg z-50">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="font-semibold">Library</h2>
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
+    /* Wrapper full-screen en móvil para comportamiento tipo Drawer */
+    <div className="fixed inset-0 z-50">
+      {/* Backdrop solo en móvil para enfoque visual */}
+      <div className="sm:hidden absolute inset-0 bg-black/40" aria-hidden="true" />
 
-      {/* Filters */}
-      <div className="p-4 space-y-4 border-b">
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search Exercises"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
+      {/* Panel lateral: full-width en móvil, 20rem en desktop */}
+      <div className="absolute right-0 top-0 h-[100dvh] w-full sm:w-80 bg-card border-l shadow-lg flex flex-col">
+        {/* Header sticky con safe-area; botón cerrar siempre visible */}
+        <div className="sticky top-[env(safe-area-inset-top)] z-10 flex items-center justify-between p-4 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
+          <h2 className="font-semibold text-base">Library</h2>
+          <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close library">
+            <X className="h-4 w-4" />
+          </Button>
         </div>
 
-        {/* Muscle Group Filter */}
-        <Select value={muscleGroup} onValueChange={setMuscleGroup}>
-          <SelectTrigger>
-            <SelectValue placeholder="All Muscles" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Muscles</SelectItem>
-            {muscleGroups.map((group) => (
-              <SelectItem key={group} value={group}>
-                {group}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Filtros: grid simétrico; alturas consistentes */}
+        <div className="p-4 space-y-4 border-b">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search Exercises"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10 h-11 rounded-xl"
+            />
+          </div>
 
-        {/* Equipment Filter */}
-        <Select value={equipment} onValueChange={setEquipment}>
-          <SelectTrigger>
-            <SelectValue placeholder="All Equipment" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Equipment</SelectItem>
-            {equipmentTypes.map((type) => (
-              <SelectItem key={type} value={type}>
-                {type}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+          {/* Selects en grid para evitar “dientes” en móvil */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Muscle Group Filter */}
+            <Select value={muscleGroup} onValueChange={setMuscleGroup}>
+              <SelectTrigger className="h-11 rounded-xl">
+                <SelectValue placeholder="All Muscles" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Muscles</SelectItem>
+                {muscleGroups.map((group) => (
+                  <SelectItem key={group} value={group}>
+                    {group}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-      {/* Exercise List */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="space-y-2">
-          {exercises.map((exercise) => (
-            <div
-              key={exercise.id}
-              className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent cursor-pointer group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
-                  <span className="text-xs font-medium">{exercise.nombre?.charAt(0).toUpperCase() || "E"}</span>
-                </div>
-                <div>
-                  <div className="font-medium text-sm">{exercise.nombre}</div>
-                  <div className="text-xs text-muted-foreground">{exercise.grupo_muscular}</div>
-                </div>
-              </div>
+            {/* Equipment Filter */}
+            <Select value={equipment} onValueChange={setEquipment}>
+              <SelectTrigger className="h-11 rounded-xl">
+                <SelectValue placeholder="All Equipment" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Equipment</SelectItem>
+                {equipmentTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-              <Button
-                size="sm"
-                onClick={() => handleAddExercise(exercise)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
+        {/* Exercise List: área scrollable con padding para teclado/safe-area */}
+        <div className="flex-1 overflow-y-auto p-4 pb-[env(safe-area-inset-bottom)]">
+          <div className="space-y-2">
+            {exercises.map((exercise) => (
+              <div
+                key={exercise.id}
+                className="flex items-center justify-between p-3 sm:p-3 rounded-lg border hover:bg-accent/60 cursor-pointer group h-14"
               >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 bg-muted rounded-full grid place-items-center flex-shrink-0">
+                    <span className="text-xs font-medium">{exercise.nombre?.charAt(0).toUpperCase() || "E"}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-medium text-sm truncate">{exercise.nombre}</div>
+                    <div className="text-xs text-muted-foreground truncate">{exercise.grupo_muscular}</div>
+                  </div>
+                </div>
 
-          {exercises.length === 0 && <div className="text-center py-8 text-muted-foreground">No exercises found</div>}
+                {/* En móvil el botón siempre visible; en desktop aparece al hover */}
+                <Button
+                  size="sm"
+                  onClick={() => handleAddExercise(exercise)}
+                  className="w-10 h-9 sm:w-auto sm:h-9 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                  aria-label="Add exercise"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+
+            {exercises.length === 0 && <div className="text-center py-8 text-muted-foreground">No exercises found</div>}
+          </div>
         </div>
       </div>
     </div>

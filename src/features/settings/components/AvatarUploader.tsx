@@ -125,30 +125,32 @@ export function AvatarUploader({ url, sexo, onUpdated }: Props) {
   );
 
   return (
-    <Card className="border border-border/50 bg-gradient-to-r from-card/50 to-card/30 backdrop-blur-sm">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-semibold">Foto de perfil</CardTitle>
-        <p className="text-sm text-muted-foreground">Sube una imagen para personalizar tu perfil</p>
+    <Card className="border border-border/50 bg-gradient-to-r from-card/50 to-card/30 backdrop-blur-sm w-full max-w-full">
+      <CardHeader className="pb-2 px-2 pt-2 sm:px-6 sm:pt-6 sm:pb-3">
+        <CardTitle className="text-sm sm:text-base lg:text-lg font-semibold">Foto de perfil</CardTitle>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
+          Sube una imagen para personalizar tu perfil
+        </p>
       </CardHeader>
 
-      <CardContent className="flex items-center gap-8 pt-0">
-        <div className="relative">
+      <CardContent className="flex flex-col items-center gap-3 px-2 pb-2 sm:px-6 sm:pb-6 sm:gap-4 lg:flex-row lg:gap-6">
+        <div className="relative flex-shrink-0">
           <UserAvatar
             url={previewUrl}
             sexo={sexo}
             alt="Avatar"
-            size={96} // h-24 w-24
-            className="border-4 border-primary/20 shadow-lg"
+            size={96}
+            className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 border-4 border-primary/20 shadow-lg"
             fallbackText="AV"
           />
           {previewUrl && (
-            <div className="absolute -bottom-1 -right-1 h-6 w-6 bg-green-500 border-2 border-background rounded-full flex items-center justify-center">
-              <div className="h-2 w-2 bg-white rounded-full" />
+            <div className="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 h-5 w-5 sm:h-6 sm:w-6 bg-green-500 border-2 border-background rounded-full flex items-center justify-center">
+              <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 bg-white rounded-full" />
             </div>
           )}
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2 sm:gap-3 w-full lg:flex-1">
           <Label htmlFor="avatar-file" className="sr-only">
             Subir avatar
           </Label>
@@ -166,27 +168,27 @@ export function AvatarUploader({ url, sexo, onUpdated }: Props) {
             type="button"
             onClick={handleSelectClick}
             disabled={uploading}
-            className="h-12 px-6 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg transition-all duration-200 min-w-40"
+            className="h-10 sm:h-11 lg:h-12 px-4 sm:px-6 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg transition-all duration-200 w-full sm:w-auto sm:min-w-40 text-xs sm:text-sm font-semibold"
           >
             {uploading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
                 Subiendo...
               </>
             ) : (
               <>
-                <Upload className="mr-2 h-4 w-4" />
+                <Upload className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 Cambiar foto
               </>
             )}
           </Button>
 
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">
-              <strong>Formatos permitidos:</strong> JPG, PNG o WEBP
+          <div className="space-y-0.5 sm:space-y-1 text-center lg:text-left">
+            <p className="text-[0.65rem] sm:text-xs text-muted-foreground">
+              <strong className="font-semibold">Formatos:</strong> JPG, PNG o WEBP
             </p>
-            <p className="text-xs text-muted-foreground">
-              <strong>Tamaño máximo:</strong> 5MB
+            <p className="text-[0.65rem] sm:text-xs text-muted-foreground">
+              <strong className="font-semibold">Tamaño máx:</strong> 5MB
             </p>
           </div>
         </div>

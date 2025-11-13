@@ -36,7 +36,6 @@ type StatProps = {
 
 function Stat({ icon, label, value, onClick }: StatProps) {
   const clickable = !!onClick;
-
   return (
     <Card
       onClick={onClick}
@@ -52,7 +51,7 @@ function Stat({ icon, label, value, onClick }: StatProps) {
             }
           : undefined
       }
-      className={`border-2 border-border/60 bg-gradient-to-br from-card via-card/98 to-card/95 shadow-md relative overflow-hidden ${
+      className={`w-full border-2 border-border/60 bg-gradient-to-br from-card via-card/98 to-card/95 shadow-md relative overflow-hidden ${
         clickable
           ? "cursor-pointer hover:border-primary/60 hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1.5 hover:scale-[1.03] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           : "hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300"
@@ -60,16 +59,20 @@ function Stat({ icon, label, value, onClick }: StatProps) {
       aria-label={clickable ? label : undefined}
     >
       <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-transparent to-purple-500/5 pointer-events-none" />
-      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+      <div className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 bg-primary/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
-      <CardContent className="p-6 flex flex-col gap-4 relative">
+      <CardContent className="relative p-4 sm:p-6 flex flex-col gap-3 sm:gap-4">
         <div className="flex items-center justify-between">
-          <div className="p-3 bg-primary/20 rounded-xl ring-2 ring-primary/30 shadow-lg shadow-primary/10">{icon}</div>
+          <div className="p-2.5 sm:p-3 bg-primary/20 rounded-xl ring-2 ring-primary/30 shadow-lg shadow-primary/10">
+            {icon}
+          </div>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{label}</span>
-          <span className="text-3xl font-extrabold truncate bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text">
+        <div className="flex flex-col gap-1.5 sm:gap-2">
+          <span className="text-[0.7rem] sm:text-xs font-bold text-muted-foreground uppercase tracking-wider">
+            {label}
+          </span>
+          <span className="text-2xl sm:text-3xl font-extrabold truncate bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text">
             {value}
           </span>
         </div>
@@ -93,9 +96,9 @@ export default function ProfileStats({
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5">
         {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-36 w-full rounded-xl" />
+          <Skeleton key={i} className="h-28 sm:h-32 lg:h-36 w-full rounded-xl" />
         ))}
       </div>
     );
@@ -103,17 +106,17 @@ export default function ProfileStats({
 
   if (!summary) {
     return (
-      <Card className="border-2 border-border/60 bg-gradient-to-br from-card/95 to-card/90">
-        <CardContent className="p-8 text-center">
-          <p className="text-sm text-muted-foreground">No se encontró información del perfil.</p>
+      <Card className="w-full border-2 border-border/60 bg-gradient-to-br from-card/95 to-card/90">
+        <CardContent className="p-5 sm:p-8 text-center">
+          <p className="text-xs sm:text-sm text-muted-foreground">No se encontró información del perfil.</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+    <div className="space-y-4 sm:space-y-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5">
         <Stat
           icon={<Activity className="h-6 w-6 text-primary" />}
           label="Entrenamientos"
@@ -143,8 +146,10 @@ export default function ProfileStats({
       </div>
 
       {!hideLastPanel && summary.last_workout_id && (
-        <Card className="bg-muted/30 border-muted/40">
-          <CardContent className="p-4 text-sm text-muted-foreground">ID sesión: {summary.last_workout_id}</CardContent>
+        <Card className="w-full bg-muted/30 border-muted/40">
+          <CardContent className="p-3 sm:p-4 text-xs sm:text-sm text-muted-foreground">
+            ID sesión: {summary.last_workout_id}
+          </CardContent>
         </Card>
       )}
     </div>

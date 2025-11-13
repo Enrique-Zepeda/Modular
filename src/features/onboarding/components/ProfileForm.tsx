@@ -202,15 +202,18 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* Progreso (mobile-first con espaciados responsivos) */}
       <Card className="rounded-2xl shadow-lg border-0 bg-card/50 backdrop-blur-sm">
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6">
           <div className="space-y-4">
-            <div className="flex items-center justify-between text-sm font-medium">
+            <div className="flex items-center justify-between text-xs sm:text-sm font-medium">
               <span className="text-muted-foreground">Progreso del perfil</span>
               <span className="text-primary">Paso {currentStep} de 3</span>
             </div>
             <Progress value={progressValue} className="h-2" />
-            <div className="grid grid-cols-3 gap-4 mt-6">
+
+            {/* Pasos: se apilan en móvil y en 3 columnas desde sm */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-4 sm:mt-6">
               <div
                 className={`flex items-center gap-3 text-sm transition-opacity ${
                   step1Complete ? "opacity-100" : "opacity-60"
@@ -224,6 +227,7 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                   <div className="text-xs text-muted-foreground">Usuario y nombre</div>
                 </div>
               </div>
+
               <div
                 className={`flex items-center gap-3 text-sm transition-opacity ${
                   step2Complete ? "opacity-100" : "opacity-60"
@@ -237,6 +241,7 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                   <div className="text-xs text-muted-foreground">Fecha de nacimiento, edad, peso, altura</div>
                 </div>
               </div>
+
               <div
                 className={`flex items-center gap-3 text-sm transition-opacity ${
                   step3Complete ? "opacity-100" : "opacity-60"
@@ -255,7 +260,8 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Layout principal: 1 col móvil, 3 columnas desde lg (2 + 1) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <div className="lg:col-span-2">
           <Card className="rounded-2xl shadow-lg border-0 bg-card">
             <CardHeader className="pb-6">
@@ -264,13 +270,14 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                   <User className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <CardTitle className="text-xl">Completa tu perfil</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <CardTitle className="text-lg sm:text-xl">Completa tu perfil</CardTitle>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                     Toda la información es necesaria para personalizar tu experiencia
                   </p>
                 </div>
               </div>
             </CardHeader>
+
             <CardContent className="space-y-6">
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <div className="space-y-4">
@@ -286,8 +293,10 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                     <Label htmlFor="username" className="text-sm font-medium">
                       Nombre de usuario
                     </Label>
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1">
+
+                    {/* Fila flexible: en móvil se apila el botón debajo del input */}
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex-1 min-w-0">
                         <Input
                           id="username"
                           placeholder="tu_usuario"
@@ -302,23 +311,25 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                           }}
                         />
                       </div>
+
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={handleCheckAvailability}
                         disabled={checking}
-                        className="h-11 px-4 bg-transparent"
+                        className="h-11 px-4 bg-transparent w-full sm:w-auto"
                       >
                         {checking ? <CalendarIcon className="h-4 w-4 animate-spin" /> : "Verificar"}
                       </Button>
+
                       <AnimatePresence mode="wait">
                         {available === true && (
                           <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             exit={{ scale: 0 }}
-                            className="flex items-center justify-center w-11 h-11"
+                            className="flex items-center justify-center w-11 h-11 flex-shrink-0"
                           >
                             <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/20">
                               <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
@@ -330,7 +341,7 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             exit={{ scale: 0 }}
-                            className="flex items-center justify-center w-11 h-11"
+                            className="flex items-center justify-center w-11 h-11 flex-shrink-0"
                           >
                             <div className="p-2 rounded-full bg-red-100 dark:bg-red-900/20">
                               <X className="h-4 w-4 text-red-600 dark:text-red-400" />
@@ -339,6 +350,7 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                         )}
                       </AnimatePresence>
                     </div>
+
                     {form.formState.errors.username && (
                       <motion.p
                         id="username-error-help"
@@ -390,8 +402,9 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                     </Badge>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Fecha de nacimiento (con fix local) */}
+                  {/* Dos columnas desde md; en móvil una sola sin “dientes” */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                    {/* Fecha de nacimiento */}
                     <div className="space-y-3">
                       <Label htmlFor="fecha_nacimiento" className="text-sm font-medium">
                         Fecha de nacimiento
@@ -494,7 +507,7 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                     </Badge>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                     {/* Nivel experiencia */}
                     <div className="space-y-3">
                       <Label htmlFor="nivel_experiencia" className="text-sm font-medium">
@@ -562,7 +575,7 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                       name="sexo"
                       render={({ field }) => (
                         <Select value={field.value ?? ""} onValueChange={field.onChange}>
-                          <SelectTrigger id="sexo" className="h-11 max-w-xs">
+                          <SelectTrigger id="sexo" className="h-11 w-full sm:max-w-xs">
                             <SelectValue placeholder="Selecciona una opción" />
                           </SelectTrigger>
                           <SelectContent>
@@ -589,7 +602,8 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                       control={form.control}
                       name="weight_unit"
                       render={({ field }) => (
-                        <div className="grid grid-cols-2 gap-3">
+                        // En móvil 1 columna, desde sm dos columnas simétricas
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {[
                             { value: "kg", label: "Kilogramos", icon: "⚖️", description: "Sistema métrico" },
                             { value: "lbs", label: "Libras", icon: "🏋️", description: "Sistema imperial" },
@@ -604,7 +618,7 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                                 }
                                 dispatch(setWeightUnit(unit.value as "kg" | "lbs"));
                               }}
-                              className={`relative p-4 rounded-xl border-2 transition-all duration-300 flex flex-col items-center gap-2 cursor-pointer group ${
+                              className={`relative p-4 min-h-[84px] rounded-xl border-2 transition-all duration-300 flex flex-col items-center gap-2 cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 ${
                                 field.value === unit.value
                                   ? "border-primary bg-primary/5 shadow-md shadow-primary/20"
                                   : "border-border bg-card hover:border-primary/50 hover:bg-card/80"
@@ -646,7 +660,7 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                   )}
                 </AnimatePresence>
 
-                <div className="pt-4">
+                <div className="pt-2 sm:pt-4">
                   <Button
                     type="button"
                     className="w-full h-12 text-base font-medium"
@@ -668,6 +682,7 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
                     )}
                   </Button>
                 </div>
+
                 <PrivacyConsentDialog
                   open={consentOpen}
                   onOpenChange={setConsentOpen}
@@ -682,10 +697,11 @@ export default function ProfileForm({ defaults, onCompleted }: Props) {
           </Card>
         </div>
 
+        {/* Resumen sticky: respeta safe-area en móvil y hace sticky desde lg */}
         <div className="lg:col-span-1">
-          <Card className="rounded-2xl shadow-lg border-0 bg-muted/30 backdrop-blur-sm sticky top-6">
+          <Card className="rounded-2xl shadow-lg border-0 bg-muted/30 backdrop-blur-sm lg:sticky lg:top-6 top-[env(safe-area-inset-top)] lg:max-h-[calc(100dvh-3rem)] lg:overflow-y-auto">
             <CardHeader className="pb-4">
-              <CardTitle className="text-lg flex items-center gap-2">
+              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                 <div className="p-1.5 rounded-lg bg-primary/10">
                   <Sparkles className="h-4 w-4 text-primary" />
                 </div>

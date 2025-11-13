@@ -116,80 +116,95 @@ export function ExercisePicker({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => (!open ? onClose() : undefined)}>
-      <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden flex flex-col">
-        <DialogHeader className="flex-shrink-0 pb-4">
-          <DialogTitle className="text-xl font-semibold">{title}</DialogTitle>
-          <p className="text-sm text-muted-foreground">{description}</p>
+      <DialogContent
+        className="
+        p-0 w-full max-w-7xl
+        h-[100dvh] sm:h-auto sm:max-h-[90vh]
+        overflow-hidden flex flex-col
+        rounded-none sm:rounded-2xl
+      "
+      >
+        {/* Header fijo con safe-area; título/desc truncan en móvil */}
+        <DialogHeader className="sticky top-[env(safe-area-inset-top)] z-20 bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+          <div className="px-4 sm:px-6 py-3 sm:py-4">
+            <DialogTitle className="text-lg sm:text-xl font-semibold truncate">{title}</DialogTitle>
+            <p className="text-sm text-muted-foreground truncate">{description}</p>
+          </div>
         </DialogHeader>
 
-        {/* Filtros */}
-        <ExercisePickerFilters
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          muscleGroupOptions={muscleGroupOptions}
-          difficultyOptions={difficultyOptions}
-          equipmentOptions={equipmentOptions}
-          selectedMuscleGroup={selectedMuscleGroup}
-          setSelectedMuscleGroup={setSelectedMuscleGroup}
-          selectedDifficulty={selectedDifficulty}
-          setSelectedDifficulty={setSelectedDifficulty}
-          selectedEquipment={selectedEquipment}
-          setSelectedEquipment={setSelectedEquipment}
-          hasActiveFilters={hasActiveFilters}
-          onClear={clearFilters}
-        />
+        {/* Scroll interno para TODO el contenido variable (filtros + lista) */}
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+          <div className="px-4 sm:px-6 py-4 sm:py-6 pb-28 sm:pb-10 space-y-6">
+            {/* Filtros */}
+            <ExercisePickerFilters
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              muscleGroupOptions={muscleGroupOptions}
+              difficultyOptions={difficultyOptions}
+              equipmentOptions={equipmentOptions}
+              selectedMuscleGroup={selectedMuscleGroup}
+              setSelectedMuscleGroup={setSelectedMuscleGroup}
+              selectedDifficulty={selectedDifficulty}
+              setSelectedDifficulty={setSelectedDifficulty}
+              selectedEquipment={selectedEquipment}
+              setSelectedEquipment={setSelectedEquipment}
+              hasActiveFilters={hasActiveFilters}
+              onClear={clearFilters}
+            />
 
-        {/* Lista de ejercicios */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium">Ejercicios Disponibles ({filteredExercises.length})</h3>
-              {selectedExercises.length > 0 && (
-                <Badge variant="secondary" className="text-xs">
-                  {selectedExercises.length} seleccionado{selectedExercises.length !== 1 ? "s" : ""}
-                </Badge>
-              )}
-            </div>
-
-            {filteredExercises.length === 0 ? (
-              <div className="py-16 text-center">
-                <div className="mb-2 text-muted-foreground">No se encontraron ejercicios</div>
-                <p className="mb-4 text-sm text-muted-foreground">Intenta ajustar los filtros de búsqueda</p>
-                {hasActiveFilters && (
-                  <Button variant="outline" size="sm" onClick={clearFilters}>
-                    Limpiar filtros
-                  </Button>
+            {/* Lista de ejercicios */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium">Ejercicios Disponibles ({filteredExercises.length})</h3>
+                {selectedExercises.length > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    {selectedExercises.length} seleccionado{selectedExercises.length !== 1 ? "s" : ""}
+                  </Badge>
                 )}
               </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-                {filteredExercises.map((exercise) => (
-                  <ExercisePickerCard
-                    key={exercise.id}
-                    exercise={exercise}
-                    selected={isExerciseSelected(exercise.id)}
-                    onSelect={handleSelectExercise}
-                  />
-                ))}
-              </div>
-            )}
+
+              {filteredExercises.length === 0 ? (
+                <div className="py-14 sm:py-16 text-center">
+                  <div className="mb-2 text-muted-foreground">No se encontraron ejercicios</div>
+                  <p className="mb-4 text-sm text-muted-foreground">Intenta ajustar los filtros de búsqueda</p>
+                  {hasActiveFilters && (
+                    <Button variant="outline" size="sm" onClick={clearFilters} className="h-10 px-4">
+                      Limpiar filtros
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                  {filteredExercises.map((exercise) => (
+                    <ExercisePickerCard
+                      key={exercise.id}
+                      exercise={exercise}
+                      selected={isExerciseSelected(exercise.id)}
+                      onSelect={handleSelectExercise}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex flex-shrink-0 items-center justify-between border-t pt-4">
-          <div className="text-sm text-muted-foreground">
-            {selectedExercises.length > 0 && (
-              <span>
-                {selectedExercises.length} ejercicio{selectedExercises.length !== 1 ? "s" : ""} seleccionado
-                {selectedExercises.length !== 1 ? "s" : ""}
-              </span>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose}>
-              Cerrar
-            </Button>
+        {/* Footer fijo con safe-area; botones accesibles en móvil */}
+        <div className="sticky bottom-0 z-20 bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t">
+          <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div className="text-sm text-muted-foreground truncate">
+              {selectedExercises.length > 0 && (
+                <span>
+                  {selectedExercises.length} ejercicio{selectedExercises.length !== 1 ? "s" : ""} seleccionado
+                  {selectedExercises.length !== 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={onClose} className="h-11 px-5">
+                Cerrar
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>

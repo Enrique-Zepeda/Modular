@@ -103,22 +103,33 @@ const FriendshipBadge: React.FC<Props> = ({ targetId, targetUsername, className 
   };
 
   if (isSelf) return null;
+
   if (isLoading)
     return (
-      <Badge variant="secondary" className={className}>
+      <Badge
+        variant="secondary"
+        className={cn("inline-flex min-h-[2.5rem] items-center justify-center px-3 text-xs sm:text-sm", className)}
+      >
         Cargando…
       </Badge>
     );
+
   if (isFriend) {
     return (
-      <div className={cn("flex flex-col items-end gap-2", className)}>
+      <div
+        className={cn(
+          // En mobile ocupa todo el ancho y se alinea bien con el contenido; en desktop se mantiene a la derecha
+          "flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end",
+          className
+        )}
+      >
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Badge
                 variant="secondary"
                 className={cn(
-                  "cursor-default flex items-center gap-2 bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 dark:bg-emerald-500/10 shadow-sm",
+                  "flex min-h-[2.25rem] items-center gap-2 rounded-full px-3 text-xs sm:text-sm cursor-default bg-emerald-500/15 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 dark:bg-emerald-500/10 shadow-sm",
                   className
                 )}
                 role="status"
@@ -139,7 +150,7 @@ const FriendshipBadge: React.FC<Props> = ({ targetId, targetUsername, className 
             <Button
               size="sm"
               variant="ghost"
-              className="h-8 px-2 text-red-600 dark:text-red-400 hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300 transition-colors duration-200 gap-1"
+              className="h-9 px-3 text-xs sm:text-sm text-red-600 dark:text-red-400 hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300 transition-colors duration-200 gap-1"
               disabled={unfriendState.isLoading}
               title="Eliminar de amigos"
             >
@@ -147,16 +158,21 @@ const FriendshipBadge: React.FC<Props> = ({ targetId, targetUsername, className 
               {unfriendState.isLoading ? "Eliminando…" : "Eliminar"}
             </Button>
           </AlertDialogTrigger>
-          <AlertDialogContent className="bg-background border border-border shadow-lg rounded-lg">
+          <AlertDialogContent className="bg-background border border-border shadow-lg rounded-lg w-full max-w-sm sm:max-w-md mx-4 p-5 sm:p-6">
             <AlertDialogTitle className="text-base font-semibold">Eliminar de amigos</AlertDialogTitle>
             <AlertDialogDescription className="text-sm text-muted-foreground">
               ¿Estás seguro que deseas eliminar a{" "}
               <strong className="text-foreground">@{targetUsername ?? "usuario"}</strong> de tu lista de amigos?
             </AlertDialogDescription>
-            <div className="flex justify-end gap-3 pt-4">
-              <AlertDialogCancel className="px-4 py-2 text-sm font-medium">Cancelar</AlertDialogCancel>
+            <div
+              className={
+                // En mobile botones apilados ancho completo; en desktop en fila a la derecha
+                "mt-4 flex flex-col-reverse gap-2 sm:mt-5 sm:flex-row sm:justify-end sm:gap-3"
+              }
+            >
+              <AlertDialogCancel className="w-full sm:w-auto px-4 py-2 text-sm font-medium">Cancelar</AlertDialogCancel>
               <AlertDialogAction
-                className="px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors duration-200"
+                className="w-full sm:w-auto px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors duration-200"
                 onClick={handleUnfriend}
               >
                 Eliminar
@@ -170,10 +186,16 @@ const FriendshipBadge: React.FC<Props> = ({ targetId, targetUsername, className 
 
   if (incomingReq) {
     return (
-      <div className={cn("flex items-center gap-2", className)}>
+      <div
+        className={cn(
+          // flex-wrap para que los botones no generen scroll horizontal en pantallas pequeñas
+          "flex flex-wrap items-center gap-2",
+          className
+        )}
+      >
         <Button
           size="sm"
-          className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1 shadow-md hover:shadow-lg transition-all duration-200"
+          className="min-h-[2.5rem] px-3 text-xs sm:text-sm bg-emerald-600 hover:bg-emerald-700 text-white gap-1 shadow-md hover:shadow-lg transition-all duration-200"
           onClick={handleAccept}
           disabled={acceptReqState.isLoading}
           aria-label={`Aceptar solicitud de ${targetUsername || "usuario"}`}
@@ -185,7 +207,7 @@ const FriendshipBadge: React.FC<Props> = ({ targetId, targetUsername, className 
         <Button
           size="sm"
           variant="outline"
-          className="gap-1 border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/10 hover:border-red-500/50 bg-transparent transition-colors duration-200"
+          className="min-h-[2.5rem] px-3 text-xs sm:text-sm gap-1 border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/10 hover:border-red-500/50 bg-transparent transition-colors duration-200"
           onClick={handleReject}
           disabled={rejectReqState.isLoading}
           aria-label={`Rechazar solicitud de ${targetUsername || "usuario"}`}
@@ -206,7 +228,7 @@ const FriendshipBadge: React.FC<Props> = ({ targetId, targetUsername, className 
             <Badge
               variant="outline"
               className={cn(
-                "cursor-default flex items-center gap-2 bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300",
+                "inline-flex min-h-[2.25rem] items-center gap-2 rounded-full px-3 text-xs sm:text-sm cursor-default bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300",
                 className
               )}
               role="status"
@@ -228,7 +250,8 @@ const FriendshipBadge: React.FC<Props> = ({ targetId, targetUsername, className 
     <Badge
       variant="default"
       className={cn(
-        "cursor-pointer select-none gap-1.5 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-md hover:shadow-lg hover:ring-2 hover:ring-primary/40 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed",
+        // En mobile botón ancho completo; en desktop se adapta al contenido
+        "inline-flex w-full sm:w-auto min-h-[2.75rem] items-center justify-center cursor-pointer select-none gap-1.5 px-3 text-center text-xs sm:text-sm font-medium bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-md hover:shadow-lg hover:ring-2 hover:ring-primary/40 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
         sendReqState.isLoading && "opacity-75",
         className
       )}
@@ -251,7 +274,7 @@ const FriendshipBadge: React.FC<Props> = ({ targetId, targetUsername, className 
           <span className="hidden sm:inline font-medium">Enviando…</span>
         </div>
       ) : (
-        <span className="font-medium">Enviar solicitud de amistad</span>
+        <span className="font-medium text-xs sm:text-sm">Enviar solicitud de amistad</span>
       )}
     </Badge>
   );

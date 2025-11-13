@@ -137,30 +137,35 @@ export function ChangePasswordForm() {
   }, [password]);
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-start gap-4 p-4 rounded-xl bg-blue-500/5 border border-blue-500/20 backdrop-blur-sm">
-        <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 mt-0.5">
-          <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+    <div className="space-y-8 max-w-2xl mx-auto px-4 sm:max-w-3xl">
+      {" "}
+      {/* centrado + padding lateral en mobile */}
+      {/* Banner de seguridad – mayor legibilidad y toques cómodos */}
+      <div className="flex items-start gap-4 p-5 rounded-2xl bg-blue-500/5 border border-blue-500/20 backdrop-blur-sm">
+        <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 mt-0.5">
+          <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />
         </div>
         <div className="space-y-1">
-          <h4 className="font-semibold text-blue-900 dark:text-blue-100">Información de seguridad</h4>
-          <p className="text-sm text-blue-800 dark:text-blue-200">
+          <h4 className="text-lg font-semibold text-blue-900 dark:text-blue-100">Información de seguridad</h4>
+          <p className="text-sm sm:text-base text-blue-800 dark:text-blue-200">
             Por seguridad, cerraremos tu sesión después de cambiar la contraseña. Tendrás que iniciar sesión nuevamente.
           </p>
         </div>
       </div>
-
       {!canChangePassword ? (
-        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+        <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-sm sm:text-base">
           Esta cuenta usa un proveedor externo (por ejemplo Google). No es posible cambiar contraseña local desde aquí.
         </div>
       ) : (
         <>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+            {/* grid 1 col en mobile, 2 en md+ para aire visual */}
             <div className="grid gap-6 md:grid-cols-2">
               {/* Contraseña actual */}
-              <div className="space-y-2">
-                <Label htmlFor="currentPassword">Contraseña actual</Label>
+              <div className="space-y-2.5">
+                <Label htmlFor="currentPassword" className="text-sm sm:text-base">
+                  Contraseña actual
+                </Label>
                 <div className="relative">
                   <Input
                     id="currentPassword"
@@ -168,17 +173,17 @@ export function ChangePasswordForm() {
                     placeholder="********"
                     autoComplete="current-password"
                     {...register("currentPassword")}
-                    className={`h-12 bg-background/50 border-border/50 pr-10 focus-visible:ring-primary/20 transition-all duration-200 ${
-                      errors.currentPassword ? "border-destructive/50 focus-visible:border-destructive" : ""
+                    className={`h-14 sm:h-16 rounded-2xl px-4 text-base sm:text-lg bg-background/60 border border-border/60 pr-12 focus-visible:ring-primary/25 focus-visible:border-primary/50 transition-all ${
+                      errors.currentPassword ? "border-destructive/60 focus-visible:border-destructive" : ""
                     }`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowCurrent((s) => !s)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-md text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     aria-label={showCurrent ? "Ocultar contraseña" : "Mostrar contraseña"}
                   >
-                    {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showCurrent ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
                 {errors.currentPassword && (
@@ -187,8 +192,10 @@ export function ChangePasswordForm() {
               </div>
 
               {/* Nueva contraseña */}
-              <div className="space-y-2">
-                <Label htmlFor="password">Nueva contraseña</Label>
+              <div className="space-y-2.5">
+                <Label htmlFor="password" className="text-sm sm:text-base">
+                  Nueva contraseña
+                </Label>
                 <div className="relative">
                   <Input
                     id="password"
@@ -196,17 +203,17 @@ export function ChangePasswordForm() {
                     placeholder="Ingresa tu nueva contraseña"
                     autoComplete="new-password"
                     {...register("password")}
-                    className={`h-12 bg-background/50 border-border/50 pr-10 focus-visible:ring-primary/20 transition-all duration-200 ${
-                      errors.password ? "border-destructive/50 focus-visible:border-destructive" : ""
+                    className={`h-14 sm:h-16 rounded-2xl px-4 text-base sm:text-lg bg-background/60 border border-border/60 pr-12 focus-visible:ring-primary/25 focus-visible:border-primary/50 transition-all ${
+                      errors.password ? "border-destructive/60 focus-visible:border-destructive" : ""
                     }`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowNew((s) => !s)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-md text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     aria-label={showNew ? "Ocultar contraseña" : "Mostrar contraseña"}
                   >
-                    {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showNew ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
                 {errors.password && <p className="text-xs text-destructive font-medium">{errors.password.message}</p>}
@@ -215,8 +222,10 @@ export function ChangePasswordForm() {
               </div>
 
               {/* Confirmar nueva contraseña */}
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="confirmPassword">Confirmar nueva contraseña</Label>
+              <div className="space-y-2.5 md:col-span-2">
+                <Label htmlFor="confirmPassword" className="text-sm sm:text-base">
+                  Confirmar nueva contraseña
+                </Label>
                 <div className="relative">
                   <Input
                     id="confirmPassword"
@@ -224,17 +233,17 @@ export function ChangePasswordForm() {
                     placeholder="********"
                     autoComplete="new-password"
                     {...register("confirmPassword")}
-                    className={`h-12 bg-background/50 border-border/50 pr-10 focus-visible:ring-primary/20 transition-all duration-200 ${
-                      errors.confirmPassword ? "border-destructive/50 focus-visible:border-destructive" : ""
+                    className={`h-14 sm:h-16 rounded-2xl px-4 text-base sm:text-lg bg-background/60 border border-border/60 pr-12 focus-visible:ring-primary/25 focus-visible:border-primary/50 transition-all ${
+                      errors.confirmPassword ? "border-destructive/60 focus-visible:border-destructive" : ""
                     }`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirm((s) => !s)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-md text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                     aria-label={showConfirm ? "Ocultar contraseña" : "Mostrar contraseña"}
                   >
-                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showConfirm ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
                 {errors.confirmPassword && (
@@ -243,17 +252,21 @@ export function ChangePasswordForm() {
               </div>
             </div>
 
+            {/* CTA grande y cómodo para táctil */}
             <div className="flex justify-end">
-              {/* Botón normal: abre el diálogo de confirmación solo si el form es válido */}
-              <Button type="submit" disabled={!isValid || isSubmitting} className="h-12 px-6 font-semibold">
+              <Button
+                type="submit"
+                disabled={!isValid || isSubmitting}
+                className="h-14 sm:h-16 px-6 sm:px-8 rounded-2xl text-base sm:text-lg font-semibold"
+              >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-3 h-5 w-5 animate-spin" />
                     Cambiando contraseña...
                   </>
                 ) : (
                   <>
-                    <LogOut className="mr-2 h-4 w-4" />
+                    <LogOut className="mr-3 h-5 w-5" />
                     Cambiar contraseña
                   </>
                 )}
@@ -263,17 +276,19 @@ export function ChangePasswordForm() {
 
           {/* 🔒 Confirmación antes de aplicar el cambio */}
           <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-            <AlertDialogContent>
+            <AlertDialogContent className="max-w-md sm:max-w-lg rounded-2xl">
               <AlertDialogHeader>
-                <AlertDialogTitle>¿Confirmar cambio de contraseña?</AlertDialogTitle>
-                <AlertDialogDescription>
+                <AlertDialogTitle className="text-lg sm:text-xl">¿Confirmar cambio de contraseña?</AlertDialogTitle>
+                <AlertDialogDescription className="text-sm sm:text-base">
                   Por seguridad, se cerrará tu sesión y tendrás que iniciar sesión nuevamente.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel disabled={isSubmitting}>Cancelar</AlertDialogCancel>
+                <AlertDialogCancel disabled={isSubmitting} className="h-11 sm:h-12 rounded-xl">
+                  Cancelar
+                </AlertDialogCancel>
                 <AlertDialogAction
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="h-11 sm:h-12 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
                   onClick={() => stagedData && performChange(stagedData)}
                   disabled={isSubmitting}
                 >

@@ -7,11 +7,11 @@ import type { UserProfile } from "@/types/user";
 import { useGetCurrentUserProfileQuery } from "@/features/settings/api/profileApi";
 
 const COLORS: Record<string, string> = {
-  under:   "bg-sky-500/20 border-sky-500/50 shadow-sky-500/20 text-sky-700 dark:text-sky-200",
-  normal:  "bg-emerald-500/20 border-emerald-500/50 shadow-emerald-500/20 text-emerald-700 dark:text-emerald-200",
-  over:    "bg-amber-500/20 border-amber-500/50 shadow-amber-500/20 text-amber-700 dark:text-amber-200",
-  obese:   "bg-orange-600/20 border-orange-600/50 shadow-orange-600/20 text-orange-700 dark:text-orange-200",
-  morbid:  "bg-red-600/20 border-red-600/50 shadow-red-600/20 text-red-700 dark:text-red-200",
+  under: "bg-sky-500/20 border-sky-500/50 shadow-sky-500/20 text-sky-700 dark:text-sky-200",
+  normal: "bg-emerald-500/20 border-emerald-500/50 shadow-emerald-500/20 text-emerald-700 dark:text-emerald-200",
+  over: "bg-amber-500/20 border-amber-500/50 shadow-amber-500/20 text-amber-700 dark:text-amber-200",
+  obese: "bg-orange-600/20 border-orange-600/50 shadow-orange-600/20 text-orange-700 dark:text-orange-200",
+  morbid: "bg-red-600/20 border-red-600/50 shadow-red-600/20 text-red-700 dark:text-red-200",
 };
 
 type Props = {
@@ -40,12 +40,16 @@ export default function BmiBadge({ isSelf = false, profile, className, showPlace
   const effectiveProfile: UserProfile | null = shouldFetch ? myProfile ?? profile ?? null : profile ?? null;
 
   const { canCompute, bmi, label, category } = useBmiFromProfile(effectiveProfile);
-
   if (!canCompute || !bmi || !category) {
     if (!showPlaceholder) return null;
     return (
       <Badge
-        className={cn("border-2 border-muted-foreground/30 text-muted-foreground bg-muted/40 shadow-sm", className)}
+        className={cn(
+          // Mobile-first: altura táctil mínima, texto responsivo
+          "inline-flex min-h-[2.25rem] items-center justify-center rounded-full px-3 text-xs sm:text-sm",
+          "border-2 border-muted-foreground/30 text-muted-foreground bg-muted/40 shadow-sm",
+          className
+        )}
       >
         IMC: incompleto
       </Badge>
@@ -55,7 +59,9 @@ export default function BmiBadge({ isSelf = false, profile, className, showPlace
   return (
     <Badge
       className={cn(
-        "border-2 font-bold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105",
+        // Mobile-first: buen área táctil y legible en pantallas pequeñas
+        "inline-flex min-h-[2.5rem] items-center justify-center rounded-full px-3.5 text-xs sm:text-sm font-bold",
+        "shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.03]",
         COLORS[category],
         className
       )}

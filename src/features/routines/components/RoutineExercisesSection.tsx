@@ -34,34 +34,43 @@ export function RoutineExercisesSection({
   routineName: string;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle>Ejercicios ({count})</CardTitle>
+    <Card className="rounded-2xl border-2 border-border/60 bg-card/50 shadow-sm overflow-hidden">
+      <CardHeader className="p-5 sm:p-6">
+        {/* Layout responsive: título en columna en móvil, fila en desktop */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <CardTitle className="text-lg sm:text-xl font-bold text-balance">Ejercicios ({count})</CardTitle>
         </div>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="p-5 sm:p-6">
         {count === 0 ? (
-          <div className="text-center py-12">
-            <Plus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No hay ejercicios en esta rutina</h3>
-            <p className="text-muted-foreground mb-6">Agrega ejercicios para completar tu rutina</p>
-            <Button onClick={() => setIsSelectorOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
+          <div className="flex flex-col items-center text-center py-10">
+            <Plus className="mb-4 h-12 w-12 text-muted-foreground" />
+            <h3 className="mb-2 text-lg font-semibold">No hay ejercicios en esta rutina</h3>
+            <p className="mb-6 max-w-prose text-sm sm:text-base text-muted-foreground text-pretty">
+              Agrega ejercicios para completar tu rutina
+            </p>
+            <Button onClick={() => setIsSelectorOpen(true)} className="h-11 w-full sm:w-auto rounded-xl">
+              <Plus className="mr-2 h-4 w-4" />
               Agregar Primer Ejercicio
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <AnimatePresence>
+          <div
+            className="
+            grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4
+            gap-4 sm:gap-6 items-stretch min-w-0
+          "
+          >
+            <AnimatePresence initial={false}>
               {items.map((it, index) => (
                 <motion.div
                   key={it.key}
-                  initial={{ opacity: 0, scale: 0.9 }}
+                  initial={{ opacity: 0, scale: 0.96 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
+                  exit={{ opacity: 0, scale: 0.96 }}
                   transition={{ duration: 0.2, delay: index * 0.05 }}
+                  className="min-w-0"
                 >
                   <RoutineExerciseCard
                     title={it.title}

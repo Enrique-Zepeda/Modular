@@ -17,6 +17,13 @@ const navigation = [
   { name: "Configuración", href: "/dashboard/settings", icon: Settings },
 ];
 
+// Rutas donde NO se debe mostrar el sidebar
+const HIDE_SIDEBAR_ROUTES = [
+  /^\/dashboard\/routines\/new$/, // crear rutina
+  /^\/dashboard\/routines\/[^/]+\/edit$/, // editar rutina
+  /^\/dashboard\/workout\/[^/]+$/, // entrenamiento en vivo
+];
+
 export default function AppSidebar() {
   const location = useLocation();
   const dispatch = useAppDispatch();
@@ -26,16 +33,20 @@ export default function AppSidebar() {
     dispatch(logoutUser());
   };
 
+  // Si la ruta actual coincide, no renderizamos el sidebar
+  const shouldHide = HIDE_SIDEBAR_ROUTES.some((re) => re.test(location.pathname));
+  if (shouldHide) return null;
+
   return (
-    <div className="flex h-full w-64 flex-col bg-card border-r">
+    <div className="flex h-full w-full sm:w-64 flex-col bg-card border-r">
       {/* Header */}
-      <div className="flex items-center gap-2 px-6 py-4 border-b">
+      <div className="flex items-center gap-2 px-4 sm:px-6 py-3 sm:py-4 border-b">
         <Dumbbell className="h-6 w-6 text-primary" />
-        <span className="font-bold text-lg">GymApp</span>
+        <span className="font-bold text-base sm:text-lg">GymApp</span>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-4 py-6 space-y-2">
+      {/* Navigation: scrollable en móvil para evitar overflow */}
+      <nav className="flex-1 px-3 sm:px-4 py-4 sm:py-6 space-y-2 overflow-y-auto">
         {navigation.map((item) => {
           const isActive =
             location.pathname === item.href ||
@@ -53,18 +64,18 @@ export default function AppSidebar() {
               )}
             >
               <item.icon className="h-4 w-4" />
-              <span>{item.name}</span>
+              <span className="truncate">{item.name}</span>
             </Link>
           );
         })}
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t">
+      <div className="p-3 sm:p-4 border-t">
         <Button
           variant="ghost"
           onClick={() => setConfirmOpen(true)}
-          className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+          className="w-full justify-start h-11 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
         >
           <LogOut className="h-4 w-4 mr-2" />
           Cerrar Sesión

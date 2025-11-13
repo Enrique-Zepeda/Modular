@@ -27,52 +27,71 @@ export function RoutineExerciseCard({
   const { unit } = useWeightUnit(); // 👈 leemos preferencia global
   const displayWeight = presentInUserUnit(weight ?? 0, unit);
   return (
-    <Card className="h-full border-2 border-border/60  transition-all duration-300  bg-gradient-to-br from-background to-primary/5 overflow-hidden group">
-      <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-purple-500/5 opacity-0  transition-opacity duration-300 pointer-events-none" />
+    <Card
+      className="
+      relative h-full overflow-hidden rounded-2xl
+      border-2 border-border/60
+      bg-gradient-to-br from-background to-primary/5
+      transition-all duration-300 group
+    "
+    >
+      {/* Overlay decorativo que aparece al hover, no bloquea interacciones */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-      <CardHeader className="pb-3 relative ">
-        <div className="flex justify-between items-start gap-3 ">
-          <div className="flex items-start gap-2 flex-1">
-            <div className="p-1.5 rounded-lg bg-primary/20 border border-primary/30 mt-0.5">
+      <CardHeader className="relative p-5 sm:p-6 pb-3">
+        <div className="flex items-start justify-between gap-3 min-w-0">
+          <div className="flex flex-1 items-start gap-2 min-w-0">
+            <div className="mt-0.5 shrink-0 rounded-lg bg-primary/20 border border-primary/30 p-1.5">
               <Dumbbell className="h-4 w-4 text-primary" />
             </div>
-            <CardTitle className="text-lg line-clamp-2 font-bold">{title ?? "Sin nombre"}</CardTitle>
+            {/* Título con clamp y truncado para evitar overflow en móvil */}
+            <CardTitle className="min-w-0 text-balance text-base sm:text-lg font-bold line-clamp-2">
+              {title ?? "Sin nombre"}
+            </CardTitle>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4 relative ">
+      <CardContent className="relative p-5 sm:p-6 space-y-4">
         {group && (
           <Badge
             variant="secondary"
-            className="bg-primary/15 border border-primary/30 text-primary font-semibold rounded-full px-3 py-1"
+            className="w-fit rounded-full bg-primary/15 border border-primary/30 text-primary font-semibold px-3 py-1"
           >
             {group}
           </Badge>
         )}
 
-        <div className="grid grid-cols-3 gap-3 p-4 bg-muted/50 rounded-xl border border-border/40">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-primary">{series}</p>
-            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mt-1">Series</p>
+        {/* Métricas en 3 columnas: caben en móvil, con tipografía adaptativa */}
+        <div className="grid grid-cols-3 gap-3 rounded-xl border border-border/40 bg-muted/50 p-3 sm:p-4 text-center">
+          <div>
+            <p className="text-xl sm:text-2xl font-bold text-primary">{series}</p>
+            <p className="mt-1 text-[11px] sm:text-xs text-muted-foreground font-semibold uppercase tracking-wide">
+              Series
+            </p>
           </div>
-          <div className="text-center border-x border-border/40">
-            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{reps}</p>
-            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mt-1">Reps</p>
+          <div className="border-x border-border/40 px-2">
+            <p className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400">{reps}</p>
+            <p className="mt-1 text-[11px] sm:text-xs text-muted-foreground font-semibold uppercase tracking-wide">
+              Reps
+            </p>
           </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-primary">
+          <div>
+            <p className="text-xl sm:text-2xl font-bold text-primary">
               {displayWeight}
               {unit}
             </p>
-            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mt-1">Peso</p>
+            <p className="mt-1 text-[11px] sm:text-xs text-muted-foreground font-semibold uppercase tracking-wide">
+              Peso
+            </p>
           </div>
         </div>
 
-        {description && <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{description}</p>}
+        {description && <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{description}</p>}
 
-        <div className="mt-4">
-          <div className="rounded-xl overflow-hidden border-2 border-border/40">
+        {/* Imagen responsiva: contenedor con borde y radios consistentes */}
+        <div className="mt-2">
+          <div className="overflow-hidden rounded-xl border-2 border-border/40">
             <ExerciseImage
               src={image ?? undefined}
               alt={title ?? "Ejercicio"}

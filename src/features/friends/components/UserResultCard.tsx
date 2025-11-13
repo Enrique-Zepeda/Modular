@@ -71,11 +71,11 @@ export default function UserResultCard({ user, status = "none", onSend }: Props)
 
   return (
     <Card className="border-muted/60 hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 group">
-      <CardContent className="p-5 flex items-center gap-4">
+      <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
         {/* Clickeable a perfil */}
-        <Link to={`/u/${user.username}`} className="flex items-center gap-4 min-w-0 flex-1 group/link">
-          <div className="relative">
-            <Avatar className="h-12 w-12 ring-2 ring-border/50 group-hover:ring-primary/50 transition-all duration-300">
+        <Link to={`/u/${user.username}`} className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1 group/link">
+          <div className="relative flex-shrink-0">
+            <Avatar className="h-11 w-11 sm:h-12 sm:w-12 ring-2 ring-border/50 group-hover:ring-primary/50 transition-all duration-300">
               <AvatarImage src={user.url_avatar ?? undefined} alt={user.username} />
               <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white font-semibold">
                 {initial}
@@ -86,70 +86,74 @@ export default function UserResultCard({ user, status = "none", onSend }: Props)
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="font-semibold text-base truncate group-hover/link:text-primary transition-colors">
+            <div className="font-semibold text-sm sm:text-base truncate group-hover/link:text-primary transition-colors">
               {user.username}
             </div>
             {user.nombre && (
-              <div className="text-sm text-muted-foreground truncate flex items-center gap-1.5">{user.nombre}</div>
+              <div className="text-xs sm:text-sm text-muted-foreground truncate flex items-center gap-1.5">
+                {user.nombre}
+              </div>
             )}
           </div>
         </Link>
 
-        {/* Acciones */}
-        {localStatus === "friend" ? (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
-                disabled={pending}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                aria-label="Eliminar de amigos"
-              >
-                <UserMinus className="h-4 w-4" />
-                Eliminar
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Eliminar de amigos</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Quitarás a <strong>@{user.username}</strong> de tu lista de amigos.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  onClick={unfriend}
+        {/* Acciones: full-width en mobile, compacto en desktop */}
+        <div className="mt-1 sm:mt-0 w-full sm:w-auto flex justify-start sm:justify-end">
+          {localStatus === "friend" ? (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="w-full sm:w-auto justify-center gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors text-xs sm:text-sm"
+                  disabled={pending}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  aria-label="Eliminar de amigos"
                 >
-                  Confirmar
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        ) : localStatus === "pending-out" ? (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20">
-            <Clock className="h-4 w-4 text-amber-500" />
-            <span className="text-sm font-medium text-amber-600 dark:text-amber-400">Pendiente</span>
-          </div>
-        ) : (
-          <Button
-            size="sm"
-            className="gap-1.5 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-md hover:shadow-lg transition-all duration-300"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onSend?.(user.id_usuario);
-            }}
-          >
-            <UserPlus className="h-4 w-4" /> Enviar solicitud
-          </Button>
-        )}
+                  <UserMinus className="h-4 w-4" />
+                  Eliminar
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="w-full max-w-sm sm:max-w-md">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Eliminar de amigos</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Quitarás a <strong>@{user.username}</strong> de tu lista de amigos.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={unfriend}
+                  >
+                    Confirmar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : localStatus === "pending-out" ? (
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20">
+              <Clock className="h-4 w-4 text-amber-500" />
+              <span className="text-xs sm:text-sm font-medium text-amber-600 dark:text-amber-400">Pendiente</span>
+            </div>
+          ) : (
+            <Button
+              size="sm"
+              className="w-full sm:w-auto justify-center gap-1.5 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 shadow-md hover:shadow-lg transition-all duration-300 text-xs sm:text-sm"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onSend?.(user.id_usuario);
+              }}
+            >
+              <UserPlus className="h-4 w-4" /> Enviar solicitud
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

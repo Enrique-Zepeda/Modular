@@ -1,7 +1,6 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { RotateCcw, Check, Palette } from "lucide-react";
-import { Button } from "../../../components/ui/button";
+import { Check, Palette } from "lucide-react";
 import { Card } from "../../../components/ui/card";
 import { getInitialColorTheme, setColorTheme, AVAILABLE_COLOR_THEMES } from "../../theme/colorTheme";
 
@@ -75,22 +74,22 @@ export function ThemeSelector() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg glass-effect border border-primary/20">
-            <Palette className="h-5 w-5 text-primary" />
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="p-1.5 sm:p-2 rounded-lg glass-effect border border-primary/20">
+            <Palette className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
           </div>
           <div>
-            <h3 className="text-lg font-bold">Tema de color</h3>
-            <p className="text-sm text-muted-foreground">{filteredThemes.length} temas disponibles</p>
+            <h3 className="text-base sm:text-lg font-bold">Tema de color</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground">{filteredThemes.length} temas disponibles</p>
           </div>
         </div>
       </div>
 
       <div
         ref={gridRef}
-        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4"
         role="radiogroup"
         aria-label="Seleccionar tema de color"
       >
@@ -114,7 +113,7 @@ export function ThemeSelector() {
                   aria-checked={isSelected}
                   aria-label={`Tema ${LABELS[theme]}`}
                   className={`
-                    relative p-4 cursor-pointer transition-all duration-200
+                    relative p-3 sm:p-4 cursor-pointer transition-all duration-200
                     hover:shadow-lg hover:border-primary/30
                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2
                     ${isSelected ? "border-primary border-2 shadow-lg" : "border-border"}
@@ -126,61 +125,57 @@ export function ThemeSelector() {
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      className="absolute -top-2 -right-2 rounded-full p-1.5 shadow-lg z-10"
+                      className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 rounded-full p-1 sm:p-1.5 shadow-lg z-10"
                       style={{ backgroundColor: themeColor }}
                     >
-                      <Check className="h-3 w-3 text-white" />
+                      <Check className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-white" />
                     </motion.div>
                   )}
 
-                  <div className="space-y-3 mb-3" data-theme={theme}>
-                    {/* Header with primary color */}
-                    <div className="flex items-center gap-2 pb-2 border-b border-border">
+                  <div className="space-y-2 sm:space-y-3 mb-2 sm:mb-3" data-theme={theme}>
+                    <div className="flex items-center gap-1.5 sm:gap-2 pb-1.5 sm:pb-2 border-b border-border">
                       <div
-                        className="h-6 w-6 rounded-md flex items-center justify-center"
+                        className="h-5 w-5 sm:h-6 sm:w-6 rounded-md flex items-center justify-center"
                         style={{ backgroundColor: themeColor }}
                       >
-                        <div className="h-2 w-2 rounded-full bg-white" />
+                        <div className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-white" />
                       </div>
-                      <div className="flex-1 space-y-1">
-                        <div className="h-2 bg-foreground rounded w-3/4" />
-                        <div className="h-1.5 bg-muted-foreground rounded w-1/2" />
+                      <div className="flex-1 space-y-0.5 sm:space-y-1">
+                        <div className="h-1.5 sm:h-2 bg-foreground rounded w-3/4" />
+                        <div className="h-1 sm:h-1.5 bg-muted-foreground rounded w-1/2" />
                       </div>
                     </div>
 
-                    {/* Card preview */}
-                    <div className="bg-card border border-border rounded-md p-2 space-y-2">
-                      <div className="h-2 bg-card-foreground/80 rounded w-4/5" />
-                      <div className="h-1.5 bg-muted-foreground rounded w-full" />
-                      <div className="h-1.5 bg-muted-foreground rounded w-3/4" />
+                    <div className="bg-card border border-border rounded-md p-1.5 sm:p-2 space-y-1.5 sm:space-y-2">
+                      <div className="h-1.5 sm:h-2 bg-card-foreground/80 rounded w-4/5" />
+                      <div className="h-1 sm:h-1.5 bg-muted-foreground rounded w-full" />
+                      <div className="h-1 sm:h-1.5 bg-muted-foreground rounded w-3/4" />
                     </div>
 
-                    {/* Buttons and badges */}
-                    <div className="flex gap-1.5 items-center">
+                    <div className="flex gap-1 sm:gap-1.5 items-center">
                       <div
-                        className="h-6 flex-1 rounded-md flex items-center justify-center"
+                        className="h-5 sm:h-6 flex-1 rounded-md flex items-center justify-center"
                         style={{ backgroundColor: themeColor }}
                       >
-                        <div className="h-1 w-6 bg-white rounded" />
+                        <div className="h-0.5 sm:h-1 w-4 sm:w-6 bg-white rounded" />
                       </div>
-                      <div className="h-6 px-2 bg-secondary rounded-md flex items-center justify-center border border-border">
-                        <div className="h-1 w-4 bg-secondary-foreground rounded" />
+                      <div className="h-5 sm:h-6 px-1.5 sm:px-2 bg-secondary rounded-md flex items-center justify-center border border-border">
+                        <div className="h-0.5 sm:h-1 w-3 sm:w-4 bg-secondary-foreground rounded" />
                       </div>
                     </div>
 
-                    {/* Accent elements */}
-                    <div className="flex gap-1">
-                      <div className="h-4 px-2 bg-accent rounded flex items-center justify-center flex-1">
+                    <div className="flex gap-0.5 sm:gap-1">
+                      <div className="h-3 sm:h-4 px-1.5 sm:px-2 bg-accent rounded flex items-center justify-center flex-1">
                         <div className="h-0.5 w-full bg-accent-foreground rounded" />
                       </div>
-                      <div className="h-4 px-2 bg-muted rounded flex items-center justify-center flex-1">
+                      <div className="h-3 sm:h-4 px-1.5 sm:px-2 bg-muted rounded flex items-center justify-center flex-1">
                         <div className="h-0.5 w-full bg-muted-foreground rounded" />
                       </div>
                     </div>
                   </div>
 
                   <div className="text-center">
-                    <p className="font-bold text-sm" style={{ color: themeColor }}>
+                    <p className="font-bold text-xs sm:text-sm" style={{ color: themeColor }}>
                       {LABELS[theme]}
                     </p>
                   </div>

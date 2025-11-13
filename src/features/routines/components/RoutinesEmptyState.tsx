@@ -5,23 +5,32 @@ import { Link } from "react-router-dom";
 
 export function RoutinesEmptyState({ hasAny, onCreate }: { hasAny: boolean; onCreate?: () => void }) {
   return (
-    <Card className="rounded-2xl shadow-sm">
-      <CardContent className="flex flex-col items-center justify-center py-16">
-        <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-6">
-          <Calendar className="h-8 w-8 text-muted-foreground" />
+    <Card
+      className="
+      rounded-2xl border border-border/60 bg-card/50 shadow-sm overflow-hidden
+    "
+    >
+      <CardContent className="flex flex-col items-center justify-center px-6 py-12 sm:py-16 text-center">
+        {/* Ícono */}
+        <div className="mb-6 flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-muted">
+          <Calendar className="h-7 w-7 sm:h-8 sm:w-8 text-muted-foreground" />
         </div>
-        <div className="text-center space-y-2 mb-6">
-          <h3 className="text-lg font-semibold">
+
+        {/* Texto */}
+        <div className="mb-6 space-y-2">
+          <h3 className="text-xl sm:text-2xl font-semibold text-balance">
             {hasAny ? "No se encontraron rutinas" : "No tienes rutinas creadas"}
           </h3>
-          <p className="text-muted-foreground max-w-sm">
+          <p className="mx-auto max-w-prose text-sm sm:text-base text-muted-foreground text-pretty">
             {hasAny ? "Intenta ajustar los filtros de búsqueda" : "Crea tu primera rutina para comenzar a entrenar"}
           </p>
         </div>
+
+        {/* CTA: full width en móvil, compacto en desktop */}
         {!hasAny && (
-          <Button asChild className="rounded-xl" onClick={onCreate}>
+          <Button asChild onClick={onCreate} className="h-11 w-full sm:w-auto rounded-xl">
             <Link to="/dashboard/routines/new">
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="mr-2 h-4 w-4" />
               Crear Primera Rutina
             </Link>
           </Button>

@@ -73,7 +73,8 @@ export function AdvancedFilters({
   const isLoadingEq = !!loading?.isLoadingEquipment;
 
   return (
-    <div className="p-4 rounded-xl bg-gradient-to-br from-primary/5 via-purple-500/5 to-background border-2 border-border/60 shadow-lg">
+    <div className="p-4 sm:p-5 rounded-xl bg-gradient-to-br from-primary/5 via-purple-500/5 to-background border-2 border-border/60 shadow-lg">
+      {/* Buscador (tap target 44px y botón clear accesible) */}
       {onSearchChange && (
         <div className="mb-4">
           <div className="relative">
@@ -82,29 +83,34 @@ export function AdvancedFilters({
               value={searchValue || ""}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Buscar ejercicios..."
-              className="h-10 pl-10 pr-10 text-sm rounded-xl border-2 border-border/60 hover:border-primary/50 focus:border-primary transition-all duration-300"
+              className="h-11 pl-10 pr-10 text-sm rounded-xl border-2 border-border/60 hover:border-primary/50 focus:border-primary transition-all duration-300"
             />
             {searchValue && (
               <button
                 type="button"
                 onClick={() => onSearchChange("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-muted transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-lg hover:bg-muted transition-colors"
+                aria-label="Limpiar búsqueda"
+                title="Limpiar búsqueda"
               >
-                <X className="h-3 w-3 text-muted-foreground" />
+                <X className="h-3.5 w-3.5 text-muted-foreground" />
               </button>
             )}
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-4">
+      {/* Filtros: grid responsivo, alturas iguales y simetría */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         <FilterBlock
           icon={<Dumbbell className="h-4 w-4" />}
           label="Músculo"
           loading={isLoadingMG}
+          /* mismos estilos en todos los selects para altura/anchura consistentes */
           control={
             <select
-              className="h-10 w-full bg-background border-2 border-border/60 hover:border-primary/50 focus:border-primary rounded-xl px-3 pr-8 text-sm text-foreground appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-300 font-medium"
+              aria-label="Filtro por grupo muscular"
+              className="h-11 w-full bg-background border-2 border-border/60 hover:border-primary/50 focus:border-primary rounded-xl px-3 pr-8 text-sm text-foreground appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-300 font-medium"
               value={values.selectedMuscleGroup}
               onChange={(e) => onChange.setSelectedMuscleGroup(e.target.value)}
             >
@@ -126,7 +132,8 @@ export function AdvancedFilters({
           loading={isLoadingDif}
           control={
             <select
-              className="h-10 w-full bg-background border-2 border-border/60 hover:border-primary/50 focus:border-primary rounded-xl px-3 pr-8 text-sm text-foreground appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-300 font-medium"
+              aria-label="Filtro por dificultad"
+              className="h-11 w-full bg-background border-2 border-border/60 hover:border-primary/50 focus:border-primary rounded-xl px-3 pr-8 text-sm text-foreground appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-300 font-medium"
               value={values.selectedDifficulty}
               onChange={(e) => onChange.setSelectedDifficulty(e.target.value)}
             >
@@ -148,7 +155,8 @@ export function AdvancedFilters({
           loading={isLoadingEq}
           control={
             <select
-              className="h-10 w-full bg-background border-2 border-border/60 hover:border-primary/50 focus:border-primary rounded-xl px-3 pr-8 text-sm text-foreground appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-300 font-medium"
+              aria-label="Filtro por equipo"
+              className="h-11 w-full bg-background border-2 border-border/60 hover:border-primary/50 focus:border-primary rounded-xl px-3 pr-8 text-sm text-foreground appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all duration-300 font-medium"
               value={values.selectedEquipment}
               onChange={(e) => onChange.setSelectedEquipment(e.target.value)}
             >

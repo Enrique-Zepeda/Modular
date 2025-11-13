@@ -32,14 +32,20 @@ export const SocialActionsBar = memo(function SocialActionsBar({
   }, [ready, liveCount, initialCommentsCount]);
 
   return (
-    <div className="space-y-5 w-full">
-      <div className="flex items-center gap-3 flex-wrap">
+    <div className="w-full space-y-4 sm:space-y-5">
+      {/* Fila de acciones: mobile-first, wraps sin romper layout */}
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3 min-w-0" role="group" aria-label="Acciones sociales">
         <LikeButton sessionId={sessionId} initialCount={initialLikesCount} initialLikedByMe={initialLikedByMe} />
         {/* 👇 ahora alterna abrir/cerrar */}
         <CommentsTrigger count={commentsCount} isOpen={open} onToggle={() => setOpen((v) => !v)} />
       </div>
 
-      {open ? <CommentsThread sessionId={sessionId} onClose={() => setOpen(false)} /> : null}
+      {/* Contenedor con min-w-0 para evitar overflow en móviles */}
+      {open ? (
+        <div className="min-w-0">
+          <CommentsThread sessionId={sessionId} onClose={() => setOpen(false)} />
+        </div>
+      ) : null}
     </div>
   );
 });
