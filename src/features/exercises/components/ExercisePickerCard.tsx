@@ -16,12 +16,16 @@ export const ExercisePickerCard: React.FC<Props> = ({ exercise, selected, onSele
 
   return (
     <div
-      className={`group relative rounded-xl border bg-card p-4 transition-all duration-200 hover:border-primary/30 hover:shadow-lg ${
-        selected ? "border-primary/50 bg-primary/5 ring-2 ring-primary/20" : "hover:bg-accent/50"
+      className={`group relative h-full flex flex-col rounded-xl border bg-card p-3 sm:p-4
+      transition-all duration-200
+      ${
+        selected
+          ? "border-primary/50 bg-primary/5 ring-2 ring-primary/20"
+          : "md:hover:border-primary/30 md:hover:shadow-lg md:hover:bg-accent/50"
       }`}
     >
-      {/* Imagen */}
-      <div className="relative mb-4">
+      {/* Imagen responsiva con aspecto fijo */}
+      <div className="relative mb-3 sm:mb-4">
         <ExerciseImage
           src={(exercise as any).gif_url || (exercise as any).imagen_url}
           alt={exercise.nombre}
@@ -31,21 +35,25 @@ export const ExercisePickerCard: React.FC<Props> = ({ exercise, selected, onSele
         />
       </div>
 
-      {/* Info */}
-      <div className="space-y-3">
-        <h4 className="min-h-[2.5rem] text-sm font-medium leading-tight line-clamp-2">{exercise.nombre}</h4>
+      {/* Info; flex-1 para empujar el botón al fondo y alinear cards en grid */}
+      <div className="space-y-2.5 sm:space-y-3 flex-1 min-w-0">
+        <h4 className="text-sm sm:text-[15px] font-medium leading-tight line-clamp-2 break-words">{exercise.nombre}</h4>
 
-        <div className="flex flex-wrap gap-1">
-          <Badge variant="secondary" className="text-xs">
+        <div className="flex flex-wrap gap-1.5">
+          <Badge variant="secondary" className="text-[11px] sm:text-xs">
             {exercise.grupo_muscular}
           </Badge>
+
           {diff && (
             <Badge
               variant="outline"
-              className={`text-xs ${
-                (diff === "Principiante" && "border-green-500 text-green-700 bg-green-50") ||
-                (diff === "Intermedio" && "border-yellow-500 text-yellow-700 bg-yellow-50") ||
-                "border-red-500 text-red-700 bg-red-50"
+              className={`text-[11px] sm:text-xs
+              ${
+                (diff === "Principiante" &&
+                  "border-emerald-400/50 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10") ||
+                (diff === "Intermedio" &&
+                  "border-amber-400/50 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10") ||
+                "border-rose-400/50 text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-500/10"
               }`}
             >
               {diff}
@@ -53,20 +61,20 @@ export const ExercisePickerCard: React.FC<Props> = ({ exercise, selected, onSele
           )}
         </div>
 
-        {equip && <p className="line-clamp-1 text-xs text-muted-foreground">{equip}</p>}
+        {equip && <p className="line-clamp-1 text-[11px] sm:text-xs text-muted-foreground">{equip}</p>}
 
         {exercise.descripcion && (
           <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{exercise.descripcion}</p>
         )}
       </div>
 
-      {/* Acción */}
-      <div className="mt-4">
+      {/* Acción; botón full-width en móvil, altura táctil segura */}
+      <div className="mt-3 sm:mt-4">
         <Button
           size="sm"
           onClick={() => onSelect(exercise)}
           disabled={selected}
-          className="w-full transition-all"
+          className="w-full h-10 sm:h-9 transition-all"
           variant={selected ? "secondary" : "default"}
         >
           {selected ? (

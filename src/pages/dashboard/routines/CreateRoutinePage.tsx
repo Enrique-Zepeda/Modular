@@ -88,27 +88,41 @@ export function CreateRoutinePage() {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={() => handleNavigation("/dashboard/routines")}>
+    <div className="mx-auto max-w-[min(100%,theme(spacing.7xl))] px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
+      {/* Header: móvil en columna, desde sm en fila */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => handleNavigation("/dashboard/routines")}
+          className="h-10 w-10 p-0 rounded-lg"
+          aria-label="Volver a rutinas"
+        >
           <ArrowLeft className="h-4 w-4" />
         </Button>
+
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">Crear Nueva Rutina</h1>
-          <p className="text-muted-foreground">Define los detalles de tu nueva rutina de ejercicios</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-balance">Crear Nueva Rutina</h1>
+          <p className="text-sm sm:text-base text-muted-foreground text-pretty">
+            Define los detalles de tu nueva rutina de ejercicios
+          </p>
         </div>
       </div>
 
-      <div className="max-w-2xl">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+      {/* Contenedor del formulario centrado y fluido */}
+      <div className="w-full max-w-2xl">
+        <Card className="rounded-2xl border-2 border-border/60 bg-card/50 overflow-hidden">
+          <CardHeader className="p-5 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
               <Plus className="h-5 w-5" />
               Información de la Rutina
             </CardTitle>
-            <CardDescription>Completa todos los campos para crear tu rutina personalizada</CardDescription>
+            <CardDescription className="text-sm sm:text-base">
+              Completa todos los campos para crear tu rutina personalizada
+            </CardDescription>
           </CardHeader>
-          <CardContent>
+
+          <CardContent className="p-5 sm:p-6">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
@@ -118,7 +132,7 @@ export function CreateRoutinePage() {
                     <FormItem>
                       <FormLabel>Nombre de la Rutina</FormLabel>
                       <FormControl>
-                        <Input placeholder="Ej: Rutina de Fuerza Superior" {...field} />
+                        <Input placeholder="Ej: Rutina de Fuerza Superior" className="h-11" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -143,7 +157,8 @@ export function CreateRoutinePage() {
                   )}
                 />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Grid responsive para selects */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   <FormField
                     control={form.control}
                     name="nivel_recomendado"
@@ -152,7 +167,7 @@ export function CreateRoutinePage() {
                         <FormLabel>Nivel Recomendado</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="h-11">
                               <SelectValue placeholder="Selecciona el nivel" />
                             </SelectTrigger>
                           </FormControl>
@@ -175,7 +190,7 @@ export function CreateRoutinePage() {
                         <FormLabel>Objetivo</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="h-11">
                               <SelectValue placeholder="Selecciona el objetivo" />
                             </SelectTrigger>
                           </FormControl>
@@ -200,9 +215,11 @@ export function CreateRoutinePage() {
                       <FormControl>
                         <Input
                           type="number"
+                          inputMode="numeric"
                           min="1"
                           max="300"
                           placeholder="30"
+                          className="h-11"
                           {...field}
                           onChange={(e) => field.onChange(Number.parseInt(e.target.value) || 0)}
                         />
@@ -212,17 +229,18 @@ export function CreateRoutinePage() {
                   )}
                 />
 
-                <div className="flex gap-4 pt-6">
+                {/* Acciones: columna en móvil, fila desde sm */}
+                <div className="pt-2 sm:pt-6 flex flex-col sm:flex-row gap-3 sm:gap-4">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => handleNavigation("/dashboard/routines")}
-                    className="flex-1"
+                    className="h-11 w-full sm:w-auto sm:flex-1"
                   >
                     Cancelar
                   </Button>
-                  <Button type="submit" disabled={isLoading} className="flex-1">
-                    {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  <Button type="submit" disabled={isLoading} className="h-11 w-full sm:w-auto sm:flex-1">
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {isLoading ? "Creando..." : "Crear Rutina"}
                   </Button>
                 </div>

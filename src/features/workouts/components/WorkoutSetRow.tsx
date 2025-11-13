@@ -18,32 +18,41 @@ export const WorkoutSetRow = memo(function WorkoutSetRow({
   onRemove: () => void;
 }) {
   return (
-    <div className="grid grid-cols-12 items-center gap-2">
-      <div className="col-span-2 text-xs text-muted-foreground">Set {setIndexLabel}</div>
-      <div className="col-span-3 flex items-center gap-2">
-        <label className="text-xs w-10">KG</label>
+    <div className="grid grid-cols-12 items-center gap-3 sm:gap-4">
+      {/* Set label: línea propia en móvil */}
+      <div className="col-span-12 md:col-span-2 text-xs sm:text-sm text-muted-foreground">
+        <span className="font-semibold">Set</span> {setIndexLabel}
+      </div>
+
+      {/* KG */}
+      <div className="col-span-6 md:col-span-3">
+        <label className="block text-[10px] sm:text-xs font-semibold text-muted-foreground mb-1">KG</label>
         <Input
           inputMode="decimal"
           value={values.kg}
           onChange={(e) => onChange("kg", e.target.value)}
           placeholder="kg"
-          className="h-8"
+          className="h-11 rounded-xl tabular-nums"
         />
       </div>
-      <div className="col-span-3 flex items-center gap-2">
-        <label className="text-xs w-10">Reps</label>
+
+      {/* Reps */}
+      <div className="col-span-6 md:col-span-3">
+        <label className="block text-[10px] sm:text-xs font-semibold text-muted-foreground mb-1">Reps</label>
         <Input
           inputMode="numeric"
           value={values.reps}
           onChange={(e) => onChange("reps", e.target.value)}
           placeholder="reps"
-          className="h-8"
+          className="h-11 rounded-xl tabular-nums"
         />
       </div>
-      <div className="col-span-2 flex items-center gap-2">
-        <label className="text-xs w-10">RPE</label>
+
+      {/* RPE */}
+      <div className="col-span-6 md:col-span-2">
+        <label className="block text-[10px] sm:text-xs font-semibold text-muted-foreground mb-1">RPE</label>
         <select
-          className="w-full h-8 rounded-md border bg-background px-2 text-sm"
+          className="w-full h-11 rounded-xl border bg-background px-3 text-sm"
           value={values.rpe}
           onChange={(e) => onChange("rpe", e.target.value)}
         >
@@ -55,10 +64,18 @@ export const WorkoutSetRow = memo(function WorkoutSetRow({
           ))}
         </select>
       </div>
-      <div className="col-span-2 flex items-center justify-end gap-2">
-        <label className="text-xs">Hecho</label>
-        <input type="checkbox" className="h-4 w-4" checked={values.done} onChange={onToggleDone} />
-        <Button variant="ghost" size="icon" onClick={onRemove} title="Eliminar serie">
+
+      {/* Acciones */}
+      <div className="col-span-6 md:col-span-2 flex items-center justify-end gap-3">
+        <label className="text-xs sm:text-sm">Hecho</label>
+        <input
+          type="checkbox"
+          className="h-5 w-5 rounded"
+          checked={values.done}
+          onChange={onToggleDone}
+          aria-label="Marcar set como hecho"
+        />
+        <Button variant="ghost" size="icon" onClick={onRemove} title="Eliminar serie" className="h-9 w-9 rounded-lg">
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>

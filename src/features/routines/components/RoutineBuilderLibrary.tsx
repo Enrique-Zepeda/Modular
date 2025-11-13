@@ -170,17 +170,18 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
 
   return (
     <>
-      {/* Panel con altura acotada al viewport; el scroll queda dentro */}
-      <div className="flex flex-col bg-background max-h-[82vh] h-[82vh] rounded-2xl border border-primary/20 min-h-0">
-        {/* Header sticky */}
-        <div className="flex-shrink-0 sticky top-0 z-10 bg-background border-b border-border/50 p-5 rounded-t-2xl">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="font-semibold text-lg text-primary">Agregar Ejercicios</h3>
+      {/* Panel responsive: en móvil usa casi todo el alto; en desktop mantiene 82vh */}
+      <div className="flex flex-col bg-background max-h-[100dvh] h-[100dvh] sm:max-h-[82vh] sm:h-[82vh] rounded-2xl border border-primary/20 min-h-0">
+        {/* Header sticky con safe-area y blur para superponerse al scroll */}
+        <div className="flex-shrink-0 sticky top-[env(safe-area-inset-top)] z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-b border-border/50 p-4 sm:p-5 rounded-t-2xl">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4 sm:mb-5">
+            <h3 className="font-semibold text-base sm:text-lg text-primary">Agregar Ejercicios</h3>
             <Badge variant="secondary" className="rounded-md px-3 py-1 text-xs font-medium">
               {availableExercises.length} encontrados
             </Badge>
           </div>
 
+          {/* Filtros: grid responsiva y alturas homogéneas */}
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium mb-2 block">Buscar ejercicios</label>
@@ -198,6 +199,7 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
                     size="sm"
                     onClick={() => setSearchTerm("")}
                     className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                    aria-label="Limpiar búsqueda"
                   >
                     <X className="h-3.5 w-3.5" />
                   </Button>
@@ -205,14 +207,14 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
               </div>
             </div>
 
-            <div className="flex gap-3">
-              <div className="flex-1 space-y-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase">
                   <Dumbbell className="h-3 w-3" />
                   <span>MÚSCULO</span>
                 </div>
                 <Select value={selectedMuscleGroup} onValueChange={setSelectedMuscleGroup}>
-                  <SelectTrigger className="h-9 text-sm">
+                  <SelectTrigger className="h-10 sm:h-9 text-sm">
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
@@ -230,13 +232,13 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
                 </Select>
               </div>
 
-              <div className="flex-1 space-y-1.5">
+              <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase">
                   <TrendingUp className="h-3 w-3" />
                   <span>DIFICULTAD</span>
                 </div>
                 <Select value={selectedDifficulty} onValueChange={setSelectedDifficulty}>
-                  <SelectTrigger className="h-9 text-sm">
+                  <SelectTrigger className="h-10 sm:h-9 text-sm">
                     <SelectValue placeholder="Todo" />
                   </SelectTrigger>
                   <SelectContent>
@@ -249,13 +251,13 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
                 </Select>
               </div>
 
-              <div className="flex-1 space-y-1.5">
+              <div className="space-y-1.5">
                 <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase">
                   <Filter className="h-3 w-3" />
                   <span>EQUIPO</span>
                 </div>
                 <Select value={selectedEquipment} onValueChange={setSelectedEquipment}>
-                  <SelectTrigger className="h-9 text-sm">
+                  <SelectTrigger className="h-10 sm:h-9 text-sm">
                     <SelectValue placeholder="Todo" />
                   </SelectTrigger>
                   <SelectContent>
@@ -263,7 +265,7 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
                     {Array.from(
                       new Set(
                         baseExercises
-                          .map((e: any) => normalizeExerciseData(e).equipamiento) // <- aquí
+                          .map((e: any) => normalizeExerciseData(e).equipamiento)
                           .filter(Boolean)
                           .flatMap((s: string) =>
                             s
@@ -286,17 +288,17 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
           </div>
         </div>
 
-        {/* Lista con scroll y botón "Cargar más" sticky al fondo */}
+        {/* Lista scrolleable: padding responsivo y scrollbar fino */}
         <div
           className="
-            flex-1 min-h-0 overflow-y-auto p-5 pr-3
-            [scrollbar-width:thin]
-            [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar]:h-1.5
-            [&::-webkit-scrollbar-track]:bg-transparent
-            [&::-webkit-scrollbar-thumb]:bg-border/40
-            hover:[&::-webkit-scrollbar-thumb]:bg-border/60
-            [&::-webkit-scrollbar-thumb]:rounded-full
-          "
+          flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 pr-2 sm:pr-3
+          [scrollbar-width:thin]
+          [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar]:h-1.5
+          [&::-webkit-scrollbar-track]:bg-transparent
+          [&::-webkit-scrollbar-thumb]:bg-border/40
+          hover:[&::-webkit-scrollbar-thumb]:bg-border/60
+          [&::-webkit-scrollbar-thumb]:rounded-full
+        "
         >
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12">
@@ -329,7 +331,7 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
                       }}
                     >
                       <CardContent className="p-3">
-                        <div className="flex gap-3 items-center">
+                        <div className="flex gap-3 items-center min-w-0">
                           <ExerciseImage
                             src={imagen}
                             alt={nombre}
@@ -341,7 +343,7 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
                           <div className="flex-1 min-w-0">
                             <h4 className="font-medium text-sm line-clamp-1 mb-1">{nombre}</h4>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-                              {grupo_muscular && <span>{grupo_muscular}</span>}
+                              {grupo_muscular && <span className="truncate">{grupo_muscular}</span>}
                               {grupo_muscular && equipamiento && <span>•</span>}
                               {equipamiento && <span className="line-clamp-1">{equipamiento}</span>}
                               {dificultadKey && dificultadKey !== "all" && (
@@ -360,9 +362,10 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
                             </div>
                           </div>
 
+                          {/* En móvil siempre visible; en desktop aparece al hover */}
                           <Button
                             size="sm"
-                            className="h-8 px-3 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="h-8 px-3 text-xs opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                           >
                             <Plus className="h-3.5 w-3.5 mr-1" />
                             Agregar
@@ -377,11 +380,11 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
               {hasMore && (
                 <div className="sticky bottom-0 left-0 right-0">
                   <div className="pointer-events-none h-8 -mb-2 bg-gradient-to-t from-background to-transparent" />
-                  <div className="bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70 p-3 rounded-t-xl border-t border-border/40">
+                  <div className="bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70 p-3 rounded-t-xl border-t border-border/40 pb-[env(safe-area-inset-bottom)]">
                     <Button
                       variant="outline"
                       onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
-                      className="w-full h-10 rounded-xl border-dashed hover:bg-primary/5 hover:border-primary hover:text-primary"
+                      className="w-full h-10 rounded-xl border-dashed border-2 hover:bg-primary/5 hover:border-primary hover:text-primary"
                     >
                       Cargar más
                     </Button>
@@ -393,17 +396,18 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
         </div>
       </div>
 
+      {/* Dialog responsive: ancho fluido en móvil, max-w en desktop */}
       <Dialog open={isConfigDialogOpen} onOpenChange={setIsConfigDialogOpen}>
-        <DialogContent className="rounded-2xl border-2 border-border/50 shadow-2xl max-w-lg">
+        <DialogContent className="rounded-2xl border-2 border-border/50 shadow-2xl w-[96vw] sm:w-auto sm:max-w-lg">
           <DialogHeader className="space-y-3">
-            <DialogTitle className="text-2xl flex items-center gap-3">
+            <DialogTitle className="text-xl sm:text-2xl flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 border-2 border-primary/30 shadow-sm">
                 <Dumbbell className="h-6 w-6 text-primary" />
               </div>
               <span>Configurar Ejercicio</span>
             </DialogTitle>
-            <DialogDescription className="text-base leading-relaxed">
-              Configura las series, repeticiones y peso para
+            <DialogDescription className="text-sm sm:text-base leading-relaxed">
+              Configura las series, repeticiones y peso para{" "}
               <span className="font-extrabold text-foreground bg-primary/10 px-2 py-0.5 rounded">
                 {selectedExercise?.nombre}
               </span>
@@ -433,7 +437,8 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
               })}
               className="space-y-6 pt-2"
             >
-              <div className="grid grid-cols-3 gap-4">
+              {/* Grid responsiva: 1 col en móvil, 3 cols en desktop */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
                   name="series"
@@ -508,7 +513,8 @@ export function RoutineBuilderLibrary({ onAddExercise, excludedExerciseIds }: Ro
                 />
               </div>
 
-              <div className="flex gap-3 pt-2">
+              {/* Botonera apilada en móvil, en fila en desktop */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <Button
                   type="button"
                   variant="outline"

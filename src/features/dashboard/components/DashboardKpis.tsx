@@ -30,14 +30,14 @@ export function DashboardKpis() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
         {[...Array(3)].map((_, i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ delay: i * 0.15, duration: 0.5 }}
-            className="relative overflow-hidden rounded-3xl border border-border/40 bg-card p-8 shadow-sm"
+            className="relative overflow-hidden rounded-2xl lg:rounded-3xl border border-border/40 bg-card p-6 sm:p-8 shadow-sm min-w-0"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-muted/20 via-muted/10 to-transparent animate-pulse" />
             <div className="relative space-y-4">
@@ -45,15 +45,15 @@ export function DashboardKpis() {
                 <motion.div
                   animate={{ scale: [1, 1.1, 1] }}
                   transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, delay: i * 0.3 }}
-                  className="h-12 w-12 rounded-2xl bg-gradient-to-br from-muted/80 to-muted/60 animate-pulse"
+                  className="h-10 w-10 sm:h-12 sm:w-12 rounded-2xl bg-gradient-to-br from-muted/80 to-muted/60 animate-pulse"
                 />
-                <div className="space-y-2 flex-1">
-                  <div className="h-4 w-28 bg-gradient-to-r from-muted/80 to-muted/60 rounded-lg animate-pulse" />
-                  <div className="h-3 w-20 bg-gradient-to-r from-muted/60 to-muted/40 rounded animate-pulse" />
+                <div className="space-y-2 flex-1 min-w-0">
+                  <div className="h-4 w-24 sm:w-28 bg-gradient-to-r from-muted/80 to-muted/60 rounded-lg animate-pulse" />
+                  <div className="h-3 w-16 sm:w-20 bg-gradient-to-r from-muted/60 to-muted/40 rounded animate-pulse" />
                 </div>
               </div>
-              <div className="h-10 w-24 bg-gradient-to-r from-muted/80 to-muted/60 rounded-xl animate-pulse" />
-              <div className="h-3 w-36 bg-gradient-to-r from-muted/60 to-muted/40 rounded animate-pulse" />
+              <div className="h-8 w-20 sm:h-10 sm:w-24 bg-gradient-to-r from-muted/80 to-muted/60 rounded-xl animate-pulse" />
+              <div className="h-3 w-28 sm:w-36 bg-gradient-to-r from-muted/60 to-muted/40 rounded animate-pulse" />
             </div>
             <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
           </motion.div>
@@ -67,29 +67,26 @@ export function DashboardKpis() {
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="relative overflow-hidden rounded-3xl border border-destructive/20 bg-gradient-to-br from-destructive/5 via-destructive/3 to-transparent p-10"
+        className="relative overflow-hidden rounded-2xl lg:rounded-3xl border border-destructive/20 bg-gradient-to-br from-destructive/5 via-destructive/3 to-transparent p-6 sm:p-8 lg:p-10"
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_70%,rgba(239,68,68,0.1),transparent_50%)]" />
-        <div className="relative flex items-start gap-5">
+        <div className="relative flex items-start gap-4 sm:gap-5">
           <motion.div
-            animate={{
-              rotate: [0, -5, 5, 0],
-              scale: [1, 1.05, 1],
-            }}
+            animate={{ rotate: [0, -5, 5, 0], scale: [1, 1.05, 1] }}
             transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY }}
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-destructive/15 to-destructive/5 ring-1 ring-destructive/20 shadow-lg"
+            className="flex h-12 w-12 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-destructive/15 to-destructive/5 ring-1 ring-destructive/20 shadow-lg"
           >
-            <TrendingUp className="h-7 w-7 text-destructive" />
+            <TrendingUp className="h-6 w-6 sm:h-7 sm:w-7 text-destructive" />
           </motion.div>
           <div className="space-y-3">
-            <h3 className="text-xl font-bold text-destructive">Error al cargar métricas</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-destructive">Error al cargar métricas</h3>
             <p className="text-sm text-destructive/80 leading-relaxed max-w-md">
               No se pudieron cargar las métrricas del dashboard. Verifica tu conexión e intenta recargar la página.
             </p>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="mt-4 rounded-xl bg-gradient-to-r from-destructive/10 to-destructive/5 px-6 py-3 text-sm font-semibold text-destructive transition-all duration-200 hover:from-destructive/20 hover:to-destructive/10 hover:shadow-lg"
+              className="mt-4 rounded-xl bg-gradient-to-r from-destructive/10 to-destructive/5 px-5 sm:px-6 py-3 text-sm font-semibold text-destructive transition-all duration-200 hover:from-destructive/20 hover:to-destructive/10 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40 focus-visible:ring-offset-2"
               onClick={() => refetch()}
             >
               Reintentar carga
@@ -142,7 +139,7 @@ export function DashboardKpis() {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <div className="min-w-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
       <AnimatePresence>
         {kpis.map((kpi, index) => {
           const Icon = kpi.icon;
@@ -152,13 +149,9 @@ export function DashboardKpis() {
               initial={{ opacity: 0, y: 30, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -30, scale: 0.9 }}
-              transition={{
-                delay: index * 0.2,
-                duration: 0.6,
-                ease: "easeOut",
-              }}
-              whileHover={{ y: -8, scale: 1.03 }}
-              className="group relative overflow-hidden rounded-3xl border border-border/40 bg-card p-8 shadow-sm transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5 hover:border-primary/20"
+              transition={{ delay: index * 0.2, duration: 0.6, ease: "easeOut" }}
+              whileHover={{ y: -6, scale: 1.02 }}
+              className="group relative overflow-hidden rounded-2xl lg:rounded-3xl border border-border/40 bg-card p-6 sm:p-8 shadow-sm transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5 hover:border-primary/20 min-w-0"
             >
               <div
                 className={`absolute inset-0 bg-gradient-to-br ${kpi.gradient} opacity-40 group-hover:opacity-70 transition-opacity duration-500`}
@@ -197,22 +190,24 @@ export function DashboardKpis() {
                   ],
                 }}
                 transition={{ duration: 4, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                className="absolute inset-0 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-sm"
+                className="absolute inset-0 rounded-2xl lg:rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-sm"
               />
 
               {/* Content */}
               <div className="relative z-10">
                 {/* Header with icon and title */}
-                <div className="flex items-center gap-4 mb-6">
+                <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
                   <motion.div
-                    whileHover={{ scale: 1.15, rotate: 5 }}
+                    whileHover={{ scale: 1.1, rotate: 4 }}
                     transition={{ type: "spring", stiffness: 300 }}
-                    className={`flex h-14 w-14 items-center justify-center rounded-2xl ${kpi.iconBg} ring-1 ring-border/20 shadow-lg transition-all duration-300 group-hover:shadow-xl`}
+                    className={`flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-2xl ${kpi.iconBg} ring-1 ring-border/20 shadow-lg transition-all duration-300 group-hover:shadow-xl`}
                   >
-                    <Icon className={`h-7 w-7 ${kpi.iconColor}`} />
+                    <Icon className={`h-6 w-6 sm:h-7 sm:w-7 ${kpi.iconColor}`} />
                   </motion.div>
                   <div className="flex-1 min-w-0">
-                    <h3 className={`font-bold ${kpi.textColor} text-sm leading-tight`}>{kpi.title}</h3>
+                    <h3 className={`font-bold ${kpi.textColor} text-xs sm:text-sm leading-tight truncate`}>
+                      {kpi.title}
+                    </h3>
                   </div>
                 </div>
 
@@ -220,28 +215,22 @@ export function DashboardKpis() {
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: index * 0.2 + 0.3, type: "spring", bounce: 0.4 }}
-                  className="mb-4"
+                  className="mb-3 sm:mb-4"
                 >
-                  <p className={`text-4xl font-black ${kpi.valueColor} leading-none tracking-tight`}>{kpi.value}</p>
+                  <p className={`text-3xl sm:text-4xl font-black ${kpi.valueColor} leading-none tracking-tight`}>
+                    {kpi.value}
+                  </p>
                 </motion.div>
 
                 {/* Description */}
-                <p className={`text-sm ${kpi.descColor} leading-relaxed`}>{kpi.description}</p>
+                <p className={`text-xs sm:text-sm ${kpi.descColor} leading-relaxed`}>{kpi.description}</p>
 
                 <motion.div
-                  animate={{
-                    opacity: [0.1, 0.3, 0.1],
-                    scale: [1, 1.1, 1],
-                    rotate: [0, 5, 0],
-                  }}
-                  transition={{
-                    duration: 4,
-                    repeat: Number.POSITIVE_INFINITY,
-                    delay: index * 0.5,
-                  }}
-                  className="absolute top-6 right-6 opacity-10 group-hover:opacity-30 transition-opacity duration-500"
+                  animate={{ opacity: [0.1, 0.3, 0.1], scale: [1, 1.1, 1], rotate: [0, 5, 0] }}
+                  transition={{ duration: 4, repeat: Number.POSITIVE_INFINITY, delay: index * 0.5 }}
+                  className="absolute top-4 right-4 sm:top-6 sm:right-6 opacity-10 group-hover:opacity-30 transition-opacity duration-500"
                 >
-                  <Icon className="h-10 w-10" />
+                  <Icon className="h-8 w-8 sm:h-10 sm:w-10" />
                 </motion.div>
               </div>
             </motion.div>

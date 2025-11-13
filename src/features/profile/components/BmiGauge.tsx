@@ -56,8 +56,9 @@ export function BmiGauge({
 
   return (
     <Card className={cn("w-full", className)}>
-      <CardContent className="pt-6">
-        <div className="relative w-full" style={{ height }}>
+      <CardContent className="pt-4 sm:pt-6">
+        {/* Contenedor responsivo: altura fija en px pero adaptado a ancho completo */}
+        <div className="relative w-full max-w-full" style={{ height }}>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -92,12 +93,16 @@ export function BmiGauge({
             </motion.g>
           </svg>
 
-          {/* Valor central */}
+          {/* Valor central: tipografía responsiva y sin desbordar en mobile */}
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1">
-            <div className="text-sm text-muted-foreground">IMC</div>
-            <div className="text-3xl font-bold leading-none">{bmi.toFixed(1)}</div>
-            <div className="text-xs font-medium text-muted-foreground">{categoryLabel}</div>
-            {caption ? <div className="mt-1 text-xs text-muted-foreground">{caption}</div> : null}
+            <div className="text-xs sm:text-sm text-muted-foreground">IMC</div>
+            <div className="text-2xl sm:text-3xl font-bold leading-none">{bmi.toFixed(1)}</div>
+            <div className="text-[0.7rem] sm:text-xs font-medium text-muted-foreground text-center px-2">
+              {categoryLabel}
+            </div>
+            {caption ? (
+              <div className="mt-1 text-[0.7rem] sm:text-xs text-muted-foreground text-center px-4">{caption}</div>
+            ) : null}
           </div>
         </div>
       </CardContent>

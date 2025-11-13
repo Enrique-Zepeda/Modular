@@ -150,24 +150,28 @@ export default function ProfileFriendsModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         aria-describedby={undefined}
-        className={cn("sm:max-w-lg p-0 overflow-hidden border-2 border-border/60", className)}
+        className={cn(
+          // Mobile-first: que no se salga de la pantalla y mantenga buen padding
+          "w-full max-w-[calc(100vw-2rem)] sm:max-w-lg p-0 overflow-hidden border-2 border-border/60",
+          className
+        )}
       >
-        <DialogHeader className="px-6 pt-8 pb-4 border-b border-border/60 bg-gradient-to-br from-background to-muted/5">
-          <DialogTitle aria-describedby={undefined} className="flex items-center gap-3 text-xl font-bold">
+        <DialogHeader className="flex flex-col gap-3 px-4 sm:px-6 pt-6 sm:pt-8 pb-3 sm:pb-4 border-b border-border/60 bg-gradient-to-br from-background to-muted/5">
+          <DialogTitle aria-describedby={undefined} className="flex items-center gap-3 text-lg sm:text-xl font-bold">
             <div className="p-2.5 bg-primary/10 rounded-lg ring-1 ring-primary/20">
               <Users className="size-5 text-primary" />
             </div>
             <span className="truncate">Amigos de {username?.replace(/^@+/, "")}</span>
           </DialogTitle>
 
-          <div className="mt-4 space-y-2">
+          <div className="mt-2 space-y-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Buscar por nombre o @usuario…"
-                className="pl-9 h-10"
+                className="pl-9 h-10 text-sm"
                 inputMode="search"
                 spellCheck="false"
                 aria-label="Buscar amigos"
@@ -182,7 +186,7 @@ export default function ProfileFriendsModal({
           </div>
         </DialogHeader>
 
-        <div className="px-6 py-4 max-h-[60vh]">
+        <div className="px-4 sm:px-6 py-4 max-h-[60vh] sm:max-h-[70vh]">
           {isLoading ? (
             <div className="space-y-3">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -196,26 +200,28 @@ export default function ProfileFriendsModal({
             </div>
           ) : isError ? (
             <div className="p-6 text-center">
-              <div className="p-4 rounded-full bg-destructive/10 mb-3 w-fit mx-auto">
+              <div className="mx-auto mb-3 w-fit p-4 rounded-full bg-destructive/10">
                 <Users className="h-6 w-6 text-destructive/60" />
               </div>
-              <p className="text-sm font-medium text-destructive mb-1">No se pudo cargar la lista</p>
-              <p className="text-xs text-muted-foreground">{(error as any) ?? "Intenta recargar la página."}</p>
+              <p className="mb-1 text-sm font-medium text-destructive">No se pudo cargar la lista</p>
+              <p className="text-xs text-muted-foreground break-words">
+                {(error as any) ?? "Intenta recargar la página."}
+              </p>
             </div>
           ) : list.length === 0 ? (
             <div className="p-6 text-center">
-              <div className="p-4 rounded-full bg-muted/50 mb-3 w-fit mx-auto">
+              <div className="mx-auto mb-3 w-fit p-4 rounded-full bg-muted/50">
                 <Users className="h-6 w-6 text-muted-foreground/40" />
               </div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">
+              <p className="mb-1 text-sm font-medium text-muted-foreground">
                 {query ? "No se encontraron amigos" : "Sin amigos aún"}
               </p>
-              <p className="text-xs text-muted-foreground/70">
+              <p className="text-xs text-muted-foreground/70 break-words">
                 {query ? `No hay amigos que coincidan con "${query}".` : "Este usuario aún no tiene amigos."}
               </p>
             </div>
           ) : (
-            <ScrollArea className="h-full pr-4">
+            <ScrollArea className="h-full pr-3 sm:pr-4">
               <ul className="space-y-2">
                 {list.map((f: any) => {
                   // Compat: soporta distintas formas de la fila
@@ -248,7 +254,7 @@ export default function ProfileFriendsModal({
                   return (
                     <li
                       key={id}
-                      className="p-3 flex items-center gap-3 rounded-xl border-2 border-border/60 bg-gradient-to-br from-card/95 to-card/90 hover:border-primary/40 hover:shadow-md transition-all duration-200 focus-within:ring-2 focus-within:ring-primary/40"
+                      className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-xl border-2 border-border/60 bg-gradient-to-br from-card/95 to-card/90 hover:border-primary/40 hover:shadow-md transition-all duration-200 focus-within:ring-2 focus-within:ring-primary/40"
                     >
                       <Link
                         to={`/u/${usernameDerived}`}
@@ -261,7 +267,7 @@ export default function ProfileFriendsModal({
                           sexo={sexoDerived}
                           alt={`Avatar de ${usernameDerived}`}
                           size={48} // h-12 w-12
-                          className="border-2 border-primary/20 ring-2 ring-primary/10 shadow-sm flex-shrink-0"
+                          className="flex-shrink-0 border-2 border-primary/20 ring-2 ring-primary/10 shadow-sm"
                           imageClassName="object-cover" // evita recorte
                           fallbackText={initialDerived}
                         />
@@ -280,7 +286,7 @@ export default function ProfileFriendsModal({
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
+                              className="w-full sm:w-auto justify-center gap-2 text-xs sm:text-sm text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
                               disabled={isPending}
                               onClick={(e) => e.stopPropagation()}
                               aria-label={`Eliminar a ${usernameDerived} de amigos`}
@@ -294,7 +300,7 @@ export default function ProfileFriendsModal({
                               <span className="hidden sm:inline">{isPending ? "Eliminando…" : "Eliminar"}</span>
                             </Button>
                           </AlertDialogTrigger>
-                          <AlertDialogContent>
+                          <AlertDialogContent className="w-full max-w-sm sm:max-w-md">
                             <AlertDialogHeader>
                               <AlertDialogTitle>Eliminar de amigos</AlertDialogTitle>
                               <AlertDialogDescription>

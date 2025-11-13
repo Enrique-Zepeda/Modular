@@ -68,9 +68,9 @@ export default function ProfileWorkoutsList({ username, avatarUrl, isMine = fals
 
   if (isLoading) {
     return (
-      <div className="space-y-5">
+      <div className="space-y-4 sm:space-y-5">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-40 w-full rounded-xl" />
+          <Skeleton key={i} className="h-28 sm:h-32 lg:h-36 w-full rounded-xl" />
         ))}
       </div>
     );
@@ -78,9 +78,9 @@ export default function ProfileWorkoutsList({ username, avatarUrl, isMine = fals
 
   if (error) {
     return (
-      <Card className="border-2 border-destructive/40 bg-gradient-to-br from-destructive/5 to-destructive/10">
-        <CardContent className="p-8 text-center">
-          <p className="text-sm text-destructive font-medium">{error}</p>
+      <Card className="w-full border-2 border-destructive/40 bg-gradient-to-br from-destructive/5 to-destructive/10">
+        <CardContent className="p-5 sm:p-8 text-center">
+          <p className="text-xs sm:text-sm text-destructive font-medium">{error}</p>
         </CardContent>
       </Card>
     );
@@ -88,16 +88,16 @@ export default function ProfileWorkoutsList({ username, avatarUrl, isMine = fals
 
   if (items.length === 0) {
     return (
-      <Card className="border-2 border-border/60 bg-gradient-to-br from-card/95 to-card/90">
-        <CardContent className="p-8 text-center">
-          <p className="text-sm text-muted-foreground">Aún no hay entrenamientos para mostrar.</p>
+      <Card className="w-full border-2 border-border/60 bg-gradient-to-br from-card/95 to-card/90">
+        <CardContent className="p-5 sm:p-8 text-center">
+          <p className="text-xs sm:text-sm text-muted-foreground">Aún no hay entrenamientos para mostrar.</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-5">
       {items.map((w) => (
         <WorkoutCard
           key={w.id_sesion}
@@ -130,8 +130,9 @@ export default function ProfileWorkoutsList({ username, avatarUrl, isMine = fals
           }}
         />
       ))}
+
       {hasMore && (
-        <div className="pt-4">
+        <div className="pt-2 sm:pt-4">
           <Button
             variant="secondary"
             onClick={() => {
@@ -140,7 +141,7 @@ export default function ProfileWorkoutsList({ username, avatarUrl, isMine = fals
               loadPage(next);
             }}
             disabled={isFetchingMore}
-            className="w-full h-12 text-base font-bold rounded-xl border-2 border-border/60 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 hover:scale-[1.02]"
+            className="w-full h-11 sm:h-12 text-sm sm:text-base font-bold rounded-xl border-2 border-border/60 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 hover:scale-[1.02]"
           >
             {isFetchingMore ? "Cargando…" : "Cargar más entrenamientos"}
           </Button>

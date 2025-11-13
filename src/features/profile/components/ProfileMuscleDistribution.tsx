@@ -32,28 +32,32 @@ export default function ProfileMuscleDistribution({
 
   if (!data.length || total <= 0) {
     return (
-      <Card className="border-2 border-border/60 bg-gradient-to-br from-card/95 to-card/90">
-        <CardContent className="p-6 text-center">
-          <p className="text-sm text-muted-foreground">Aún no hay datos suficientes para la distribución de volumen.</p>
+      <Card className="w-full border-2 border-border/60 bg-gradient-to-br from-card/95 to-card/90">
+        <CardContent className="p-4 sm:p-6 text-center">
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Aún no hay datos suficientes para la distribución de volumen.
+          </p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="border-2 border-border/60 bg-gradient-to-br from-card via-card/98 to-card/95 shadow-lg hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 transition-all duration-300 overflow-hidden relative">
+    <Card className="w-full border-2 border-border/60 bg-gradient-to-br from-card via-card/98 to-card/95 shadow-lg hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 transition-all duration-300 overflow-hidden relative">
       <div className="absolute inset-0 bg-gradient-to-br from-purple-500/8 via-transparent to-primary/5 pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-40 sm:w-48 h-40 sm:h-48 bg-purple-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none" />
 
-      <CardContent className="p-6 relative">
-        <div className="mb-6 space-y-3">
-          <h3 className="text-base font-bold text-foreground uppercase tracking-wider">Distribución de volumen</h3>
-          <div className="flex items-center justify-between">
-            <div className="text-xs text-muted-foreground font-semibold bg-muted/50 px-3 py-1.5 rounded-lg">
+      <CardContent className="relative p-4 sm:p-6">
+        <div className="mb-4 sm:mb-6 space-y-2 sm:space-y-3">
+          <h3 className="text-sm sm:text-base font-bold text-foreground uppercase tracking-wider">
+            Distribución de volumen
+          </h3>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="inline-flex items-center text-[0.7rem] sm:text-xs text-muted-foreground font-semibold bg-muted/50 px-3 py-1.5 rounded-lg w-fit">
               {recentDays > 0 ? `Últimos ${recentDays} días` : "Histórico"}
             </div>
-            <div className="text-sm font-bold">
-              Total:
+            <div className="text-sm sm:text-base font-bold">
+              Total:{" "}
               <span className="text-primary">
                 {displayTotal.toLocaleString()} {unit}
               </span>
@@ -61,7 +65,7 @@ export default function ProfileMuscleDistribution({
           </div>
         </div>
 
-        <div className="h-80 w-full px-4">
+        <div className="h-64 sm:h-80 w-full px-0 sm:px-4">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie

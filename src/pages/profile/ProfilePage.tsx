@@ -98,18 +98,18 @@ export default function ProfilePage() {
   const edadForCard = edadFromDOB ?? (profile as any)?.edad ?? null;
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-6 sm:space-y-8 pb-8">
       <div className="relative overflow-hidden rounded-2xl border-2 border-border/60 bg-gradient-to-br from-primary/5 via-background to-purple-500/5 shadow-xl">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+        <div className="absolute top-0 right-0 w-72 sm:w-96 h-72 sm:h-96 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-56 sm:w-64 h-56 sm:h-64 bg-purple-500/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 pointer-events-none" />
 
-        <div className="relative p-8 space-y-6">
-          <div className="space-y-3">
-            <h1 className="text-5xl font-extrabold tracking-tight bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-balance">
+        <div className="relative p-5 sm:p-8 space-y-4 sm:space-y-6">
+          <div className="space-y-2 sm:space-y-3">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight bg-gradient-to-br from-foreground via-foreground to-foreground/70 bg-clip-text text-balance">
               {isSelf ? "Mi perfil" : profile ? `Perfil de ${profile.username}` : "Perfil"}
             </h1>
-            <p className="text-lg text-muted-foreground font-medium max-w-2xl text-pretty">
+            <p className="text-sm sm:text-base lg:text-lg text-muted-foreground font-medium max-w-xl sm:max-w-2xl text-pretty">
               {isSelf
                 ? "Visualiza tu progreso y estadísticas de entrenamiento"
                 : "Estadísticas y entrenamientos del usuario"}
@@ -135,15 +135,15 @@ export default function ProfilePage() {
       {isSelf && (
         <div className="relative overflow-hidden rounded-2xl border-2 border-border/60 bg-gradient-to-br from-card via-card/95 to-card/90 shadow-lg hover:shadow-xl transition-all duration-300">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-blue-500/5 pointer-events-none" />
-          <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+          <div className="absolute top-0 right-0 w-40 sm:w-48 h-40 sm:h-48 bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
-          <div className="relative p-6 space-y-4">
-            <div className="flex items-center justify-between">
+          <div className="relative p-5 sm:p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="space-y-1">
-                <h3 className="text-lg font-bold tracking-tight">Índice de Masa Corporal</h3>
-                <p className="text-sm text-muted-foreground">Tu estado físico actual</p>
+                <h3 className="text-base sm:text-lg font-bold tracking-tight">Índice de Masa Corporal</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">Tu estado físico actual</p>
               </div>
-              <div className="p-3 bg-primary/10 rounded-xl ring-2 ring-primary/20">
+              <div className="self-start sm:self-auto p-3 bg-primary/10 rounded-xl ring-2 ring-primary/20">
                 <svg className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
@@ -155,10 +155,10 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-center py-4">
+            <div className="flex items-center justify-center py-3 sm:py-4">
               <BmiBadge
                 isSelf
-                className="text-base px-6 py-3 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105"
+                className="text-sm sm:text-base px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 hover:scale-[1.03]"
               />
             </div>
           </div>
@@ -172,24 +172,26 @@ export default function ProfilePage() {
         onFriendsClick={() => setOpenFriends(true)}
       />
 
-      <div className="space-y-6 pt-2">
-        <div className="space-y-2">
-          <h2 className="text-2xl font-bold tracking-tight">Análisis de entrenamiento</h2>
-          <p className="text-sm text-muted-foreground">Tus ejercicios más destacados y distribución muscular</p>
+      <div className="space-y-4 sm:space-y-6 pt-2">
+        <div className="space-y-1.5">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Análisis de entrenamiento</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Tus ejercicios más destacados y distribución muscular
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:gap-6">
           {targetUsername && <ProfileTopExercises username={targetUsername} topN={3} />}
           {targetUsername && <ProfileMuscleDistribution username={targetUsername} recentDays={60} />}
         </div>
       </div>
 
-      <div className="space-y-5 pt-2">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 sm:space-y-5 pt-2">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-1">
-            <h2 className="text-2xl font-bold tracking-tight">Historial de entrenamientos</h2>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Historial de entrenamientos</h2>
             {summary && summary.workouts_count > 0 && (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 {summary.workouts_count}{" "}
                 {summary.workouts_count === 1 ? "entrenamiento registrado" : "entrenamientos registrados"}
               </p>

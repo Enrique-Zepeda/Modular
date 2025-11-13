@@ -104,15 +104,34 @@ export function RoutinesPage() {
   const hasAny = routines.length > 0;
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-screen-xl space-y-8">
-      <RoutinesHeader />
-      <RoutinesFilters searchTerm={filters.searchTerm} onSearch={filters.setSearchTerm} />
-      {filteredRoutines.length === 0 ? (
-        <RoutinesEmptyState hasAny={hasAny} />
-      ) : (
-        <RoutinesGrid items={filteredRoutines} onDelete={handleDelete} />
-      )}
+    <div
+      className="
+      mx-auto max-w-[min(100%,theme(spacing.7xl))]
+      px-4 sm:px-6 lg:px-8
+      py-6 sm:py-8
+      space-y-6 sm:space-y-8
+    "
+    >
+      {/* Header independiente para no colapsar con filtros en móvil */}
+      <header className="min-w-0">
+        <RoutinesHeader />
+      </header>
 
+      {/* Filtros: bloque propio para mantener separación vertical en móvil */}
+      <section aria-label="Filtros de rutinas" className="min-w-0">
+        <RoutinesFilters searchTerm={filters.searchTerm} onSearch={filters.setSearchTerm} />
+      </section>
+
+      {/* Contenido: grid/empty responsivo sin scroll horizontal */}
+      <section className="min-w-0">
+        {filteredRoutines.length === 0 ? (
+          <RoutinesEmptyState hasAny={hasAny} />
+        ) : (
+          <RoutinesGrid items={filteredRoutines} onDelete={handleDelete} />
+        )}
+      </section>
+
+      {/* Dialogo de eliminación persistente al final del árbol */}
       <DeleteRoutineDialog
         open={deleteDialog.open}
         onOpenChange={(open) =>

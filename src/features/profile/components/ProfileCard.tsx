@@ -95,17 +95,17 @@ export default function ProfileCard({
   return (
     <Card
       className={cn(
-        "border-2 border-border/60 bg-gradient-to-br from-card via-card/98 to-card/95 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden relative",
+        "w-full border-2 border-border/60 bg-gradient-to-br from-card via-card/98 to-card/95 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden relative",
         className
       )}
     >
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-purple-500/5 pointer-events-none" />
-      <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+      <div className="absolute top-0 right-0 w-40 sm:w-64 h-40 sm:h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
-      <CardContent className="p-8 relative">
-        <div className="flex items-start justify-between gap-8">
+      <CardContent className="relative p-5 sm:p-8">
+        <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between md:gap-8">
           {/* IZQUIERDA: avatar + info */}
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:gap-6 flex-1 min-w-0">
             <UserAvatar
               url={avatarUrl}
               sexo={sexo}
@@ -115,16 +115,18 @@ export default function ProfileCard({
               fallbackText={initials}
             />
 
-            <div className="flex-1 min-w-0 space-y-2">
-              <div className="text-3xl font-extrabold tracking-tight truncate bg-gradient-to-br from-foreground to-foreground/80 bg-clip-text">
+            <div className="flex-1 min-w-0 space-y-2 text-center sm:text-left">
+              <div className="text-2xl sm:text-3xl font-extrabold tracking-tight truncate bg-gradient-to-br from-foreground to-foreground/80 bg-clip-text">
                 {displayName ?? "Usuario"}
               </div>
 
               {/* username + edad (badge "Edad: 24") */}
-              <div className="flex items-center gap-3 flex-wrap">
-                {username && <span className="text-lg text-muted-foreground font-medium truncate">@{username}</span>}
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3">
+                {username && (
+                  <span className="text-sm sm:text-lg text-muted-foreground font-medium truncate">@{username}</span>
+                )}
                 {ageToShow !== null && (
-                  <Badge variant="secondary" className="text-sm font-semibold px-3 py-1.5 shadow-sm">
+                  <Badge className="text-xs sm:text-sm font-semibold px-3 py-1.5 shadow-sm" variant="secondary">
                     {ageToShow} años
                   </Badge>
                 )}
@@ -133,7 +135,7 @@ export default function ProfileCard({
               {training?.badge && (
                 <div className="pt-1">
                   <span
-                    className="text-xs font-bold px-3 py-1.5 rounded-md shadow-sm inline-block"
+                    className="inline-block rounded-md px-3 py-1.5 text-[0.7rem] sm:text-xs font-bold shadow-sm"
                     style={{
                       color: training.badge?.color ?? "#888",
                       background: `linear-gradient(135deg, ${hexToRgba(
@@ -158,7 +160,7 @@ export default function ProfileCard({
 
           {/* DERECHA: badge de amistad */}
           {friendshipTargetId != null && (
-            <div className="flex-shrink-0">
+            <div className="mt-2 md:mt-0 w-full md:w-auto flex justify-center md:justify-end flex-shrink-0">
               <FriendshipBadge targetId={friendshipTargetId} targetUsername={friendshipTargetUsername ?? undefined} />
             </div>
           )}

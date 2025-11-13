@@ -73,42 +73,46 @@ const SelectorEjercicios: React.FC<SelectorEjerciciosProps> = ({ onEjercicioAgre
   );
 
   return (
-    <div className="space-y-4">
-      {/* Filtros */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FunnelIcon className="h-5 w-5" />
-            Filtros
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <ExerciseFilters
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            filtros={filtros}
-            onChange={setFiltros}
-            // ✅ ahora pasamos arrays, no factories
-            grupoMuscularOptions={gruposMusculares}
-            dificultadOptions={dificultades}
-            equipamentoOptions={equipamentos}
-            isLoading={isLoading}
-          />
-        </CardContent>
-      </Card>
+    <div className="space-y-4 sm:space-y-6">
+      {/* En desktop: filtros a la izquierda y lista a la derecha */}
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-12">
+        {/* Filtros */}
+        <Card className="lg:col-span-4 lg:sticky lg:top-6 self-start rounded-2xl border border-border/60 bg-card/60 backdrop-blur supports-[backdrop-filter]:bg-card/50">
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <FunnelIcon className="h-5 w-5" />
+              Filtros
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 sm:space-y-5">
+            <ExerciseFilters
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              filtros={filtros}
+              onChange={setFiltros}
+              grupoMuscularOptions={gruposMusculares}
+              dificultadOptions={dificultades}
+              equipamentoOptions={equipamentos}
+              isLoading={isLoading}
+            />
+          </CardContent>
+        </Card>
 
-      {/* Lista de ejercicios */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Ejercicios Disponibles</CardTitle>
-          <CardDescription>Selecciona ejercicios para agregar a tu rutina</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ExerciseGrid items={ejerciciosDisponibles} isLoading={isLoading} onSelect={handleEjercicioSelect} />
-        </CardContent>
-      </Card>
+        {/* Lista de ejercicios */}
+        <Card className="lg:col-span-8 rounded-2xl border border-border/60">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-lg sm:text-xl">Ejercicios Disponibles</CardTitle>
+            <CardDescription className="text-sm sm:text-base">
+              Selecciona ejercicios para agregar a tu rutina
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ExerciseGrid items={ejerciciosDisponibles} isLoading={isLoading} onSelect={handleEjercicioSelect} />
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Diálogo de configuración */}
+      {/* Diálogo de configuración (fuera del grid para no afectar layout sticky) */}
       <ConfigureExerciseDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}

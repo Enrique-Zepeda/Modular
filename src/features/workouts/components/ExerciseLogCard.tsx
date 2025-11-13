@@ -50,22 +50,25 @@ export function ExerciseLogCard({ exercise }: ExerciseLogCardProps) {
   };
 
   return (
-    <div className="bg-card rounded-lg border p-4 space-y-4">
-      {/* Exercise header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
-          <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
-            <span className="text-xs font-medium">{exercise.exerciseName.charAt(0).toUpperCase()}</span>
+    <div className="bg-card rounded-xl sm:rounded-lg border p-3 sm:p-4 space-y-4">
+      {/* Header: apilado en móvil, acciones a la derecha en sm+ */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3 min-w-0 touch-pan-y">
+          <GripVertical
+            className="h-5 w-5 text-muted-foreground cursor-grab active:cursor-grabbing shrink-0"
+            aria-hidden="true"
+          />
+          <div className="w-9 h-9 sm:w-10 sm:h-10 bg-muted rounded-full grid place-items-center shrink-0">
+            <span className="text-[11px] sm:text-xs font-medium">{exercise.exerciseName.charAt(0).toUpperCase()}</span>
           </div>
-          <div>
-            <h3 className="font-medium">{exercise.exerciseName}</h3>
+          <div className="min-w-0">
+            <h3 className="font-medium text-sm sm:text-base truncate">{exercise.exerciseName}</h3>
           </div>
         </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" className="self-end sm:self-auto h-9">
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -77,25 +80,27 @@ export function ExerciseLogCard({ exercise }: ExerciseLogCardProps) {
         </DropdownMenu>
       </div>
 
-      {/* Notes section */}
+      {/* Notes */}
       {showNotes && (
         <div className="space-y-2">
           <Textarea
             placeholder="Add notes here..."
             value={exercise.notes}
             onChange={(e) => handleNotesChange(e.target.value)}
-            className="min-h-[80px]"
+            className="min-h-[80px] rounded-xl"
           />
-          <div className="text-xs text-muted-foreground text-right">{exercise.notes.length}/500</div>
+          <div className="text-[11px] sm:text-xs text-muted-foreground text-right">{exercise.notes.length}/500</div>
         </div>
       )}
 
-      {/* Rest timer */}
-      <div className="flex items-center gap-2">
-        <Timer className="h-4 w-4 text-blue-500" />
-        <span className="text-sm text-muted-foreground">Rest Timer:</span>
+      {/* Rest timer: compacto en móvil */}
+      <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex items-center gap-2">
+          <Timer className="h-4 w-4 text-blue-500" />
+          <span className="text-sm text-muted-foreground">Rest Timer:</span>
+        </div>
         <Select value={exercise.restTimer.toString()} onValueChange={handleRestTimerChange}>
-          <SelectTrigger className="w-20 h-8">
+          <SelectTrigger className="h-9 sm:h-8 w-24 rounded-xl">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -109,10 +114,10 @@ export function ExerciseLogCard({ exercise }: ExerciseLogCardProps) {
         </Select>
       </div>
 
-      {/* Sets table */}
+      {/* Sets */}
       <div className="space-y-2">
-        {/* Table header */}
-        <div className="grid grid-cols-7 gap-2 text-xs font-medium text-muted-foreground px-2">
+        {/* Header de tabla: oculto en móvil para evitar “dientes” */}
+        <div className="hidden md:grid grid-cols-7 gap-2 text-xs font-medium text-muted-foreground px-2">
           <div>SET</div>
           <div>PREVIOUS</div>
           <div className="text-center">KG</div>
@@ -122,7 +127,6 @@ export function ExerciseLogCard({ exercise }: ExerciseLogCardProps) {
           <div></div>
         </div>
 
-        {/* Sets */}
         {exercise.sets.map((set, index) => (
           <WorkoutSetRow
             key={set.id}
@@ -134,8 +138,8 @@ export function ExerciseLogCard({ exercise }: ExerciseLogCardProps) {
           />
         ))}
 
-        {/* Add set button */}
-        <Button variant="outline" onClick={handleAddSet} className="w-full mt-2 bg-transparent">
+        {/* Add set */}
+        <Button variant="outline" onClick={handleAddSet} className="w-full mt-2 h-10 rounded-xl bg-transparent">
           <Plus className="h-4 w-4 mr-2" />
           Add Set
         </Button>

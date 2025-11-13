@@ -35,22 +35,33 @@ const navigation = [
   { name: "Configuración", href: "/dashboard/settings", icon: Settings },
 ];
 
+// Rutas donde NO se debe mostrar el sidebar
+const HIDE_SIDEBAR_ROUTES = [
+  /^\/dashboard\/routines\/new$/, // crear rutina
+  /^\/dashboard\/routines\/[^/]+\/edit$/, // editar rutina
+  /^\/dashboard\/workout\/[^/]+$/, // entrenamiento en vivo
+];
+
 export default function Sidebar() {
   const location = useLocation();
   const dispatch = useAppDispatch();
   const { theme, toggleTheme } = useTheme();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const handleLogout = () => {
     dispatch(logoutUser());
   };
 
+  // Si la ruta actual coincide, no renderizamos el sidebar
+  const shouldHide = HIDE_SIDEBAR_ROUTES.some((re) => re.test(location.pathname));
+  if (shouldHide) return null;
+
   return (
     <div
       className={cn(
-        "relative flex h-full flex-col border-r border-border/50 bg-gradient-to-b from-background via-background to-muted/20 backdrop-blur-xl transition-all duration-300 ease-in-out",
-        isCollapsed ? "w-16" : "w-64"
+        "relative lg:sticky top-[env(safe-area-inset-top)] flex h-[100dvh] lg:h-auto flex-col border-r border-border/50 bg-gradient-to-b from-background via-background to-muted/20 backdrop-blur-xl transition-all duration-300 ease-in-out",
+        isCollapsed ? "w-14 sm:w-16" : "w-64"
       )}
     >
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
@@ -58,17 +69,17 @@ export default function Sidebar() {
       {/* Header */}
       <div
         className={cn(
-          "relative flex items-center justify-between p-4 border-b border-border/50 bg-card/50 backdrop-blur-sm",
+          "relative flex items-center justify-between p-3 sm:p-4 border-b border-border/50 bg-card/50 backdrop-blur-sm",
           isCollapsed && "justify-center"
         )}
       >
         {!isCollapsed && (
           <div className="flex items-center gap-3 group">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 ring-1 ring-primary/20 transition-all duration-300 group-hover:ring-primary/40 group-hover:scale-105">
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 ring-1 ring-primary/20 transition-all duration-300 group-hover:ring-primary/40 group-hover:scale-105">
               <img
                 src={LogoPng || "/placeholder.svg"}
                 alt="GymApp"
-                className="h-[88px] w-[88px] object-contain shrink-0 select-none transition-transform duration-300 group-hover:scale-110"
+                className="h-10 w-10 sm:h-12 sm:w-12 object-contain shrink-0 select-none transition-transform duration-300 group-hover:scale-110"
                 draggable={false}
               />
             </div>
@@ -96,7 +107,7 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="relative flex-1 space-y-1 p-3 overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+      <nav className="relative flex-1 space-y-1 p-2.5 sm:p-3 overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
         {navigation.map((item, index) => {
           const isActive =
             location.pathname === item.href ||
@@ -107,15 +118,13 @@ export default function Sidebar() {
               <Button
                 variant={isActive ? "default" : "ghost"}
                 className={cn(
-                  "relative w-full justify-start gap-3 h-11 group transition-all duration-200",
+                  "relative w-full justify-start gap-3 h-10 sm:h-11 group transition-all duration-200",
                   isCollapsed ? "justify-center px-2" : "px-3",
                   isActive
                     ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90"
                     : "hover:bg-accent/50 text-muted-foreground hover:text-foreground hover:translate-x-1"
                 )}
-                style={{
-                  animationDelay: `${index * 50}ms`,
-                }}
+                style={{ animationDelay: `${index * 50}ms` }}
               >
                 {isActive && (
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-1 bg-primary-foreground rounded-r-full shadow-sm" />
@@ -142,12 +151,13 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <div className="relative p-3 border-t border-border/50 bg-card/30 backdrop-blur-sm">
+      {/* Toggle tema */}
+      <div className="relative p-2.5 sm:p-3 border-t border-border/50 bg-card/30 backdrop-blur-sm">
         <Button
           variant="ghost"
           onClick={toggleTheme}
           className={cn(
-            "w-full justify-start gap-3 h-11 hover:bg-accent/50 transition-all duration-200 group",
+            "w-full justify-start gap-3 h-10 sm:h-11 hover:bg-accent/50 transition-all duration-200 group",
             isCollapsed && "justify-center px-2"
           )}
         >
@@ -167,12 +177,12 @@ export default function Sidebar() {
       </div>
 
       {/* User Section */}
-      <div className="relative p-3 border-t border-border/50 bg-card/30 backdrop-blur-sm">
+      <div className="relative p-2.5 sm:p-3 border-t border-border/50 bg-card/30 backdrop-blur-sm">
         <Button
           variant="ghost"
           onClick={() => setConfirmOpen(true)}
           className={cn(
-            "w-full justify-start gap-3 h-11 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200 group",
+            "w-full justify-start gap-3 h-10 sm:h-11 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all duration-200 group",
             isCollapsed && "justify-center px-2"
           )}
         >

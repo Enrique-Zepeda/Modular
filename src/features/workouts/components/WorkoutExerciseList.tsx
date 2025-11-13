@@ -22,16 +22,26 @@ export function WorkoutExerciseList({
     });
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 sm:space-y-6 md:space-y-8 touch-pan-y">
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={exercises.map(dndIdKey)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-8">
+          <div className="space-y-4 sm:space-y-6 md:space-y-8">
             {exercises.map((ex, ei) => (
               <div
                 key={`wex-${dndIdKey(ex)}`}
-                className="hover:bg-muted/10 transition-all duration-200 rounded-2xl -m-2 p-2 hover:shadow-lg hover:scale-[1.005] focus-within:ring-2 focus-within:ring-primary/20"
+                role="group"
+                className="
+                rounded-xl sm:rounded-2xl
+                -m-1 sm:-m-2 p-2
+                bg-transparent
+                transition-all duration-200 will-change-transform
+                focus-within:ring-2 focus-within:ring-primary/30
+                md:hover:bg-muted/10 md:hover:shadow-lg md:hover:scale-[1.005]
+              "
               >
-                <SortableItem id={dndIdKey(ex)}>{renderItem(ex, ei)}</SortableItem>
+                <SortableItem id={dndIdKey(ex)} className="touch-pan-y select-none">
+                  {renderItem(ex, ei)}
+                </SortableItem>
               </div>
             ))}
           </div>

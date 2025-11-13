@@ -6,16 +6,18 @@ export function LoadMore({ visible, disabled, onClick }: { visible: boolean; dis
   if (!visible) return null;
   return (
     <motion.div
-      className="flex justify-center pt-8"
+      className="px-4 sm:px-0 flex justify-center pt-6 sm:pt-8 pb-[max(0.5rem,env(safe-area-inset-bottom))]" // mobile-first + safe-area
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.3 }}
+      aria-live="polite"
     >
       <Button
         onClick={onClick}
         disabled={disabled}
         size="lg"
-        className="min-w-[200px] h-12 rounded-full shadow-lg hover:shadow-xl transition-all"
+        className="w-full sm:w-auto h-12 rounded-full shadow-lg md:hover:shadow-xl transition-all px-5 sm:px-6" // full-width en móvil; auto en desktop
+        aria-busy={disabled}
       >
         {disabled ? (
           <>

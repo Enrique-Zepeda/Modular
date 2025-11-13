@@ -105,44 +105,55 @@ export function RoutineDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <RoutineDetailHeader
-        title={rutina.nombre ?? "Sin nombre"}
-        description={rutina.descripcion ?? "Sin descripción"}
-        onDelete={handleEliminarRutina}
-        deleting={isDeleting}
-        routineId={rutina.id_rutina}
-      />
+    <div className="space-y-6 sm:space-y-8 min-w-0">
+      {/* Header: bloque propio para evitar colapsos en móvil */}
+      <section className="min-w-0">
+        <RoutineDetailHeader
+          title={rutina.nombre ?? "Sin nombre"}
+          description={rutina.descripcion ?? "Sin descripción"}
+          onDelete={handleEliminarRutina}
+          deleting={isDeleting}
+          routineId={rutina.id_rutina}
+        />
+      </section>
 
-      <RoutineStats nivel={rutina.nivel_recomendado} objetivo={rutina.objetivo} duracion={rutina.duracion_estimada} />
-      <div className="flex gap-2">
-        <Button onClick={() => navigate(`/dashboard/workout/${id}`)} className="ml-auto">
+      {/* KPIs de la rutina */}
+      <section className="min-w-0">
+        <RoutineStats nivel={rutina.nivel_recomendado} objetivo={rutina.objetivo} duracion={rutina.duracion_estimada} />
+      </section>
+
+      {/* CTA: full-width en móvil, alineado a la derecha en desktop */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <Button onClick={() => navigate(`/dashboard/workout/${id}`)} className="h-11 w-full sm:w-auto sm:ml-auto">
           Empezar Entrenamiento
         </Button>
       </div>
 
-      <RoutineExercisesSection
-        count={rutina.EjerciciosRutinas?.length ?? 0}
-        items={(rutina.EjerciciosRutinas ?? []).map((er) => {
-          const { series, reps, weight } = deriveSeriesRepsWeight(er);
-          return {
-            title: er.Ejercicios?.nombre ?? "Sin nombre",
-            group: er.Ejercicios?.grupo_muscular ?? undefined,
-            description: er.Ejercicios?.dificultad ?? undefined,
-            series,
-            reps,
-            weight,
-            image: er.Ejercicios?.ejemplo ?? undefined,
-            onRemove: () => handleRemoverEjercicio(er.id_ejercicio),
-          };
-        })}
-        isSelectorOpen={isSelectorOpen}
-        setIsSelectorOpen={setIsSelectorOpen}
-        ejerciciosExistentes={ejerciciosExistentes}
-        onAdd={handleEjercicioAgregado}
-        removing={isRemoving}
-        routineName={rutina.nombre ?? "Rutina"}
-      />
+      {/* Lista de ejercicios: sección independiente, sin overflow horizontal */}
+      <section className="min-w-0">
+        <RoutineExercisesSection
+          count={rutina.EjerciciosRutinas?.length ?? 0}
+          items={(rutina.EjerciciosRutinas ?? []).map((er) => {
+            const { series, reps, weight } = deriveSeriesRepsWeight(er);
+            return {
+              title: er.Ejercicios?.nombre ?? "Sin nombre",
+              group: er.Ejercicios?.grupo_muscular ?? undefined,
+              description: er.Ejercicios?.dificultad ?? undefined,
+              series,
+              reps,
+              weight,
+              image: er.Ejercicios?.ejemplo ?? undefined,
+              onRemove: () => handleRemoverEjercicio(er.id_ejercicio),
+            };
+          })}
+          isSelectorOpen={isSelectorOpen}
+          setIsSelectorOpen={setIsSelectorOpen}
+          ejerciciosExistentes={ejerciciosExistentes}
+          onAdd={handleEjercicioAgregado}
+          removing={isRemoving}
+          routineName={rutina.nombre ?? "Rutina"}
+        />
+      </section>
     </div>
   );
 }

@@ -28,7 +28,7 @@ export function LikeButton({ sessionId, initialCount, initialLikedByMe }: Props)
   });
 
   return (
-    <div className="inline-flex items-center gap-2">
+    <div className="inline-flex items-center gap-1.5 sm:gap-2 min-w-0">
       <Button
         type="button"
         variant="ghost"
@@ -36,15 +36,17 @@ export function LikeButton({ sessionId, initialCount, initialLikedByMe }: Props)
         onClick={() => void toggle()}
         aria-pressed={likedByMe}
         aria-label={likedByMe ? "Quitar me gusta" : "Dar me gusta"}
-        className={`h-8 w-8 p-0 rounded-lg transition-all ${
+        className={`h-10 w-10 p-0 rounded-lg transition-all focus-visible:ring-2 focus-visible:ring-offset-2 ${
           likedByMe
-            ? "text-red-500 hover:bg-red-500/10 focus-visible:ring-2 focus-visible:ring-red-500"
+            ? "text-red-500 hover:bg-red-500/10 focus-visible:ring-red-500"
             : "text-muted-foreground hover:bg-muted/60"
         }`}
       >
-        <Heart className="h-4 w-4" fill={likedByMe ? "currentColor" : "none"} />
+        <Heart className="h-5 w-5" fill={likedByMe ? "currentColor" : "none"} />
       </Button>
-      <span className="text-sm tabular-nums">{count}</span>
+      <span className="text-sm sm:text-base tabular-nums leading-none" aria-live="polite">
+        {count}
+      </span>
     </div>
   );
 }

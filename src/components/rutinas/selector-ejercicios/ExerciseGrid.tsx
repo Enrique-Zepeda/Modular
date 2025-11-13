@@ -12,9 +12,9 @@ interface Props {
 export const ExerciseGrid: React.FC<Props> = ({ items, isLoading, onSelect }) => {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-36 animate-pulse rounded-xl bg-muted" />
+          <div key={i} className="h-40 rounded-xl border border-border/50 bg-muted/60 animate-pulse" />
         ))}
       </div>
     );
@@ -22,14 +22,14 @@ export const ExerciseGrid: React.FC<Props> = ({ items, isLoading, onSelect }) =>
 
   if (!items.length) {
     return (
-      <div className="py-8 text-center text-muted-foreground">
+      <div className="py-10 text-center text-sm text-muted-foreground">
         No se encontraron ejercicios con los filtros aplicados
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
       <AnimatePresence mode="popLayout">
         {items.map((ejercicio) => (
           <motion.div
@@ -38,7 +38,9 @@ export const ExerciseGrid: React.FC<Props> = ({ items, isLoading, onSelect }) =>
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.18 }}
+            className="h-full"
           >
+            {/* Wrapper h-full para que todas las cards igualen altura dentro del grid */}
             <ExerciseCard ejercicio={ejercicio} onSelect={onSelect} />
           </motion.div>
         ))}

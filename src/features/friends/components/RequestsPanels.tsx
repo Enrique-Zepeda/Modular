@@ -36,21 +36,20 @@ export function RequestsList({ items, variant, onAccept, onReject, onCancel }: I
       return normalUsername.includes(q) || normalNombre.includes(q);
     });
   }, [items, query, variant]);
-
   if (!items.length)
     return (
-      <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-        <div className="p-4 rounded-full bg-muted/50 mb-4">
+      <div className="flex flex-col items-center justify-center px-4 py-10 sm:py-12 text-center space-y-2">
+        <div className="p-4 rounded-full bg-muted/50 mb-2 sm:mb-4">
           {variant === "incoming" ? (
             <UserPlus className="h-8 w-8 text-muted-foreground" />
           ) : (
             <Clock className="h-8 w-8 text-muted-foreground" />
           )}
         </div>
-        <p className="text-sm font-medium text-muted-foreground mb-1">
+        <p className="text-sm sm:text-base font-medium text-muted-foreground">
           No hay solicitudes {variant === "incoming" ? "entrantes" : "salientes"}
         </p>
-        <p className="text-xs text-muted-foreground/70">
+        <p className="text-xs sm:text-sm text-muted-foreground/70 max-w-xs sm:max-w-none">
           {variant === "incoming"
             ? "Cuando alguien te envíe una solicitud, aparecerá aquí"
             : "Las solicitudes que envíes aparecerán aquí"}
@@ -60,14 +59,15 @@ export function RequestsList({ items, variant, onAccept, onReject, onCancel }: I
 
   return (
     <div className="space-y-4">
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm pb-3">
+      {/* Sticky search: respeta safe area en mobile */}
+      <div className="sticky top-[env(safe-area-inset-top)] sm:top-0 z-10 bg-background/95 backdrop-blur-sm pb-3 pt-1">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={variant === "incoming" ? "Buscar solicitudes entrantes…" : "Buscar solicitudes salientes…"}
-            className="pl-9 h-9"
+            className="pl-9 h-10 text-sm"
             aria-label={
               variant === "incoming"
                 ? "Buscar solicitudes de amistad entrantes"
@@ -77,16 +77,18 @@ export function RequestsList({ items, variant, onAccept, onReject, onCancel }: I
           />
         </div>
         {query && (
-          <p className="text-xs text-muted-foreground mt-2">
+          <p className="mt-2 text-xs text-muted-foreground">
             {filteredItems.length} de {items.length} coinciden
           </p>
         )}
       </div>
 
       {filteredItems.length === 0 && query && (
-        <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
-          <Search className="h-8 w-8 text-muted-foreground/40 mb-3" />
-          <p className="text-sm text-muted-foreground">No se encontraron solicitudes que coincidan con "{query}"</p>
+        <div className="flex flex-col items-center justify-center py-8 px-4 text-center space-y-2">
+          <Search className="h-8 w-8 text-muted-foreground/40 mb-1" />
+          <p className="text-sm text-muted-foreground max-w-sm">
+            No se encontraron solicitudes que coincidan con <span className="break-all">"{query}"</span>
+          </p>
         </div>
       )}
 
@@ -109,8 +111,9 @@ export function RequestsList({ items, variant, onAccept, onReject, onCancel }: I
                 "hover:shadow-md focus-within:ring-2 focus-within:ring-primary/40"
               )}
             >
-              <CardContent className="p-4 flex items-center gap-3 md:gap-4">
-                <div className="relative flex-shrink-0">
+              {/* En mobile apila avatar/texto/botones; en desktop se alinea en fila */}
+              <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 md:gap-4">
+                <div className="relative flex-shrink-0 mx-auto sm:mx-0">
                   <div className="absolute inset-0 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 opacity-50 blur-sm" />
                   <UserAvatar
                     url={url_avatar}
@@ -123,7 +126,7 @@ export function RequestsList({ items, variant, onAccept, onReject, onCancel }: I
                   />
                 </div>
 
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 text-center sm:text-left">
                   {nombre && (
                     <div className="font-semibold truncate text-foreground text-sm md:text-base">{nombre}</div>
                   )}
@@ -131,10 +134,10 @@ export function RequestsList({ items, variant, onAccept, onReject, onCancel }: I
                 </div>
 
                 {variant === "incoming" ? (
-                  <div className="flex gap-2 flex-shrink-0">
+                  <div className="mt-2 sm:mt-0 flex w-full sm:w-auto flex-col sm:flex-row gap-2 flex-shrink-0 sm:justify-end">
                     <Button
                       size="sm"
-                      className="bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/20 gap-1"
+                      className="w-full sm:w-auto justify-center bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/20 gap-1 text-xs sm:text-sm"
                       onClick={() => onAccept?.(r.id_solicitud)}
                       aria-label={`Aceptar solicitud de ${username}`}
                       title="Aceptar solicitud"
@@ -145,7 +148,7 @@ export function RequestsList({ items, variant, onAccept, onReject, onCancel }: I
                     <Button
                       size="sm"
                       variant="outline"
-                      className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50 bg-transparent gap-1"
+                      className="w-full sm:w-auto justify-center border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50 bg-transparent gap-1 text-xs sm:text-sm"
                       onClick={() => onReject?.(r.id_solicitud)}
                       aria-label={`Rechazar solicitud de ${username}`}
                       title="Rechazar solicitud"
@@ -158,7 +161,7 @@ export function RequestsList({ items, variant, onAccept, onReject, onCancel }: I
                   <Button
                     size="sm"
                     variant="outline"
-                    className="border-orange-500/30 text-orange-400 hover:bg-orange-500/10 hover:border-orange-500/50 bg-transparent gap-1 flex-shrink-0"
+                    className="mt-2 sm:mt-0 w-full sm:w-auto justify-center border-orange-500/30 text-orange-400 hover:bg-orange-500/10 hover:border-orange-500/50 bg-transparent gap-1 flex-shrink-0 text-xs sm:text-sm"
                     onClick={() => onCancel?.(r.id_solicitud)}
                     aria-label={`Cancelar solicitud a ${username}`}
                     title="Cancelar solicitud"

@@ -41,22 +41,31 @@ export const ExerciseFilters: React.FC<Props> = ({
 
   return (
     <>
-      <div className="flex gap-2">
+      {/* Barra de búsqueda: mobile-first con alturas táctiles y simetría */}
+      <div className="flex items-center gap-2 sm:gap-3">
         <Input
           placeholder="Buscar ejercicios..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="flex-1"
+          className="flex-1 h-11 rounded-xl border-2 border-border/60 bg-background text-sm focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:border-primary"
           aria-label="Buscar ejercicios"
         />
-        <Button variant="outline" size="icon" type="button" aria-label="Ejecutar búsqueda" disabled={!!isLoading}>
+        <Button
+          variant="outline"
+          size="icon"
+          type="button"
+          aria-label="Ejecutar búsqueda"
+          disabled={!!isLoading}
+          className="h-11 w-11 rounded-xl border-2 border-border/60"
+        >
           <MagnifyingGlassIcon className="h-4 w-4" />
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      {/* Filtros: grid responsiva y alturas iguales */}
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         <Select value={filtros.grupo_muscular ?? ""} onValueChange={onGrupoChange}>
-          <SelectTrigger>
+          <SelectTrigger className="h-11 w-full rounded-xl border-2 border-border/60 text-sm sm:min-w-[160px] md:min-w-[200px]">
             <SelectValue placeholder="Grupo muscular" />
           </SelectTrigger>
           <SelectContent>
@@ -70,7 +79,7 @@ export const ExerciseFilters: React.FC<Props> = ({
         </Select>
 
         <Select value={filtros.dificultad ?? ""} onValueChange={onDificultadChange}>
-          <SelectTrigger>
+          <SelectTrigger className="h-11 w-full rounded-xl border-2 border-border/60 text-sm sm:min-w-[160px] md:min-w-[200px]">
             <SelectValue placeholder="Dificultad" />
           </SelectTrigger>
           <SelectContent>
@@ -84,7 +93,7 @@ export const ExerciseFilters: React.FC<Props> = ({
         </Select>
 
         <Select value={filtros.equipamento ?? ""} onValueChange={onEquipamentoChange}>
-          <SelectTrigger>
+          <SelectTrigger className="h-11 w-full rounded-xl border-2 border-border/60 text-sm sm:min-w-[160px] md:min-w-[200px]">
             <SelectValue placeholder="Equipamento" />
           </SelectTrigger>
           <SelectContent>

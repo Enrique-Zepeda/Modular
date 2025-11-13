@@ -67,20 +67,21 @@ export function ExercisesListFilters({ onFiltersChange }: ExercisesListFiltersPr
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
+      <CardHeader className="px-4 sm:px-6">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
           <Filter className="h-5 w-5" />
           Filtros de Ejercicios
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+
+      <CardContent className="space-y-4 sm:space-y-5 px-4 sm:px-6 pb-5">
         {/* Search Input */}
         <div className="space-y-2">
           <label htmlFor="search" className="text-sm font-medium">
             Buscar ejercicio
           </label>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Controller
               name="search"
               control={control}
@@ -89,7 +90,7 @@ export function ExercisesListFilters({ onFiltersChange }: ExercisesListFiltersPr
                   {...field}
                   id="search"
                   placeholder="Buscar por nombre..."
-                  className="pl-10"
+                  className="h-11 pl-10 pr-4 rounded-xl"
                   aria-label="Buscar ejercicios por nombre"
                 />
               )}
@@ -107,26 +108,30 @@ export function ExercisesListFilters({ onFiltersChange }: ExercisesListFiltersPr
               ))}
             </div>
           ) : (
-            <div className="flex flex-wrap gap-2">
-              {muscleGroups.map((group) => (
-                <Badge
-                  key={group}
-                  variant={selectedMuscleGroups.includes(group) ? "default" : "outline"}
-                  className="cursor-pointer hover:bg-primary/80 transition-colors"
-                  onClick={() => handleMuscleGroupToggle(group)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleMuscleGroupToggle(group);
-                    }
-                  }}
-                >
-                  {group}
-                </Badge>
-              ))}
-            </div>
+            <>
+              {/* En móvil: fila scrollable para evitar columnas muy altas; en ≥sm: wrap */}
+              <div className="flex gap-2 overflow-x-auto sm:flex-wrap sm:overflow-x-visible -mx-1 px-1">
+                {muscleGroups.map((group) => (
+                  <Badge
+                    key={group}
+                    variant={selectedMuscleGroups.includes(group) ? "default" : "outline"}
+                    className="cursor-pointer h-8 rounded-full px-3 text-[11px] sm:text-xs whitespace-nowrap transition-colors hover:bg-primary/10"
+                    onClick={() => handleMuscleGroupToggle(group)}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={selectedMuscleGroups.includes(group)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleMuscleGroupToggle(group);
+                      }
+                    }}
+                  >
+                    {group}
+                  </Badge>
+                ))}
+              </div>
+            </>
           )}
         </div>
 
@@ -140,7 +145,11 @@ export function ExercisesListFilters({ onFiltersChange }: ExercisesListFiltersPr
             control={control}
             render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger id="difficulty" aria-label="Seleccionar dificultad">
+                <SelectTrigger
+                  id="difficulty"
+                  aria-label="Seleccionar dificultad"
+                  className="h-11 rounded-xl sm:min-w-[200px]"
+                >
                   <SelectValue placeholder="Todas las dificultades" />
                 </SelectTrigger>
                 <SelectContent>
@@ -156,7 +165,7 @@ export function ExercisesListFilters({ onFiltersChange }: ExercisesListFiltersPr
 
         {/* Clear Filters */}
         {hasActiveFilters && (
-          <Button variant="outline" size="sm" onClick={clearFilters} className="w-full">
+          <Button variant="outline" size="sm" onClick={clearFilters} className="w-full h-11 rounded-xl">
             <X className="h-4 w-4 mr-2" />
             Limpiar Filtros
           </Button>

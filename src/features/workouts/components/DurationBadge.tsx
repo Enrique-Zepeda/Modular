@@ -13,11 +13,11 @@ export function DurationBadge({ seconds }: { seconds?: number | null }) {
   return (
     <Badge
       variant="secondary"
-      className="whitespace-nowrap"
+      className="inline-flex items-center gap-1.5 h-8 sm:h-7 px-2.5 rounded-full border border-border/40 bg-muted/50 text-foreground/80 whitespace-nowrap max-w-[65vw] sm:max-w-none overflow-hidden text-ellipsis font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       aria-label="Duración del entrenamiento"
       title="Duración del entrenamiento"
     >
-      {text}
+      <span className="tabular-nums">{text}</span>
     </Badge>
   );
 }

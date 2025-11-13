@@ -51,33 +51,58 @@ export function CompletedWorkoutsSection() {
     return <div className="text-sm text-muted-foreground">Aún no has completado entrenamientos.</div>;
   }
 
-  return (
-    <section className="space-y-6">
-      <h2 className="text-lg font-semibold">Entrenamientos completados</h2>
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Cargando entrenamientos…
+      </div>
+    );
+  }
 
-      <div className="space-y-8">
+  if (isError) {
+    return (
+      <div className="text-sm text-destructive" role="alert">
+        No se pudo cargar tus entrenamientos.
+      </div>
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return <div className="text-sm text-muted-foreground">Aún no has completado entrenamientos.</div>;
+  }
+
+  return (
+    <section className="space-y-5 sm:space-y-6">
+      <h2 className="text-base sm:text-lg font-semibold">Entrenamientos completados</h2>
+
+      <div className="space-y-6 sm:space-y-8">
         {grouped.map(([dayKey, sessions]) => (
-          <div key={dayKey} className="space-y-3">
-            <h3 className="text-sm font-medium text-muted-foreground">{formatDayHeader(dayKey)}</h3>
-            <div className="grid gap-3">
+          <div key={dayKey} className="space-y-2.5 sm:space-y-3">
+            <h3 className="text-xs sm:text-sm font-medium text-muted-foreground">{formatDayHeader(dayKey)}</h3>
+
+            {/* Grid responsive: 1 col móvil, 2 en sm, 3 en xl. min-w-0 evita overflow horizontal */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 min-w-0">
               {sessions.map((s) => (
-                <WorkoutCard
-                  key={s.id_sesion}
-                  idSesion={s.id_sesion}
-                  titulo={s.titulo ?? s.Rutinas?.nombre ?? "Entrenamiento"}
-                  startedAt={s.started_at}
-                  endedAt={s.ended_at ?? s.started_at}
-                  totalSets={(s as any).total_sets ?? 0}
-                  totalVolume={Number((s as any).total_volume ?? 0)}
-                  username={"Tú"}
-                  avatarUrl={undefined}
-                  sexo={mySexo}
-                  ejercicios={(s as any).ejercicios ?? []}
-                  sensacionFinal={s.sensacion_final ?? (s as any).sensacion_global ?? null}
-                  isMine={true}
-                  readOnly={false}
-                  sexo={mySexo}
-                />
+                <div key={s.id_sesion} className="min-w-0">
+                  <WorkoutCard
+                    key={s.id_sesion}
+                    idSesion={s.id_sesion}
+                    titulo={s.titulo ?? s.Rutinas?.nombre ?? "Entrenamiento"}
+                    startedAt={s.started_at}
+                    endedAt={s.ended_at ?? s.started_at}
+                    totalSets={(s as any).total_sets ?? 0}
+                    totalVolume={Number((s as any).total_volume ?? 0)}
+                    username={"Tú"}
+                    avatarUrl={undefined}
+                    sexo={mySexo}
+                    ejercicios={(s as any).ejercicios ?? []}
+                    sensacionFinal={s.sensacion_final ?? (s as any).sensacion_global ?? null}
+                    isMine={true}
+                    readOnly={false}
+                    sexo={mySexo}
+                  />
+                </div>
               ))}
             </div>
           </div>

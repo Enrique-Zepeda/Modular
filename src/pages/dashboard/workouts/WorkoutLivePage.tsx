@@ -229,13 +229,15 @@ export default function WorkoutLivePage() {
   }, [workout, createWorkout, navigate, id_rutina]);
 
   return (
-    <div className="mx-auto max-w-7xl p-4 space-y-6">
+    <div className="mx-auto max-w-[min(100%,theme(spacing.7xl))] px-4 sm:px-6 lg:px-8 py-4 space-y-6">
+      {/* Header */}
       <WorkoutHeader
         title={workout?.nombre ?? (isLoading ? "Cargando..." : isError ? "Error" : "Entrenamiento")}
         description={workout?.descripcion}
         elapsed={elapsed}
       />
 
+      {/* KPIs sticky-friendly (el propio componente maneja el sticky) */}
       <WorkoutKpisBar
         doneSets={doneSets}
         totalSets={totalSets}
@@ -245,9 +247,10 @@ export default function WorkoutLivePage() {
         saving={saving}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left side - Workout Exercises */}
-        <div className="lg:col-span-2">
+      {/* Layout principal: 1 col en móvil; desde lg = 2+1 con sidebar sticky */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 items-start">
+        {/* Col izquierda: ejercicios (min-w-0 evita overflow horizontal) */}
+        <div className="lg:col-span-2 min-w-0">
           {!isLoading && workout && (
             <WorkoutExerciseList
               exercises={workout.exercises}
@@ -267,8 +270,8 @@ export default function WorkoutLivePage() {
           )}
         </div>
 
-        {/* Right side - Exercise Finder */}
-        <div className="lg:col-span-1 space-y-4">
+        {/* Col derecha: finder (sidebar sticky en desktop, bloque normal en móvil) */}
+        <div className="lg:col-span-1 min-w-0 space-y-4 lg:sticky lg:top-[calc(env(safe-area-inset-top)+4.5rem)] lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
           <ExerciseFinder
             existingIds={existingIds}
             open={true}
@@ -277,13 +280,16 @@ export default function WorkoutLivePage() {
         </div>
       </div>
 
+      {/* Diálogos y errores */}
       <ExitConfirmationDialog open={exitOpen} onOpenChange={setExitOpen} onConfirm={handleExitNow} />
+
       <DeleteExerciseDialog
         open={deleteDlg.open}
         onOpenChange={(open) => setDeleteDlg((d) => ({ ...d, open }))}
         onConfirm={confirmDeleteExercise}
         exerciseName={deleteDlg.name}
       />
+
       {createError && (
         <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
           <p className="text-sm text-destructive">{createError}</p>

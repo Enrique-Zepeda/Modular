@@ -194,26 +194,26 @@ export function DashboardPage() {
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.7, ease: "easeOut" }}
-      className="space-y-10"
+      className="space-y-8 sm:space-y-10"
     >
       {/* Hero */}
       <motion.div
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.6 }}
-        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-accent/5 to-transparent p-10 border-2 border-border/60 backdrop-blur-xl shadow-2xl shadow-primary/10"
+        className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-primary/10 via-accent/5 to-transparent p-6 sm:p-8 lg:p-10 border-2 border-border/60 backdrop-blur-xl shadow-2xl shadow-primary/10"
       >
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-50" />
-        <div className="relative flex items-center gap-6">
-          <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-primary/30 to-accent/20 ring-2 ring-primary/30 shadow-2xl shadow-primary/30">
-            <BarChart3 className="h-10 w-10 text-primary drop-shadow-lg" />
-            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-primary/20 to-accent/20 blur-2xl opacity-50 animate-pulse" />
+        <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+          <div className="relative flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl sm:rounded-3xl bg-gradient-to-br from-primary/30 to-accent/20 ring-2 ring-primary/30 shadow-2xl shadow-primary/30">
+            <BarChart3 className="h-8 w-8 sm:h-10 sm:w-10 text-primary drop-shadow-lg" />
+            <div className="absolute inset-0 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-primary/20 to-accent/20 blur-2xl opacity-50 animate-pulse" />
           </div>
-          <div className="flex-1">
-            <h1 className="text-5xl font-black tracking-tight bg-gradient-to-r from-foreground via-primary/90 to-accent/90 bg-clip-text text-transparent drop-shadow-sm">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight bg-gradient-to-r from-foreground via-primary/90 to-accent/90 bg-clip-text text-transparent drop-shadow-sm">
               Entrenamientos recientes
             </h1>
-            <p className="text-muted-foreground mt-3 text-lg leading-relaxed font-medium">
+            <p className="text-muted-foreground mt-2 sm:mt-3 text-sm sm:text-lg leading-relaxed font-medium">
               Tus entrenamientos y los de tus amigos.
             </p>
           </div>
@@ -225,6 +225,7 @@ export function DashboardPage() {
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4, duration: 0.6 }}
+        className="min-w-0"
       >
         <DashboardKpis />
       </motion.div>
@@ -234,9 +235,10 @@ export function DashboardPage() {
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6, duration: 0.6 }}
+        className="min-w-0"
       >
         <Card>
-          <CardContent className="p-8 space-y-6">
+          <CardContent className="p-4 sm:p-6 lg:p-8 space-y-6">
             {isLoading && <div className="text-sm text-muted-foreground py-4">Cargando actividad…</div>}
             {!isLoading && visibleItems.length === 0 && (
               <div className="text-sm text-muted-foreground py-4">Aún no hay actividad reciente.</div>
