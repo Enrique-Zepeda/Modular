@@ -260,7 +260,6 @@ export default function RecomendacionPage() {
                         <SelectValue placeholder="Selecciona el equipo" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Solo_Cuerpo">🤸 Solo Cuerpo</SelectItem>
                         <SelectItem value="Mancuernas">🏋️ Mancuernas</SelectItem>
                         <SelectItem value="Gym_Completo">🏢 Gym Completo</SelectItem>
                       </SelectContent>
