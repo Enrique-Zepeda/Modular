@@ -13,6 +13,7 @@ import PublicRoute from "./PublicRoutes/PublicRoute";
 import RecomendacionPage from "@/pages/RecomendacionPage";
 import SettingsPage from "@/pages/dashboard/settings/SettingsPage";
 import WorkoutLivePage from "@/pages/dashboard/workouts/WorkoutLivePage";
+import { CompetenciaPushups } from "@/pages/dashboard/competencia/CompetenciaPushups";
 
 export default function AppRouter() {
   return (
@@ -69,6 +70,16 @@ export default function AppRouter() {
           <ProtectedRoute>
             <DashboardLayout>
               <DashboardPage />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/leaderboard"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <CompetenciaPushups />
             </DashboardLayout>
           </ProtectedRoute>
         }
