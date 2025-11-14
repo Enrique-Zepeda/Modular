@@ -210,16 +210,17 @@ export const CommentsThread = memo(function CommentsThread({ sessionId, onClose 
                   fallbackText={initials}
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
-                    <span className="truncate font-bold text-sm bg-gradient-to-br from-foreground to-foreground/80 bg-clip-text text-transparent">
+                  <div className="flex items-center gap-2 mb-1.5 sm:mb-2 flex-wrap min-w-0">
+                    <span
+                      className="font-bold text-sm bg-gradient-to-br from-foreground to-foreground/80 bg-clip-text text-transparent
+  break-words whitespace-normal leading-tight min-w-0"
+                    >
                       {username}
                     </span>
-                    <span className="text-muted-foreground/30" aria-hidden="true">
-                      ·
-                    </span>
+
                     <time
                       dateTime={c.created_at}
-                      className="text-[11px] sm:text-xs text-muted-foreground/60 tabular-nums font-medium"
+                      className="shrink-0 text-[11px] sm:text-xs text-muted-foreground/60 tabular-nums font-medium"
                     >
                       {formatDate(c.created_at)}
                     </time>
@@ -238,7 +239,10 @@ export const CommentsThread = memo(function CommentsThread({ sessionId, onClose 
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, x: -10 }}
                 transition={{ duration: 0.2 }}
-                className="relative flex items-start gap-3 sm:gap-3.5 p-3.5 sm:p-4 border-2 border-border/80 bg-gradient-to-br from-background via-muted/10 to-muted/20 hover:from-muted/30 hover:via-muted/40 hover:to-muted/50 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-200 group rounded-xl min-w-0"
+                className="relative flex items-start gap-3 sm:gap-3.5 p-3.5 sm:p-4 pr-10 sm:pr-12
+  border-2 border-border/80 bg-gradient-to-br from-background via-muted/10 to-muted/20
+  hover:from-muted/30 hover:via-muted/40 hover:to-muted/50 hover:border-primary/40
+  hover:shadow-lg hover:shadow-primary/5 transition-all duration-200 group rounded-xl min-w-0"
                 role="listitem"
               >
                 {usernameSlug ? (

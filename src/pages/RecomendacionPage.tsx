@@ -1,6 +1,6 @@
 import type React from "react";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -34,6 +34,20 @@ export default function RecomendacionPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultado, setResultado] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Bloquea el scroll en <html> y <body>
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+
+    // Función de limpieza que se ejecuta cuando el componente se desmonta
+    return () => {
+      // Restaura el scroll
+      document.documentElement.style.overflow = "auto";
+      document.body.style.overflow = "auto";
+    };
+  }, []);
+
   const {
     data: programa,
     isLoading: loadingPrograma,
@@ -101,15 +115,11 @@ export default function RecomendacionPage() {
   };
 
   return (
-    // ✅ Fix scroll doble en móvil: un solo contenedor con scroll vertical
-    // - h-[100svh] y 100dvh para cubrir bien iOS/Android
-    // - overflow-y-auto aquí y NO en hijos
-    // - overflow-x-hidden para evitar desbordes por efectos absolutos
-    <div className="isolate h-[100svh] supports-[height:100dvh]:h-[100dvh] overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y">
-      <div className="mx-auto max-w-[min(100%,theme(spacing.7xl))] px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8 pb-8 pb-[env(safe-area-inset-bottom)]">
+    // No min-h-screen, no overflow-y, solo evitamos overscroll horizontal
+    <section className="w-full overflow-x-hidden">
+      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
         {/* HERO / INTRO */}
-        <div className="relative overflow-hidden rounded-3xl border-2 border-primary/20 bg-gradient-to-br from-primary/15 via-purple-500/10 to-background p-5 sm:p-8 lg:p-10 shadow-2xl">
-          {/* BG effects: reducir en móvil para performance */}
+        <div className="relative mt-6 sm:mt-8 overflow-hidden rounded-3xl border-2 border-primary/20 bg-gradient-to-br from-primary/15 via-purple-500/10 to-background p-5 sm:p-8 lg:p-10 shadow-2xl">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-purple-500/10 pointer-events-none animate-pulse" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(120,119,198,0.15),transparent_50%)] pointer-events-none hidden sm:block" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(147,51,234,0.15),transparent_50%)] pointer-events-none hidden sm:block" />
@@ -155,7 +165,7 @@ export default function RecomendacionPage() {
         </div>
 
         {/* FORM + RESULTADOS */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+        <div className="mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
           {/* FORM */}
           <Card className="border-2 border-border/60 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:border-primary/30 bg-gradient-to-br from-background via-background to-primary/5 overflow-hidden">
             <CardHeader className="space-y-2 sm:space-y-3 pb-5 sm:pb-6 pt-6 sm:pt-8 px-4 sm:px-6 border-b border-border/40 bg-gradient-to-r from-primary/5 via-purple-500/5 to-transparent rounded-t-xl">
@@ -505,6 +515,6 @@ export default function RecomendacionPage() {
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
