@@ -461,10 +461,6 @@ export function CompetenciaPushups() {
                         </>
                       )}
                     </Button>
-
-                    <p className="text-[0.7rem] sm:text-xs md:text-sm text-muted-foreground text-center font-medium italic">
-                      💡 Pide a alguien que te grabe para validación posterior
-                    </p>
                   </form>
                 </CardContent>
               </Card>
