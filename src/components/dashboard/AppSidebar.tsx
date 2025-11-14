@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, Calendar, Dumbbell, User, Settings, LogOut, Sparkles, UserPlus } from "lucide-react";
+import { Home, Calendar, Dumbbell, User, Settings, LogOut, Sparkles, UserPlus, Swords } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppDispatch } from "@/hooks/useStore";
 import { logoutUser } from "@/features/auth/thunks";
@@ -9,6 +9,7 @@ import LogoutConfirmDialog from "../ui/logout-confirm-dialog";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
+  { name: "Competencia", href: "/leaderboard", icon: Swords },
   { name: "Rutinas", href: "/dashboard/routines", icon: Calendar },
   { name: "Ejercicios", href: "/dashboard/ejercicios", icon: Dumbbell },
   { name: "Agregar amigos", href: "/dashboard/friends", icon: UserPlus },

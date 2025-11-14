@@ -19,6 +19,7 @@ import {
   Users,
   Moon,
   Sun,
+  Swords,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import LogoutConfirmDialog from "../ui/logout-confirm-dialog";
@@ -26,6 +27,7 @@ import LogoPng from "../media/LogoGymApp.png";
 
 const navigation = [
   { name: "Home", href: "/dashboard", icon: Home },
+  { name: "Competencia", href: "/leaderboard", icon: Swords },
   { name: "Rutinas", href: "/dashboard/routines", icon: Calendar },
   { name: "Recomendación de Rutina", href: "/recomendacion", icon: Sparkles },
   { name: "Ejercicios", href: "/dashboard/ejercicios", icon: Dumbbell },
